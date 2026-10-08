@@ -12,7 +12,9 @@ export type StoreProduct = Pick<Product, "id" | "slug" | "name" | "price_cents" 
 export type StoreReview = Review & { pinned?: boolean; photos?: string[] | null };
 /** What the business says about itself beyond the basics. `reply_minutes` is absent until it has answered at least three messages. */
 export type Extras = { languages?: string[] | null; reply_minutes?: number | null; reply_sample?: number | null };
-export type Payload = { business: Biz; locations: Loc[]; staff: Staff[]; services: Service[]; reviews: StoreReview[]; products: StoreProduct[]; display?: Display; policy?: Policy; saved?: boolean; photo_count?: number; extras?: Extras };
+/** A question the business asks at booking. `service_id` null: asked for every booking; otherwise only when that service is being booked. A `consent` box must always be ticked. */
+export type Question = { id: string; service_id: string | null; label: string; kind: "text" | "yesno" | "choice" | "consent"; options?: string[] | null; required: boolean; sort: number };
+export type Payload = { business: Biz; locations: Loc[]; staff: Staff[]; services: Service[]; reviews: StoreReview[]; products: StoreProduct[]; display?: Display; policy?: Policy; saved?: boolean; photo_count?: number; extras?: Extras; intake?: Question[] | null };
 export type Slot = { time: string; starts_at: string; staff_id: string; staff: string; price_cents: number };
 export type DayCell = { date: string; open: number; from_cents: number; past: boolean; too_far: boolean };
 export type Breakdown = { all?: number; average?: number; s1?: number; s2?: number; s3?: number; s4?: number; s5?: number };

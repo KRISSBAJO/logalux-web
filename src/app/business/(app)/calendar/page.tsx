@@ -21,6 +21,18 @@ const VIEWS = [["day", "Day"], ["staff", "Staff"], ["week", "Week"], ["month", "
 const mins = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
 const dowOf = (day: string) => DOW[new Date(day + "T12:00:00Z").getUTCDay()];
 const lengthOf = (b: Row) => (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000;
+/** Who is coming, when it is not the person who booked. */
+const guestOf = (b: Row) => String(b.guest_name ?? "").trim();
+/** "Tola (booked by Dami Parent)", or just the client when they booked for themselves. */
+const whoOf = (b: Row) => (guestOf(b) ? `${guestOf(b)} (booked by ${b.client_name})` : String(b.client_name ?? ""));
+/** The name for a small tile: the guest as typed, with a "for" marker, or the client's short name. */
+const tileName = (b: Row) => (guestOf(b) ? <><i className="for">for</i>{guestOf(b)}</> : shortName(b.client_name));
+const answerText = (a: Row) => {
+  const v = String(a.answer ?? "").trim();
+  if (a.kind === "consent") return v.toLowerCase() === "yes" ? "Agreed" : v || "Not ticked";
+  if (a.kind === "yesno") return v.toLowerCase() === "yes" ? "Yes" : v.toLowerCase() === "no" ? "No" : v;
+  return v || "No answer";
+};
 const dueOf = (b: Row) => (b.status === "paid" ? 0 : Math.max(0, b.total_cents - b.discount_cents - (b.deposit_paid ? b.deposit_cents : 0)));
 
 export default async function Calendar({ searchParams }: { searchParams: Promise<SP> }) {
@@ -114,7 +126,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
 
   // ----- the side panel -----
   const picked = sel && !sel.error ? (sel.data.booking as Row) : null;
-  const items = (sel?.data.items ?? []) as Row[], hist = (sel?.data.client ?? null) as Row | null;
+  const items = (sel?.data.items ?? []) as Row[], hist = (sel?.data.client ?? null) as Row | null, answers = (sel?.data.answers ?? []) as Row[];
   const block = sp.block ? blocks.find((b) => b.id === sp.block) : null;
   const waitlist = (wait?.data.waitlist ?? []) as Row[];
   const client0 = pre && !pre.error ? { id: pre.data.client.id, name: pre.data.client.name, phone: pre.data.client.phone } : sp.name ? { name: sp.name, phone: sp.phone } : undefined;
@@ -170,7 +182,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                 {((found.data.bookings ?? []) as Row[]).map((b) => (
                   <Link key={b.id} href={"/business/calendar" + qs({ date: ymd(b.starts_at, tz), booking: b.id })}>
                     <time>{dayShort(b.starts_at, tz)} · {clock(b.starts_at, tz)}</time>
-                    <span style={{ flex: 1, minWidth: 0 }}><b>{b.client_name}</b> · {b.services ?? "Visit"} with {firstName(b.staff)}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}><b>{whoOf(b)}</b> · {b.services ?? "Visit"} with {firstName(b.staff)}</span>
                     <Pill tone={statusTone(b.status)}>{STATUS_LABEL[b.status] ?? b.status}</Pill>
                   </Link>
                 ))}
@@ -237,8 +249,8 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                             </Link>
                           ))}
                           {bookings.filter((b) => b.staff_id === s.id).map((b) => (
-                            <Link key={b.id} href={href({ booking: b.id, block: undefined, panel: undefined })} scroll={false} className={evClass(b)} style={place(b, at)} title={`${clock(b.starts_at, tz)} to ${clock(b.ends_at, tz)} · ${b.client_name}`}>
-                              <b>{shortName(b.client_name)}</b><span>{evSub(b)}</span>
+                            <Link key={b.id} href={href({ booking: b.id, block: undefined, panel: undefined })} scroll={false} className={evClass(b)} style={place(b, at)} title={`${clock(b.starts_at, tz)} to ${clock(b.ends_at, tz)} · ${whoOf(b)}`}>
+                              <b>{tileName(b)}</b><span>{evSub(b)}</span>
                             </Link>
                           ))}
                         </div>
@@ -260,7 +272,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                       {dayBookings.map((b) => (
                         <tr key={b.id} className={sp.booking === b.id ? "on" : ""}>
                           <td data-sort={b.starts_at}><Link href={href({ booking: b.id, block: undefined, panel: undefined })} scroll={false} className="agt">{clock(b.starts_at, tz)}</Link></td>
-                          <td data-sort={b.client_name}><Link href={href({ booking: b.id, block: undefined, panel: undefined })} scroll={false} className="agc"><Avatar name={b.client_name} tone={b.staff_tone} size={28} /><b>{b.client_name}</b></Link></td>
+                          <td data-sort={guestOf(b) || b.client_name}><Link href={href({ booking: b.id, block: undefined, panel: undefined })} scroll={false} className="agc"><Avatar name={guestOf(b) || b.client_name} tone={b.staff_tone} size={28} />{guestOf(b) ? <span><b><i className="for">for</i>{guestOf(b)}</b><small>booked by {b.client_name}</small></span> : <b>{b.client_name}</b>}</Link></td>
                           <td>{b.services ?? "Visit"}</td>
                           <td>{firstName(b.staff)}</td>
                           <td data-sort={lengthOf(b)}>{dur(lengthOf(b))}</td>
@@ -286,7 +298,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                       <Link href={href({ date: day, view: undefined, booking: undefined })} className="wkh"><b>{dateOnly(day + "T00:00:00Z")}</b><span>{closed && !list.length ? "Closed" : `${list.length} booked · ${money(list.reduce((a, b) => a + b.total_cents, 0), cur)}`}</span></Link>
                       {list.map((b) => (
                         <Link key={b.id} href={href({ booking: b.id, block: undefined, panel: undefined })} scroll={false} className={evClass(b).replace(/^ev/, "we")} style={{ borderLeftColor: b.staff_tone }}>
-                          <b>{clock(b.starts_at, tz)} {shortName(b.client_name)}</b><span>{b.services ?? "Visit"} · {firstName(b.staff)}</span>
+                          <b>{clock(b.starts_at, tz)} {tileName(b)}</b><span>{b.services ?? "Visit"} · {firstName(b.staff)}</span>
                         </Link>
                       ))}
                     </div>
@@ -346,12 +358,15 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
             ) : picked ? (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar name={picked.client_name} tone={picked.staff_tone} size={44} style={{ fontSize: 14 }} />
+                  <Avatar name={guestOf(picked) || picked.client_name} tone={picked.staff_tone} size={44} style={{ fontSize: 14 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 17, fontWeight: 600 }}>{picked.client_name}</div>
-                    <div className="muted" style={{ fontSize: 12.5 }}>{hist ? (hist.visits > 0 ? `${plural(hist.visits, "visit")} · ${money(hist.spent_cents, cur)} · ${plural(hist.no_shows, "no-show")}` : "First visit") : picked.client_phone || "Walk-in"}</div>
+                    <div style={{ fontSize: 17, fontWeight: 600, overflowWrap: "anywhere" }}>{guestOf(picked) ? <>{guestOf(picked)} <span className="by">(booked by {picked.client_name})</span></> : picked.client_name}</div>
+                    <div className="muted" style={{ fontSize: 12.5 }}>{guestOf(picked) && hist ? `${firstName(picked.client_name)}: ` : ""}{hist ? (hist.visits > 0 ? `${plural(hist.visits, "visit")} · ${money(hist.spent_cents, cur)} · ${plural(hist.no_shows, "no-show")}` : "First visit") : picked.client_phone || "Walk-in"}</div>
                   </div>
-                  <Pill tone={statusTone(picked.status)}>{STATUS_LABEL[picked.status] ?? picked.status}</Pill>
+                  <span className="tags">
+                    {picked.series_id ? <span className="pill pill-gold" title="One of a set of repeat appointments the client booked.">Repeats</span> : null}
+                    <Pill tone={statusTone(picked.status)}>{STATUS_LABEL[picked.status] ?? picked.status}</Pill>
+                  </span>
                 </div>
                 <div className="kv">
                   <div><small>Service</small><b>{picked.services ?? "Visit"}</b></div>
@@ -366,6 +381,14 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                   {picked.status === "paid" ? <div className="line muted"><span>Paid{picked.paid_at ? ` ${dateMed(picked.paid_at, tz)}` : ""}{picked.tip_cents ? ` · tip ${money(picked.tip_cents, cur)}` : ""}</span><span>{money(-(picked.total_cents - picked.discount_cents), cur)}</span></div> : null}
                   <div className="line total"><span>Due at checkout</span><span>{money(dueOf(picked), cur)}</span></div>
                 </div>
+                {answers.length > 0 && (
+                  <div className="answers">
+                    <b>Answers</b>
+                    <dl>
+                      {answers.map((a, i) => <div key={i}><dt>{a.label}</dt><dd>{answerText(a)}</dd></div>)}
+                    </dl>
+                  </div>
+                )}
                 {picked.notes || hist?.notes ? <div className="note"><b>Notes</b><br />{[picked.notes, hist?.notes].filter(Boolean).join(" · ")}</div> : null}
                 {picked.cancel_reason ? <div className="note"><b>Reason</b><br />{picked.cancel_reason}</div> : null}
 
@@ -379,7 +402,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                   {picked.status === "paid" && <Link href={href({ booking: undefined }) + (plain.includes("?") ? "&" : "?") + `new=1&client=${picked.client_id ?? ""}`} className="btn btn-ink btn-sm">Rebook</Link>}
                   {picked.client_id ? <Link href={`/business/inbox?new=1&cq=${encodeURIComponent(picked.client_name)}`} className="btn btn-out btn-sm">Message</Link> : null}
                   {["requested", "confirmed"].includes(picked.status) && (
-                    <Sheet trigger="Reschedule" triggerClass="btn btn-out btn-sm" title="Move this booking" sub={`${picked.client_name} · ${picked.services ?? "Visit"} · now ${dayShort(picked.starts_at, tz)} at ${clock(picked.starts_at, tz)}`}>
+                    <Sheet trigger="Reschedule" triggerClass="btn btn-out btn-sm" title="Move this booking" sub={`${whoOf(picked)} · ${picked.services ?? "Visit"} · now ${dayShort(picked.starts_at, tz)} at ${clock(picked.starts_at, tz)}`}>
                       <form action={bookingAction}>
                         <input type="hidden" name="id" value={picked.id} /><input type="hidden" name="action" value="reschedule" /><input type="hidden" name="back" value={href()} />
                         <SlotPicker staff={staffPick} currency={cur} serviceIds={items.map((it) => it.service_id).filter(Boolean)} exclude={picked.id} date0={ymd(picked.starts_at, tz) < today ? today : ymd(picked.starts_at, tz)} staff0={picked.staff_id} />

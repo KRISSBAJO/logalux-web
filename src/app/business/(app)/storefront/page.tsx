@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
+import { ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Ic, LoadError, NoAccess, Topbar } from "@/components/merchant-ui";
 import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { clock, dateMed, dur, money, plural } from "@/lib/merchant-format";
 import { deletePhoto, orderPhotos, pinReview, removeLogo, replyReview, saveLanguages, saveStorefront, updatePhoto, uploadLogo, uploadPhoto } from "./actions";
 import { HashTab, LivePreview, type PreviewData } from "./preview";
+import { ShareCard } from "./share-card";
 import "../../css/storefront.css";
 
 export const metadata = { title: "Storefront" };
@@ -126,6 +127,7 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
         </div>
         <span style={{ flex: 1 }} />
         {statusPill}
+        <Link href="/business/storefront?tab=found#share" className="btn btn-out">Share and embed</Link>
         <a href={`/b/${b.slug}`} target="_blank" rel="noreferrer" className="btn btn-out">View live page</a>
         {hasForm ? <button className="btn btn-ink" form={FORM}>Save changes</button> : null}
       </Topbar>
@@ -389,9 +391,9 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
                 </div>
                 {checks.map((c, i) => <div key={i} className="tip"><span className={"ic " + (c.ok ? "ok" : "todo")} aria-hidden="true">{c.ok ? "✓" : "!"}</span><div><b>{c.title}</b>{c.more}</div></div>)}
               </div>
+              <ShareCard slug={String(b.slug ?? "")} name={String(b.name ?? "")} />
               <div className="card">
-                <h3>Your address</h3>
-                <div className="row"><div style={{ minWidth: 0 }}><b style={{ overflowWrap: "anywhere" }}>{url}</b><span>Put it in your Instagram bio, on WhatsApp and on your door</span></div><CopyButton text={url}>Copy</CopyButton></div>
+                <h3>Your listing</h3>
                 <div className="row"><div><b>{live ? "Your listing is live" : b.status === "paused" ? "Your listing is paused" : b.status === "suspended" ? "Your listing is suspended" : "Your listing is being checked"}</b><span>{live ? "Clients can find and book you" : b.status === "paused" ? "Bring it back in Settings" : b.status === "suspended" ? "Contact LogaLuxe support" : "You can set everything up now. It goes live once our team approves it."}</span></div>{live ? <span className="pill pill-ok">Live</span> : <Link href="/business/settings?tab=data" className="btn btn-out btn-sm">Settings</Link>}</div>
                 <div className="row"><div><b>Show on LogaLuxe search</b><span>Whether clients browsing LogaLuxe can find you. A new-client fee applies to bookings from search.</span></div><Link href="/business/settings?tab=page" className="btn btn-out btn-sm">Change in Settings</Link></div>
               </div>

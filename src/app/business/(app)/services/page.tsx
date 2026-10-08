@@ -8,6 +8,7 @@ import { clock, dur, firstName, money, plural, ymd } from "@/lib/merchant-format
 import { serviceArchive, serviceCreate, serviceDelete, serviceDuplicate, serviceRestore, serviceMove, serviceOnline, serviceSave } from "./actions";
 import { serviceImport } from "./menu-actions";
 import { PlansView, ResourcesView, RulesView } from "./menu-views";
+import { QuestionsView } from "./questions-view";
 import "../../css/services.css";
 
 export const metadata = { title: "Services" };
@@ -81,7 +82,7 @@ export default async function Services({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const me = (await getMe())!;
   const { merchant: m } = me;
-  const [{ data, error }, menuRes] = await Promise.all([mLoad("/services"), mLoad("/menu")]);
+  const [{ data, error }, menuRes, intake] = await Promise.all([mLoad("/services"), mLoad("/menu"), mCan(me, "manager") ? mLoad("/intake") : null]);
   if (error) return <div className="main pg-services"><LoadError title="Services & pricing" error={error} /></div>;
 
   const cur = m.currency, manager = mCan(me, "manager");
@@ -94,11 +95,12 @@ export default async function Services({ searchParams }: { searchParams: Promise
 
   const menu = menuRes.data;
   const resources = (menu.resources ?? []) as Row[], rules = (menu.price_rules ?? []) as Row[], packages = (menu.packages ?? []) as Row[], memberships = (menu.memberships ?? []) as Row[], holders = (menu.holders ?? []) as Row[];
-  const page = ["rules", "packages", "memberships", "resources"].includes(sp.view ?? "") ? sp.view! : "";
+  const page = ["rules", "packages", "memberships", "resources", "questions"].includes(sp.view ?? "") ? sp.view! : "";
   const view = sp.view === "archived" && archived.length ? "archived" : "";
   const cat = !view && !page && sp.cat && cats.includes(sp.cat) ? sp.cat : "";
   const shown = view ? archived : cat ? active.filter((s) => s.category === cat) : active;
   const tz = m.timezone;
+  const questions = ((intake?.data.questions ?? []) as Row[]);
   const groups = view ? [{ name: "", rows: shown }] : (cat ? [cat] : cats).map((c) => ({ name: c, rows: active.filter((s) => s.category === c) }));
   const sel = every.find((s) => s.id === sp.s) ?? shown[0];
   const href = (extra: Record<string, string | undefined> = {}) => "/business/services" + qs({ cat, view: view || page, ...extra });
@@ -184,13 +186,15 @@ export default async function Services({ searchParams }: { searchParams: Promise
             <Link href="/business/services?view=memberships" className={"cat" + (page === "memberships" ? " on" : "")}>Memberships<small>{memberships.length}</small></Link>
             <Link href="/business/services?view=rules" className={"cat" + (page === "rules" ? " on" : "")}>Pricing rules<small>{rules.filter((x) => x.active).length}</small></Link>
             <Link href="/business/services?view=resources" className={"cat" + (page === "resources" ? " on" : "")}>Rooms and chairs<small>{resources.length}</small></Link>
+            {manager && <Link href="/business/services?view=questions" className={"cat" + (page === "questions" ? " on" : "")}>Questions<small>{intake?.error ? "" : questions.filter((x) => x.active).length}</small></Link>}
             {archived.length > 0 && <Link href={"/business/services" + qs({ view: "archived" })} className={"cat" + (view ? " on" : "")}>Archived<small>{archived.length}</small></Link>}
             {manager && <Link href="/business/inventory?filter=retail" className="cat">Retail products<small>Inventory</small></Link>}
             {manager && <Link href={"/business/services" + qs({ cat, view, s: sp.s, new: "1" })} className="cat" style={{ color: "#7A1F2B" }}>+ Add group</Link>}
           </nav>
 
           <div className="list">
-            {page && menuRes.error ? <div role="alert" className="flash flash-err">{menuRes.error}</div>
+            {page === "questions" ? <QuestionsView questions={questions} services={active} manager={manager} back={back} error={intake?.error} />
+              : page && menuRes.error ? <div role="alert" className="flash flash-err">{menuRes.error}</div>
               : page === "rules" ? <RulesView rules={rules} services={active} staff={staff} cur={cur} manager={manager} back={back} now={`${ymd(new Date(), tz)}T${clock(new Date(), tz)}`} />
               : page === "packages" ? <PlansView kind="package" plans={packages} holders={holders} services={active} cur={cur} tz={tz} manager={manager} back={back} autoRenew={!!menu.auto_renew} />
               : page === "memberships" ? <PlansView kind="membership" plans={memberships} holders={holders} services={active} cur={cur} tz={tz} manager={manager} back={back} autoRenew={!!menu.auto_renew} />

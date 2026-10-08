@@ -7,12 +7,13 @@ import { Avatar, Flash, LoadError, Topbar } from "@/components/merchant-ui";
 import { mReadFlash } from "@/lib/merchant-actions";
 import { getMe, mCan, mLoad, qs, type Me, type Row } from "@/lib/merchant-api";
 import { dateMed, dateOnly, money, plural, when } from "@/lib/merchant-format";
+import { CalendarSync } from "./calendar-sync";
 import { cancelTwoStepSetup, changePassword, changePlan, dismissRecoveryCodes, finishTwoStep, locationAction, saveAccount, saveLocation, saveProfile, saveRules, setListing, startTwoStep, stopTwoStep } from "./actions";
 import "../../css/settings.css";
 
 export const metadata = { title: "Settings" };
 
-type SP = { ok?: string; err?: string; tab?: string };
+type SP = { ok?: string; err?: string; tab?: string; staff?: string };
 type Hours = Record<string, string[] | null> | null | undefined;
 
 const SECTIONS: [string, string][] = [["biz", "Business & locations"], ["page", "Booking page"], ["policy", "Policies & deposits"], ["notif", "Notifications"], ["team", "Team & permissions"], ["integ", "Integrations"], ["billing", "Plan & billing"], ["data", "Data & privacy"], ["account", "Your account"]];
@@ -197,6 +198,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           <div className="pane">
             <Flash sp={sp} />
             <Account me={me} account={null} back="/business/settings" sec={await loadSecurity()} />
+            <CalendarSync me={me} staff={sp.staff} />
             <div className="card">
               <h3>Business settings</h3>
               <div className="sub">The business profile, opening hours, booking rules and the plan are looked after by managers and the owner. Ask them if something there needs changing.</div>
@@ -570,7 +572,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             </>
           ) : null}
 
-          {tab === "account" ? <Account me={me} account={account} back={back} sec={await loadSecurity()} /> : null}
+          {tab === "account" ? <><Account me={me} account={account} back={back} sec={await loadSecurity()} /><CalendarSync me={me} staff={sp.staff} /></> : null}
         </div>
       </div>
     </div>

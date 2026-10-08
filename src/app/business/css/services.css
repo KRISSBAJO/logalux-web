@@ -122,3 +122,19 @@
 .mx .pg-services .res{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid #EDE4DA}
 .mx .pg-services .res small{flex-basis:100%;font-size:12px;color:#6B5F57}
 .mx .pg-services .pc{display:flex;flex-direction:column;gap:12px}
+
+/* Questions at booking: the list, the note when 20 are on, and the preview of what a client sees. */
+.mx .pg-services .qlabel{min-width:220px;max-width:380px;white-space:normal;overflow-wrap:anywhere}
+.mx .pg-services .qlabel small{display:block;font-size:12px;color:#6B5F57;margin-top:2px}
+.mx .pg-services .qfull{background:#FBF4E3;border:1px solid #EBDDB8;color:#5E4710;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+.mx .pg-services .qprev{display:flex;flex-direction:column;gap:14px;max-width:460px;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:14px;padding:16px;min-width:0}
+.mx .pg-services .qp{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mx .pg-services .qp > b{font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.mx .pg-services .qp > b i{font-style:normal;font-weight:400;color:#6B5F57}
+.mx .pg-services .qp > small{font-size:11.5px;color:#6B5F57}
+.mx .pg-services .qp input[type=text]{width:100%;min-height:40px;border:1px solid #E6DCD2;border-radius:10px;padding:0 12px;font:inherit;font-size:13.5px;background:#FFFFFF}
+.mx .pg-services .qopts{display:flex;flex-wrap:wrap;gap:6px}
+.mx .pg-services .qopts span{display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid #E6DCD2;background:#FFFFFF;font-size:13px;font-weight:600;color:#6B5F57;max-width:100%;overflow-wrap:anywhere}
+.mx .pg-services .qtick{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;line-height:1.4}
+.mx .pg-services .qtick input{width:16px;height:16px;margin-top:2px;flex:none}
+.mx .pg-services .qtick span{min-width:0;overflow-wrap:anywhere}

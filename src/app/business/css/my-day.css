@@ -1,0 +1,79 @@
+/* My day: one person's day, built for a phone held in one hand. There is no
+   design canvas for this screen, so it uses the shared tokens of the merchant web. */
+.mx .pg-my-day .content{max-width:760px;width:100%;gap:14px}
+.mx .pg-my-day .topbar > div:first-child{flex:1 1 auto;min-width:0}
+.mx .pg-my-day .daynav{display:flex;align-items:center;gap:8px;flex:none}
+.mx .pg-my-day .btn.ico{width:46px;min-height:46px;padding:0}
+.mx .pg-my-day .daynav .btn{min-height:46px}
+.mx .pg-my-day .who{display:flex;align-items:center;gap:8px;min-width:0}
+.mx .pg-my-day .who select{min-height:46px;max-width:100%;border:1px solid #E6DCD2;border-radius:12px;background:#FFFFFF;color:#1A1513;font:inherit;font-size:14px;font-weight:600;padding:0 12px}
+.mx .pg-my-day .sum{font-size:15px;font-weight:600;line-height:1.4}
+.mx .pg-my-day .foot{font-size:13px}
+
+/* now and next */
+.mx .pg-my-day .nownext{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.mx .pg-my-day .nn{display:flex;flex-direction:column;gap:3px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:16px;padding:14px 16px;color:#1A1513;min-width:0}
+.mx .pg-my-day .nn:hover{color:#1A1513;border-color:#D4AF5A}
+.mx .pg-my-day .nn.now{background:#1A1513;border-color:#1A1513;color:#FBF7F2}
+.mx .pg-my-day .nn.now:hover{color:#FBF7F2}
+.mx .pg-my-day .nn small{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7A5A12}
+.mx .pg-my-day .nn.now small{color:#D4AF5A}
+.mx .pg-my-day .nn b{font-size:18px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.mx .pg-my-day .nn span{font-size:13.5px;color:#6B5F57;overflow-wrap:anywhere}
+.mx .pg-my-day .nn.now span{color:#C9BCB0}
+.mx .pg-my-day .nn span:last-child{font-weight:600;color:#1A1513}
+.mx .pg-my-day .nn.now span:last-child{color:#FBF7F2}
+
+/* the day in order */
+.mx .pg-my-day .day{display:flex;flex-direction:column;gap:12px}
+.mx .pg-my-day .quiet{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;border:1px dashed #D9CCBE;border-radius:14px;color:#6B5F57;font-size:13.5px}
+.mx .pg-my-day .quiet b{font-weight:600}
+.mx .pg-my-day .visit{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;scroll-margin-top:84px}
+.mx .pg-my-day .visit.live{border-color:#D4AF5A;box-shadow:inset 4px 0 0 #D4AF5A}
+.mx .pg-my-day .visit.miss,.mx .pg-my-day .visit.done{background:#FBF7F2}
+.mx .pg-my-day .visit.miss .v-who,.mx .pg-my-day .visit.miss .v-time b{color:#6B5F57}
+.mx .pg-my-day .v-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mx .pg-my-day .v-time{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:0}
+.mx .pg-my-day .v-time b{font-size:24px;font-weight:700;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+.mx .pg-my-day .v-time span{font-size:13px;color:#6B5F57}
+.mx .pg-my-day .v-who{font-size:19px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.mx .pg-my-day .v-who small{font-size:14px;font-weight:500;color:#6B5F57}
+.mx .pg-my-day .v-svc{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.mx .pg-my-day .v-tags{display:flex;flex-wrap:wrap;gap:6px}
+.mx .pg-my-day .v-money{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mx .pg-my-day .v-money b{font-size:17px;font-weight:700}
+.mx .pg-my-day .v-money span{font-size:13.5px;color:#6B5F57}
+.mx .pg-my-day .v-call{display:flex;align-items:center;gap:8px;min-height:46px;padding:0 14px;border:1px solid #E6DCD2;border-radius:12px;font-size:15px;font-weight:600;color:#1A1513;overflow-wrap:anywhere}
+.mx .pg-my-day .v-call:hover{color:#1A1513;border-color:#1A1513}
+.mx .pg-my-day .v-note{background:#FBF7F2;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.45;white-space:pre-line;overflow-wrap:anywhere}
+.mx .pg-my-day .v-note.ours{background:#F6EBD2}
+.mx .pg-my-day .v-note small{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;margin-bottom:2px}
+.mx .pg-my-day .v-note.ours small{color:#7A5A12}
+.mx .pg-my-day .v-ans{border:1px solid #E6DCD2;border-radius:12px}
+.mx .pg-my-day .v-ans summary{min-height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:15px;font-weight:600;cursor:pointer;list-style:none}
+.mx .pg-my-day .v-ans summary::-webkit-details-marker{display:none}
+.mx .pg-my-day .v-ans summary::after{content:"Show";font-size:13px;font-weight:600;color:#7A1F2B}
+.mx .pg-my-day .v-ans[open] summary::after{content:"Hide"}
+.mx .pg-my-day .v-ans ul{list-style:none;margin:0;padding:0 14px 12px;display:flex;flex-direction:column;gap:10px}
+.mx .pg-my-day .v-ans li{display:flex;flex-direction:column;gap:2px;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.mx .pg-my-day .v-ans li span{color:#6B5F57;font-size:13px}
+.mx .pg-my-day .v-ans li b{font-weight:600}
+.mx .pg-my-day .v-acts{display:flex;gap:10px;flex-wrap:wrap}
+.mx .pg-my-day .v-acts form{flex:1 1 140px;display:flex}
+.mx .pg-my-day .btn.big{min-height:54px;font-size:16px;border-radius:14px;flex:1 1 140px;width:100%;white-space:normal;text-align:center}
+.mx .pg-my-day .v-desk{font-size:14px;line-height:1.45;color:#6B5F57}
+.mx .pg-my-day .visit .flash{font-size:13.5px}
+.mx .pg-my-day a:focus-visible,.mx .pg-my-day button:focus-visible,.mx .pg-my-day summary:focus-visible,.mx .pg-my-day select:focus-visible{outline:3px solid rgba(212,175,90,.7);outline-offset:2px}
+
+/* choosing a person, for a manager whose sign-in has no day of its own */
+.mx .pg-my-day .people{display:flex;flex-direction:column;gap:8px}
+.mx .pg-my-day .person{display:flex;align-items:center;gap:12px;min-height:54px;padding:8px 14px;border:1px solid #E6DCD2;border-radius:14px;color:#1A1513}
+.mx .pg-my-day .person b{flex:1;min-width:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+
+@media (max-width:720px){
+  .mx .pg-my-day .topbar{padding-top:12px;padding-bottom:12px;gap:10px}
+  .mx .pg-my-day .topbar h1{font-size:24px}
+  .mx .pg-my-day .who{flex:1 1 100%}
+  .mx .pg-my-day .who select{width:100%}
+  .mx .pg-my-day .content{padding-top:14px}
+}

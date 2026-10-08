@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { duration, money, type Service } from "@/lib/api";
-import { clock, dayLabel, firstName, initialsOf, inZone, lateRule, MONTHS, whenLabel, type DayCell, type Policy, type Slot } from "../shared";
+import { clock, dayLabel, firstName, initialsOf, inZone, lateRule, MONTHS, whenLabel, type DayCell, type Policy, type Question, type Slot } from "../shared";
 import { useUrlState } from "../url-state";
 
 export type Pro = { id: string; name: string; initials: string; tone: string; sub: string };
@@ -14,15 +14,46 @@ type Props = {
   place: string; verified: boolean; reviewCount: number; services: Service[]; pros: Pro[]; anyone: boolean; policy: Policy;
   /** Today's date on the business's clock. */
   today: string; me: Me | null;
+  /** The questions this business asks for the chosen services, in its own order. */
+  intake: Question[];
+  /** Shown inside a frame on the business's own website: links stay in the frame, payment opens at the top level, and the booking counts as the business's own link. */
+  embed?: boolean;
 };
 
+type Details = { first: string; last: string; phone: string; email: string; note: string; who: "me" | "other"; guest: string; answers: Record<string, string> };
+/** What the API says when an answer is missing or wrong. Each is followed by the question's own wording. */
+const REFUSALS = ["please answer:", "please tick:", "choose one of the options:"];
+const sentence = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) + (/[.!?]$/.test(t) ? "" : ".") : t);
+
 const KEEP = "lx_book_details";
+const GUEST = "lx_book_guest_";
+
+/**
+ * "For Tola" on the confirmation. The account's copy of a booking says who it is for; the public copy
+ * (all a guest can read) does not, so the browser that made the booking remembers the name for this visit.
+ */
+export function GuestLine({ id, name, side }: { id: string; name: string; side?: boolean }) {
+  const [guest, setGuest] = useState(name);
+  useEffect(() => {
+    if (name) return;
+    try { setGuest((window.sessionStorage.getItem(GUEST + id) ?? "").slice(0, 80)); } catch {}
+  }, [id, name]);
+  if (!guest) return null;
+  return side
+    ? <div className="muted" style={{ fontSize: 13, overflowWrap: "anywhere" }}>For <b style={{ color: "#1A1513" }}>{guest}</b></div>
+    : <div style={{ fontSize: 15, overflowWrap: "anywhere" }}>For <b>{guest}</b></div>;
+}
 const addDays = (date: string, n: number) => { const [y, m, d] = date.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
 const shiftMonth = (month: string, n: number) => { const [y, m] = month.split("-").map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
 const CHECK = "M20 6 9 17l-5-5";
 
 export function BookFlow(p: Props) {
-  const { slug, src, currency, tz, services, policy } = p;
+  const { slug, currency, tz, services, policy, intake } = p;
+  const embed = !!p.embed;
+  // A booking from the business's own website is the business's own link, never a LogaLuxe search lead.
+  const src = embed ? "" : p.src;
+  const base = embed ? `/embed/${slug}` : `/b/${slug}/book`;
+  const out = embed ? { target: "_blank", rel: "noopener" } : {};
   const router = useRouter();
   const [sp, setUrl] = useUrlState();
   const ids = services.map((s) => s.id).join(",");
@@ -41,20 +72,39 @@ export function BookFlow(p: Props) {
   const month = /^\d{4}-\d{2}$/.test(monthRaw) && monthRaw >= p.today.slice(0, 7) && monthRaw <= lastDay.slice(0, 7) ? monthRaw : date ? date.slice(0, 7) : p.today.slice(0, 7);
 
   // ----- the client's details: typed once, kept for this visit so a reload does not lose them -----
-  const [d, setD] = useState({ first: p.me?.first ?? "", last: p.me?.last ?? "", phone: p.me?.phone ?? "", email: p.me?.email ?? "", note: "" });
+  const [d, setD] = useState<Details>({ first: p.me?.first ?? "", last: p.me?.last ?? "", phone: p.me?.phone ?? "", email: p.me?.email ?? "", note: "", who: "me", guest: "", answers: {} });
   const [restored, setRestored] = useState(false);
   useEffect(() => {
     try {
       const kept = JSON.parse(window.sessionStorage.getItem(KEEP) ?? "null");
-      if (kept && typeof kept === "object") setD((now) => ({ first: now.first || String(kept.first ?? ""), last: now.last || String(kept.last ?? ""), phone: now.phone || String(kept.phone ?? ""), email: now.email || String(kept.email ?? ""), note: String(kept.note ?? "") }));
+      if (kept && typeof kept === "object") {
+        // Answers belong to one business's questions, so they come back only for that business.
+        const answers: Record<string, string> = {};
+        if (kept.slug === slug && kept.answers && typeof kept.answers === "object") for (const [k, v] of Object.entries(kept.answers)) if (typeof v === "string") answers[k] = v;
+        setD((now) => ({
+          first: now.first || String(kept.first ?? ""), last: now.last || String(kept.last ?? ""), phone: now.phone || String(kept.phone ?? ""), email: now.email || String(kept.email ?? ""), note: String(kept.note ?? ""),
+          who: kept.who === "other" ? "other" : "me", guest: String(kept.guest ?? "").slice(0, 80), answers,
+        }));
+      }
     } catch {}
     setRestored(true);
   }, []);
   useEffect(() => {
     if (!restored) return;
-    try { window.sessionStorage.setItem(KEEP, JSON.stringify(d)); } catch {}
-  }, [d, restored]);
-  const detailsOk = d.first.trim() !== "" && d.phone.trim() !== "";
+    try { window.sessionStorage.setItem(KEEP, JSON.stringify({ ...d, slug })); } catch {}
+  }, [d, restored, slug]);
+  const guest = d.who === "other" ? d.guest.trim() : "";
+  const answerOf = (q: Question) => (d.answers[q.id] ?? "").trim();
+  // A box to tick is always required. A choice must be one of the options on offer today.
+  const mustAnswer = (q: Question) => q.required || q.kind === "consent";
+  const answered = (q: Question) => (q.kind === "consent" ? answerOf(q) === "yes" : q.kind === "yesno" ? ["yes", "no"].includes(answerOf(q)) : q.kind === "choice" ? (q.options ?? []).includes(answerOf(q)) : answerOf(q) !== "");
+  const missing = intake.filter((q) => mustAnswer(q) && !answered(q));
+  const detailsOk = d.first.trim() !== "" && d.phone.trim() !== "" && (d.who === "me" || guest !== "") && missing.length === 0;
+  // Shown once the client has tried to go on, so an untouched form is not covered in warnings.
+  const [tried, setTried] = useState(false);
+  // What the API said about one question when it refused the booking.
+  const [refused, setRefused] = useState<{ id: string; text: string } | null>(null);
+  const setAnswer = (id: string, value: string) => { setRefused(null); setD((x) => ({ ...x, answers: { ...x.answers, [id]: value } })); };
 
   // ----- which days of the month have room -----
   const [reload, setReload] = useState(0);
@@ -177,7 +227,10 @@ export function BookFlow(p: Props) {
     try {
       res = await fetch("/api/bookings", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ business_slug: slug, staff_id: slot.staff_id, starts_at: slot.starts_at, service_ids: services.map((s) => s.id), client_name: `${d.first} ${d.last}`.trim(), client_phone: d.phone.trim(), client_email: d.email.trim(), notes: d.note.trim(), promo_code: promo.trim(), source: src || "link" }),
+        body: JSON.stringify({
+          business_slug: slug, staff_id: slot.staff_id, starts_at: slot.starts_at, service_ids: services.map((s) => s.id), client_name: `${d.first} ${d.last}`.trim(), client_phone: d.phone.trim(), client_email: d.email.trim(), notes: d.note.trim(), promo_code: promo.trim(), source: src || "link",
+          guest_name: guest, answers: intake.filter(answered).map((q) => ({ question_id: q.id, answer: answerOf(q) })),
+        }),
       });
       j = await res.json().catch(() => ({}));
     } catch {
@@ -193,14 +246,38 @@ export function BookFlow(p: Props) {
       top.current?.scrollIntoView({ block: "start" });
       return;
     }
-    if (!res.ok || !j.booking) { setBusy(false); setError(j.error ?? "We could not book that. Try again."); return; }
-    try { window.sessionStorage.removeItem(KEEP); } catch {}
+    if (!res.ok || !j.booking) {
+      setBusy(false);
+      const said = j.error ?? "";
+      // The API names the question it is not happy with: back to the details, with its words beside that question.
+      if (res.status === 400 && REFUSALS.some((r) => said.toLowerCase().startsWith(r))) {
+        const q = intake.find((x) => said.includes(x.label));
+        setRefused({ id: q?.id ?? "", text: sentence(said) });
+        setTried(true);
+        // A question we do not have was added since this page was opened: fetch the questions again.
+        if (!q) router.refresh();
+        goStep(2);
+        return;
+      }
+      setError(said ? sentence(said) : "We could not book that. Try again.");
+      return;
+    }
+    try { window.sessionStorage.removeItem(KEEP); if (guest) window.sessionStorage.setItem(GUEST + j.booking.id, guest); } catch {}
     // A deposit paid online: on to the provider's secure page. The booking is confirmed when the payment arrives.
-    if (j.booking.payment?.url) { window.location.href = j.booking.payment.url; return; }
-    router.replace(`/b/${slug}/book?booking=${j.booking.id}${src ? `&src=${src}` : ""}`);
+    const payUrl = j.booking.payment?.url;
+    if (payUrl) {
+      if (!embed) { window.location.href = payUrl; return; }
+      // Payment pages refuse to be shown inside a frame, so the whole tab goes there. If the browser
+      // will not let the frame do that, the link shown under the form does the same thing on a click.
+      setPayLink(payUrl);
+      try { window.top!.location.href = payUrl; } catch {}
+      return;
+    }
+    router.replace(`${base}?booking=${j.booking.id}${src ? `&src=${src}` : ""}`);
   }
+  const [payLink, setPayLink] = useState("");
 
-  const here = () => (typeof window === "undefined" ? `/b/${slug}/book` : window.location.pathname + window.location.search);
+  const here = () => (typeof window === "undefined" ? base : window.location.pathname + window.location.search);
   const [signInHref, setSignInHref] = useState(`/signin?next=${encodeURIComponent(`/b/${slug}/book?services=${ids}`)}`);
   useEffect(() => { setSignInHref(`/signin?next=${encodeURIComponent(here())}`); }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -304,12 +381,39 @@ export function BookFlow(p: Props) {
           ) : null}
 
           {step === 2 ? (
-            <form onSubmit={(e) => { e.preventDefault(); goStep(3); }} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setTried(true); setRefused(null);
+                if (missing.length > 0) {
+                  const el = document.getElementById(`q-${missing[0].id}`);
+                  el?.scrollIntoView({ block: "center" });
+                  (el?.querySelector("input,textarea,select") as HTMLElement | null)?.focus({ preventScroll: true });
+                  return;
+                }
+                goStep(3);
+              }}
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {refused && !refused.id ? <div className="err" role="alert">{refused.text}</div> : null}
               <div className="card">
                 <h2 className="serif">Your details</h2>
                 <div className="muted" style={{ fontSize: 14 }}>
-                  {p.me ? <>Signed in as {p.me.email}. This booking will be saved to your account.</> : <>No account needed. <a href={signInHref} style={{ fontWeight: 600 }}>Sign in</a> to keep this booking in your account.</>}
+                  {p.me ? <>Signed in as {p.me.email}. This booking will be saved to your account.</> : embed ? <>No account needed.</> : <>No account needed. <a href={signInHref} style={{ fontWeight: 600 }}>Sign in</a> to keep this booking in your account.</>}
                 </div>
+                <fieldset className="q">
+                  <legend>This booking is for</legend>
+                  <div className="picks">
+                    <label className="pick"><input type="radio" name="who" checked={d.who === "me"} onChange={() => setD((x) => ({ ...x, who: "me" }))} />Me</label>
+                    <label className="pick"><input type="radio" name="who" checked={d.who === "other"} onChange={() => setD((x) => ({ ...x, who: "other" }))} />Someone else</label>
+                  </div>
+                </fieldset>
+                {d.who === "other" ? (
+                  <div className="field">
+                    <label htmlFor="guest">Their name</label>
+                    <input id="guest" type="text" required maxLength={80} autoComplete="off" aria-describedby="guest-note" value={d.guest} onChange={(e) => setD((x) => ({ ...x, guest: e.target.value }))} />
+                    <div className="muted" id="guest-note" style={{ fontSize: 12.5 }}>The contact details below stay yours, so {p.name} can reach you.</div>
+                  </div>
+                ) : null}
                 <div className="two">
                   <div className="field"><label htmlFor="fn">First name</label><input id="fn" type="text" required autoComplete="given-name" value={d.first} onChange={(e) => setD((x) => ({ ...x, first: e.target.value }))} /></div>
                   <div className="field"><label htmlFor="ln">Last name</label><input id="ln" type="text" autoComplete="family-name" value={d.last} onChange={(e) => setD((x) => ({ ...x, last: e.target.value }))} /></div>
@@ -318,6 +422,52 @@ export function BookFlow(p: Props) {
                 </div>
                 <div className="field"><label htmlFor="note">Note for {noteFor} · optional</label><textarea id="note" maxLength={1000} placeholder="Hair length, allergies, anything they should know…" value={d.note} onChange={(e) => setD((x) => ({ ...x, note: e.target.value }))} /></div>
               </div>
+              {intake.length > 0 ? (
+                <div className="card">
+                  <h2 className="serif">A few questions from {p.name}</h2>
+                  {intake.map((q) => {
+                    const a = d.answers[q.id] ?? "";
+                    const need = mustAnswer(q);
+                    const problem = refused?.id === q.id ? refused.text : tried && missing.includes(q) ? (q.kind === "consent" ? "Tick this box to continue." : q.kind === "text" ? "Answer this question to continue." : "Choose an answer to continue.") : "";
+                    const mark = <span className="req"> · {need ? "required" : "optional"}</span>;
+                    const said = problem ? <div className="qerr" role="alert" id={`q-${q.id}-err`}>{problem}</div> : null;
+                    const opts = q.kind === "yesno" ? [["yes", "Yes"], ["no", "No"]] : (q.options ?? []).map((o) => [o, o]);
+                    if (q.kind === "consent") return (
+                      <div className="q" id={`q-${q.id}`} key={q.id}>
+                        <label className="tick"><input type="checkbox" checked={a === "yes"} aria-required="true" aria-invalid={!!problem} aria-describedby={problem ? `q-${q.id}-err` : undefined} onChange={(e) => setAnswer(q.id, e.target.checked ? "yes" : "")} /><span>{q.label}{mark}</span></label>
+                        {said}
+                      </div>
+                    );
+                    if (q.kind === "text") return (
+                      <div className="field" id={`q-${q.id}`} key={q.id}>
+                        <label htmlFor={`qa-${q.id}`}>{q.label}{mark}</label>
+                        <textarea id={`qa-${q.id}`} maxLength={1000} aria-required={need} aria-invalid={!!problem} aria-describedby={problem ? `q-${q.id}-err` : undefined} value={a} onChange={(e) => setAnswer(q.id, e.target.value)} />
+                        {said}
+                      </div>
+                    );
+                    if (q.kind === "choice" && opts.length > 5) return (
+                      <div className="field" id={`q-${q.id}`} key={q.id}>
+                        <label htmlFor={`qa-${q.id}`}>{q.label}{mark}</label>
+                        <select id={`qa-${q.id}`} aria-required={need} aria-invalid={!!problem} aria-describedby={problem ? `q-${q.id}-err` : undefined} value={a} onChange={(e) => setAnswer(q.id, e.target.value)}>
+                          <option value="">Choose one</option>
+                          {opts.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                        </select>
+                        {said}
+                      </div>
+                    );
+                    return (
+                      <fieldset className="q" id={`q-${q.id}`} key={q.id} aria-describedby={problem ? `q-${q.id}-err` : undefined}>
+                        <legend>{q.label}{mark}</legend>
+                        <div className="picks">
+                          {opts.map(([v, t]) => <label className="pick" key={v}><input type="radio" name={`qa-${q.id}`} checked={a === v} onChange={() => setAnswer(q.id, v)} />{t}</label>)}
+                          {!need && a ? <button type="button" className="linkbtn" style={{ fontSize: 13 }} onClick={() => setAnswer(q.id, "")}>Clear</button> : null}
+                        </div>
+                        {said}
+                      </fieldset>
+                    );
+                  })}
+                </div>
+              ) : null}
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}><button type="button" className="btn btn-out" onClick={() => goStep(1)}>Back</button><button type="submit" className="btn btn-ink">{deposit > 0 ? "Continue to payment" : "Continue"}</button></div>
             </form>
           ) : null}
@@ -329,7 +479,11 @@ export function BookFlow(p: Props) {
                 <h2 className="serif">{deposit > 0 ? "Hold your slot" : policy.instant === false ? "Send your request" : "Confirm your booking"}</h2>
                 <div className="ok">{cancelText}{payText}{firstNote}</div>
                 {policy.instant === false ? <div className="muted" style={{ fontSize: 13.5 }}>{p.name} confirms each booking itself. Your time is held while you wait to hear back.</div> : null}
-                <div className="muted" style={{ fontSize: 13.5 }}>Booking for <b style={{ color: "#1A1513" }}>{`${d.first} ${d.last}`.trim()}</b> · {d.phone}{d.email ? ` · ${d.email}` : ""}. <button type="button" className="linkbtn" onClick={() => goStep(2)}>Edit</button></div>
+                <div className="muted" style={{ fontSize: 13.5 }}>
+                  {guest
+                    ? <>For <b style={{ color: "#1A1513" }}>{guest}</b> · booked by {`${d.first} ${d.last}`.trim()}</>
+                    : <>Booking for <b style={{ color: "#1A1513" }}>{`${d.first} ${d.last}`.trim()}</b></>} · {d.phone}{d.email ? ` · ${d.email}` : ""}. <button type="button" className="linkbtn" onClick={() => goStep(2)}>Edit</button>
+                </div>
                 {deposit > 0 ? (
                   <>
                     <div className="grp">{online ? "Pay the deposit with" : "Deposit"}</div>
@@ -345,12 +499,17 @@ export function BookFlow(p: Props) {
                 </div>
                 {promo.trim() ? <div className="muted" style={{ fontSize: 12.5, marginTop: -6 }}>The code is checked when you confirm. If it works, the discount comes off the total.</div> : null}
                 {error ? <div className="err" role="alert">{error}</div> : null}
+                {payLink ? (
+                  <div className="ok" role="status">
+                    Your time is held. The payment page opens in the full window. If nothing happens, <a href={payLink} target="_top" rel="noopener" style={{ fontWeight: 600 }}>open {provider}&apos;s payment page</a>.
+                  </div>
+                ) : null}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <button type="button" className="btn btn-out" disabled={busy} onClick={() => goStep(2)}>Back</button>
-                <button type="button" className="btn btn-ink" style={{ minHeight: 52 }} disabled={busy} onClick={confirm}>{busy ? (deposit > 0 && online ? "Opening the payment page…" : "Booking…") : deposit > 0 && online ? `Pay ${money(deposit, currency)} deposit and confirm` : policy.instant === false ? "Send booking request" : "Confirm booking"}</button>
+                <button type="button" className="btn btn-ink" style={{ minHeight: 52 }} disabled={busy || !!payLink} onClick={confirm}>{busy ? (deposit > 0 && online ? "Opening the payment page…" : "Booking…") : deposit > 0 && online ? `Pay ${money(deposit, currency)} deposit and confirm` : policy.instant === false ? "Send booking request" : "Confirm booking"}</button>
               </div>
-              <div className="muted" style={{ fontSize: 12, textAlign: "right" }}>By confirming you agree to {p.name}&apos;s <Link href="/legal/cancellation">cancellation policy</Link> and LogaLuxe&apos;s <Link href="/legal/terms">terms</Link>.</div>
+              <div className="muted" style={{ fontSize: 12, textAlign: "right" }}>By confirming you agree to {p.name}&apos;s <Link href="/legal/cancellation" {...out}>cancellation policy</Link> and LogaLuxe&apos;s <Link href="/legal/terms" {...out}>terms</Link>.</div>
             </>
           ) : null}
         </div>
@@ -378,7 +537,8 @@ export function BookFlow(p: Props) {
               <div className="line total"><span>Due today</span><span>{money(deposit, currency)}</span></div>
             </div>
             {slot && !menuMatches && services.length === 1 ? <div className="muted" style={{ fontSize: 12.5 }}>The price for this time{staff === "any" ? " and person" : ""}. The menu price is {money(menuTotal, currency)}.</div> : null}
-            <Link href={`/b/${slug}?services=${ids}${src ? `&src=${src}` : ""}#services`} style={{ fontSize: 13, fontWeight: 600 }}>Change services</Link>
+            {guest ? <div className="muted" style={{ fontSize: 13 }}>For <b style={{ color: "#1A1513" }}>{guest}</b></div> : null}
+            <Link href={embed ? `/embed/${slug}?choose=1&services=${ids}` : `/b/${slug}?services=${ids}${src ? `&src=${src}` : ""}#services`} style={{ fontSize: 13, fontWeight: 600 }}>Change services</Link>
           </div>
           <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55, padding: "0 4px" }}>
             {p.verified ? <span className="pill pill-ok" style={{ marginRight: 6 }}>Verified</span> : null}

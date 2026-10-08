@@ -102,6 +102,41 @@ export async function cancelMyBooking(fd: FormData) {
   await (error ? back("err", error) : back("ok", done));
 }
 
+/**
+ * Cancels every upcoming visit of a repeating booking. There is no single call for this, so each visit is
+ * cancelled on its own and the answer for each is reported: some may be past their free cancellation time.
+ */
+export async function cancelMySeries(fd: FormData) {
+  const series = v(fd, "series");
+  type B = { id: string; status: string; starts_at: string; ends_at: string; timezone: string; series_id?: string | null; deposit_paid?: boolean };
+  let list: B[] = [];
+  try {
+    list = (await customerApi<{ bookings: B[] }>("/auth/me")).bookings ?? [];
+  } catch (e) {
+    await back("err", (e as Error).message);
+  }
+  const now = Date.now();
+  const visits = list
+    .filter((b) => !!series && b.series_id === series && ["requested", "confirmed"].includes(b.status) && new Date(b.starts_at).getTime() > now)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  if (visits.length === 0) await back("err", "There are no upcoming visits in this series to cancel.");
+  const lines: string[] = [];
+  let done = 0;
+  for (const b of visits) {
+    const at = new Date(b.starts_at).toLocaleString("en-US", { timeZone: b.timezone || "UTC", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    try {
+      const kept = !!(await customerApi<{ deposit_kept?: boolean }>(`/auth/bookings/${enc(b.id)}/cancel`, { method: "POST", body: {} })).deposit_kept;
+      done++;
+      lines.push(`${at}: cancelled. ${kept ? "It was past the free cancellation time, so the business keeps the deposit." : b.deposit_paid ? "Your deposit is being returned to the card or account you paid with." : "The time has been released and nothing is owed."}`);
+    } catch (e) {
+      lines.push(`${at}: not cancelled. ${sentence((e as Error).message)}`);
+    }
+  }
+  revalidatePath("/account");
+  const head = done === visits.length ? `${done === 1 ? "The 1 upcoming visit" : `All ${done} upcoming visits`} in this series ${done === 1 ? "was" : "were"} cancelled.` : `${done} of ${visits.length} upcoming visits in this series were cancelled.`;
+  await back(done === visits.length ? "ok" : "err", [head, ...lines].join("\n"));
+}
+
 export async function askForReset(fd: FormData) {
   let error = "";
   try {

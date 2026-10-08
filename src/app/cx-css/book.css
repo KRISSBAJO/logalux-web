@@ -111,3 +111,45 @@
 .cx.pg-book .steps i{width:12px}
 .cx.pg-book .step{font-size:13px}
 }
+
+/* ---------- Booking for someone else, and the questions a business asks ---------- */
+.cx.pg-book fieldset.q{border:0;margin:0;padding:0;min-width:0}
+.cx.pg-book .q{display:flex;flex-direction:column;gap:8px}
+.cx.pg-book .q legend,.cx.pg-book .field label{overflow-wrap:anywhere}
+.cx.pg-book .q legend{padding:0;margin-bottom:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57}
+.cx.pg-book .req{font-weight:500;letter-spacing:.04em;color:#9A8E85}
+.cx.pg-book .picks{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cx.pg-book .pick{display:inline-flex;align-items:center;gap:8px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 14px;min-height:42px;font-size:14px;font-weight:600;color:#1A1513;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+.cx.pg-book .pick:has(input:checked){border-color:#1A1513;box-shadow:inset 0 0 0 1px #1A1513}
+.cx.pg-book .pick:has(input:focus-visible){outline:2px solid #7A1F2B;outline-offset:2px}
+.cx.pg-book :is(.pick,.tick,.esvc) input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none;accent-color:#1A1513}
+.cx.pg-book :is(.pick,.esvc) input:focus-visible{outline:none}
+.cx.pg-book .tick{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;line-height:1.45;cursor:pointer;overflow-wrap:anywhere}
+.cx.pg-book .tick input{margin-top:2px}
+.cx.pg-book .tick>span{min-width:0}
+.cx.pg-book .qerr{font-size:13px;font-weight:600;color:#9B2335}
+.cx.pg-book .field select{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:46px;font:inherit;font-size:15px;padding:0 12px;color:#1A1513;outline:none;width:100%}
+.cx.pg-book .field select:focus{border-color:#1A1513}
+.cx.pg-book select:focus-visible{outline:2px solid #7A1F2B;outline-offset:2px}
+.cx.pg-book :is(input,textarea,select)[aria-invalid="true"]{border-color:#9B2335}
+
+/* ---------- The same flow inside a frame on a business's own website (/embed/<slug>) ---------- */
+.cx.pg-book.embed{min-height:100vh}
+.cx.pg-book.embed .wrap{max-width:760px;padding:0 16px}
+.cx.pg-book.embed .ehead{display:flex;align-items:center;gap:12px;padding:16px 0 0}
+.cx.pg-book.embed .ehead h1{margin:0;font-size:24px;font-weight:500;line-height:1.1;overflow-wrap:anywhere}
+.cx.pg-book.embed .steps{margin:16px 0}
+.cx.pg-book.embed .layout{padding-bottom:20px;gap:20px}
+.cx.pg-book.embed .side{max-width:none}
+.cx.pg-book.embed .efoot{text-align:center;font-size:12.5px;padding:4px 0 20px}
+.cx.pg-book.embed .efoot a{color:#6B5F57;font-weight:600}
+.cx.pg-book.embed .efoot a:hover{color:#1A1513}
+.cx.pg-book .esvcs{display:flex;flex-direction:column;gap:8px}
+.cx.pg-book .esvc{display:flex;align-items:center;gap:12px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:14px;padding:10px 12px;min-height:54px;cursor:pointer}
+.cx.pg-book .esvc:has(input:checked){border-color:#1A1513;box-shadow:inset 0 0 0 1px #1A1513}
+.cx.pg-book .esvc:has(input:focus-visible){outline:2px solid #7A1F2B;outline-offset:2px}
+.cx.pg-book .esvc .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.cx.pg-book .esvc .t b{display:block;font-size:14.5px;font-weight:600}
+.cx.pg-book .esvc .t span{display:block;font-size:12.5px;color:#6B5F57}
+.cx.pg-book .esvc .p{font-size:14.5px;font-weight:600;white-space:nowrap}
+.cx.pg-book .ebar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#FBF7F2;padding:10px 0;margin-bottom:10px}

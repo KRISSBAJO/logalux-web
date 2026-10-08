@@ -52,6 +52,7 @@ export default async function MerchantLayout({ children }: { children: ReactNode
           </details>
 
           <MNavLink href="/business" exact><Ic name="home" />Home</MNavLink>
+          <MNavLink href="/business/my-day"><Ic name="clock" />My day</MNavLink>
           {manager && m.status !== "live" && <MNavLink href="/business/setup"><Ic name="check" />Setup</MNavLink>}
           <MNavLink href="/business/calendar"><Ic name="calendar" />Calendar</MNavLink>
           <MNavLink href="/business/clients"><Ic name="clients" />Clients</MNavLink>

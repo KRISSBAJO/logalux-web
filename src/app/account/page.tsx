@@ -4,7 +4,8 @@ import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/api";
 import { customerApi, getCustomer, type Customer } from "@/lib/customer";
 import { BookingMover, CopyButton, HashTab, ProblemForm, ReturnForm, ReviewPhotos, TipForm } from "./account-client";
-import { cancelMyBooking, changeMyPassword, leaveReview, removeSaved, removeSavedProduct, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
+import { RepeatCard } from "@/app/b/[slug]/book/repeat";
+import { cancelMyBooking, cancelMySeries, changeMyPassword, leaveReview, removeSaved, removeSavedProduct, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
 
 export const metadata = { title: "Your account" };
 
@@ -74,7 +75,10 @@ function problemState(p: Row, business: string, currency: string): string {
   return `Decided${what ? `: ${what}` : ""}.${said}`;
 }
 
-function Booking({ b, past, sp }: { b: Row; past?: boolean; sp: SP }) {
+/** `series`: the upcoming visits that repeat this one (itself included), soonest first. */
+function Booking({ b, past, sp, series = [] }: { b: Row; past?: boolean; sp: SP; series?: Row[] }) {
+  const guest = String(b.guest_name ?? "").trim();
+  const canRepeat = ["requested", "confirmed", "completed", "paid"].includes(b.status);
   const [label, pill] = bookingState[b.status] ?? [b.status, "pill-grey"];
   const more = b.more as Row | undefined, pay = b.payment as Row | undefined;
   const moving = !past && sp.move === b.id && !!more;
@@ -84,8 +88,9 @@ function Booking({ b, past, sp }: { b: Row; past?: boolean; sp: SP }) {
     <div id={`b-${b.id}`} className={`card flex scroll-mt-6 flex-wrap items-center gap-x-5 gap-y-3 rounded-[20px] p-5 ${past ? "opacity-90" : ""}`}>
       <span aria-hidden className="h-14 w-14 flex-none rounded-2xl" style={{ background: b.tone }} />
       <div className="min-w-0 flex-[1_1_260px]">
-        <div className="flex flex-wrap items-center gap-2"><Link href={`/b/${b.slug}`} className="text-[17px] font-semibold hover:text-wine">{b.business}</Link><span className={`pill ${pill}`}>{label}</span></div>
+        <div className="flex flex-wrap items-center gap-2"><Link href={`/b/${b.slug}`} className="text-[17px] font-semibold hover:text-wine">{b.business}</Link><span className={`pill ${pill}`}>{label}</span>{b.series_id ? <span className="pill pill-info">Repeats</span> : null}</div>
         <div className="mt-0.5 text-[14.5px]">{when(b.starts_at, b.timezone)}</div>
+        {guest ? <div className="text-[14px] [overflow-wrap:anywhere]">For <b className="font-semibold">{guest}</b></div> : null}
         <div className="text-[13.5px] text-muted">{b.services} · with {b.staff}{b.address ? ` · ${b.address}, ${b.city}` : ""}</div>
       </div>
       <div className="text-right">
@@ -122,6 +127,38 @@ function Booking({ b, past, sp }: { b: Row; past?: boolean; sp: SP }) {
               </p>
               <div><button className="btn btn-sm border border-bad/30 bg-bad text-white hover:opacity-90">Cancel this booking</button></div>
             </form>
+          </details>
+        )}
+        {!past && series.length > 1 && (
+          <details className="group relative">
+            <summary className="btn btn-sm cursor-pointer list-none border border-bad/30 bg-white text-bad hover:bg-bad-bg [&::-webkit-details-marker]:hidden">Cancel series</summary>
+            <form action={cancelMySeries} className="mt-2 flex max-w-[460px] flex-col gap-2.5 rounded-2xl border border-line bg-cream p-4 text-[13.5px] leading-relaxed">
+              <input type="hidden" name="series" value={b.series_id} />
+              <p>This cancels the {series.length} upcoming visits in this series, one by one. Each follows the cancellation rule for its own date:</p>
+              <ul className="flex list-disc flex-col gap-1 pl-5">
+                {series.map((x) => {
+                  const m = x.more as Row | undefined;
+                  return (
+                    <li key={x.id}>
+                      {when(x.starts_at, x.timezone)}
+                      {m ? (m.can_reschedule
+                        ? ": free to cancel."
+                        : `: free cancellation has ended.${x.deposit_paid ? (m.late_cancel_fee === "none" ? " The deposit is still returned." : " The business keeps the deposit.") : ""}`) : ""}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-muted">You will see what happened to each visit.</p>
+              <div><button className="btn btn-sm border border-bad/30 bg-bad text-white hover:opacity-90">Cancel all upcoming visits in this series</button></div>
+            </form>
+          </details>
+        )}
+        {canRepeat && (
+          <details className="w-full">
+            <summary className="inline-flex cursor-pointer text-[14px] font-semibold text-wine">Repeat this visit</summary>
+            <div className="mt-3 max-w-[520px] rounded-2xl border border-line bg-cream p-4">
+              <RepeatCard id={b.id} startsAt={b.starts_at} tz={b.timezone} currency={b.currency} business={b.business} look="account" />
+            </div>
           </details>
         )}
       </div>
@@ -289,8 +326,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <button className="btn btn-sm border border-line bg-white">Send the link again</button>
           </form>
         )}
-        {sp.err && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{sp.err}</div>}
-        {sp.ok && !sp.err && <div role="status" className="mt-6 rounded-xl border border-ok/25 bg-ok-bg px-4 py-3 text-[14.5px] font-medium text-ok">{sp.ok}</div>}
+        {sp.err && <div role="alert" className="mt-6 whitespace-pre-line rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{sp.err}</div>}
+        {sp.ok && !sp.err && <div role="status" className="mt-6 whitespace-pre-line rounded-xl border border-ok/25 bg-ok-bg px-4 py-3 text-[14.5px] font-medium text-ok">{sp.ok}</div>}
         {sectionError && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">We could not load this just now. Try again in a moment.</div>}
 
         {tab === "bookings" && (
@@ -298,7 +335,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <section className="mt-8 scroll-mt-6" id="bookings">
               <h2 className={h2}>Upcoming</h2>
               <div className="flex flex-col gap-3">
-                {upcoming.map((b) => <Booking key={b.id} b={b} sp={sp} />)}
+                {upcoming.map((b) => <Booking key={b.id} b={b} sp={sp} series={b.series_id ? upcoming.filter((x) => x.series_id === b.series_id && x.can_cancel) : []} />)}
                 {upcoming.length === 0 && (
                   <div className="card flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-6">
                     <p className="text-[15.5px] text-muted">Nothing booked yet. Bookings you make while signed in appear here.</p>

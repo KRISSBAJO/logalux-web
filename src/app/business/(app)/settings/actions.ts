@@ -1,6 +1,7 @@
 "use server";
 
-import { fid, mBackTo, mClearFlash, mPost, mPut, mRun, mSetFlash, num, on, str } from "@/lib/merchant-actions";
+import { fid, mBackTo, mClearFlash, mDel, mPost, mPut, mRun, mSetFlash, num, on, str } from "@/lib/merchant-actions";
+import { qs } from "@/lib/merchant-api";
 
 // Settings: the business profile, its locations and hours, the rules clients
 // book under, the plan, and the signed-in person's own account.
@@ -113,4 +114,46 @@ export async function dismissRecoveryCodes(fd: FormData) {
 export async function stopTwoStep(fd: FormData) {
   await mClearFlash();
   await mRun(fd, "Two-step sign-in is off. Your password alone signs you in.", () => mPost("/2fa/disable", { password: String(fd.get("password") ?? "") }));
+}
+
+// ----- calendar sync: a person's bookings in their own calendar, and their busy times kept out of their bookings -----
+
+/** Whose calendar this is about: the signed-in person, or the team member a manager chose. */
+const calWho = (fd: FormData) => qs({ staff_id: str(fd, "staff") });
+
+/** Makes the private calendar address. Making another one stops the old one working. */
+export async function calFeedMake(fd: FormData) {
+  const again = on(fd, "again");
+  await mRun(fd, again ? "New address made. The old one has stopped working, so add the new one to your calendar." : "The calendar address is ready. Add it to your calendar to see the bookings there.", () => mPost("/calendar-sync/feed" + calWho(fd)));
+}
+
+export async function calFeedOff(fd: FormData) {
+  await mRun(fd, "Turned off. The address no longer works.", () => mDel("/calendar-sync/feed" + calWho(fd)));
+}
+
+/** The API saves the address and reads it at once. Its note says how the read went, so a read that failed is shown as a problem. */
+async function calRead(fd: FormData, call: () => Promise<unknown>): Promise<never> {
+  let error = "", note = "";
+  try {
+    note = String(((await call()) as { cal_import_note?: string })?.cal_import_note ?? "");
+  } catch (e) {
+    error = (e as Error).message || "Something went wrong.";
+  }
+  if (error) return mBackTo(fd, "err", error);
+  return /^Read /.test(note) ? mBackTo(fd, "ok", note) : mBackTo(fd, "err", note || "Nothing was read. Check the address and try again.");
+}
+
+export async function calImportSave(fd: FormData) {
+  // The address is a secret: it goes straight to the API and is never shown again.
+  const url = str(fd, "url");
+  if (!url) return mBackTo(fd, "err", "Paste the private address of the calendar first.");
+  await calRead(fd, () => mPut("/calendar-sync/import" + calWho(fd), { url }));
+}
+
+export async function calImportRun(fd: FormData) {
+  await calRead(fd, () => mPost("/calendar-sync/import/run" + calWho(fd)));
+}
+
+export async function calImportStop(fd: FormData) {
+  await mRun(fd, "Stopped. The busy times from that calendar have been removed.", () => mPut("/calendar-sync/import" + calWho(fd), { url: "" }));
 }
