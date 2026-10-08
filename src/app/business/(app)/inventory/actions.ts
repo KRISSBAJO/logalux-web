@@ -1,6 +1,6 @@
 "use server";
 
-import { mUpload } from "@/lib/merchant-api";
+import { getMe, mUpload } from "@/lib/merchant-api";
 import { cents, fid, int, mBackTo, mDel, mPost, mPut, mRun, on, str } from "@/lib/merchant-actions";
 import { money } from "@/lib/merchant-format";
 import { policyFromChoices, sentence } from "../shop-policy";
@@ -192,6 +192,7 @@ export async function answerReturn(fd: FormData) {
   if (error) { again(); mBackTo(fd, "err", error); }
   if (refuse) mBackTo(fd, "ok", "Return refused. The customer is emailed your message. Nothing was refunded.");
   const refund = Number(out.refund_cents ?? 0), card = Number(out.to_card_cents ?? 0), credit = Number(out.credit_cents ?? 0);
-  const where = card > 0 && credit > 0 ? `${money(card, "USD")} to the customer's card and ${money(credit, "USD")} as LogaLuxe store credit` : card > 0 ? "to the customer's card" : "as LogaLuxe store credit";
-  mBackTo(fd, "ok", `Return approved. ${money(refund, "USD")} refunded, ${where}. ${on(fd, "restock") ? "The items are back in stock." : "Stock was not changed."}`);
+  const cur = String(out.currency || (await getMe())?.merchant.currency || "USD"); // a naira order is refunded in naira
+  const where = card > 0 && credit > 0 ? `${money(card, cur)} to the customer's card and ${money(credit, cur)} as LogaLuxe store credit` : card > 0 ? "to the customer's card" : "as LogaLuxe store credit";
+  mBackTo(fd, "ok", `Return approved. ${money(refund, cur)} refunded, ${where}. ${on(fd, "restock") ? "The items are back in stock." : "Stock was not changed."}`);
 }
