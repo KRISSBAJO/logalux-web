@@ -49,11 +49,11 @@ async function businessPages(): Promise<Entry[]> {
   return out;
 }
 
-/** Every product on sale in the shop. */
-async function productPages(): Promise<Entry[]> {
+/** Every product on sale in one of the two shops: the dollar shop, or the naira shop. */
+async function productPages(currency: "USD" | "NGN"): Promise<Entry[]> {
   const out: Entry[] = [];
   for (let page = 1; page <= 200; page++) {
-    const data = await getJson<{ products?: { slug: string; name: string }[]; total?: number; per_page?: number }>(`/v1/products?per=60&page=${page}`);
+    const data = await getJson<{ products?: { slug: string; name: string }[]; total?: number; per_page?: number }>(`/v1/products?per=60&page=${page}${currency === "NGN" ? "&currency=NGN" : ""}`);
     const list = data?.products ?? [];
     for (const p of list) if (!isTestEntry(p.name, p.slug)) out.push({ url: absoluteUrl(`/shop/${encodeURIComponent(p.slug)}`), changeFrequency: "weekly", priority: 0.6 });
     if (!data || list.length === 0 || page * (data.per_page ?? 60) >= (data.total ?? 0)) break;
@@ -68,6 +68,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/shop"), changeFrequency: "daily", priority: 0.8 },
   ];
   // Each part answers with what it could read. With the API down that is nothing, and the fixed pages still go out.
-  const [legal, businesses, products] = await Promise.all([legalPages().catch(() => []), businessPages().catch(() => []), productPages().catch(() => [])]);
-  return [...fixed, ...legal, ...businesses, ...products];
+  const [legal, businesses, products, naira] = await Promise.all([legalPages().catch(() => []), businessPages().catch(() => []), productPages("USD").catch(() => []), productPages("NGN").catch(() => [])]);
+  // The naira shop is listed only when it sells something.
+  const lagosShop: Entry[] = naira.length ? [{ url: absoluteUrl("/shop?market=ng"), changeFrequency: "daily", priority: 0.8 }] : [];
+  return [...fixed, ...lagosShop, ...legal, ...businesses, ...products, ...naira];
 }

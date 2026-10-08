@@ -126,3 +126,20 @@
 .mx .pg-inbox .conv .hd .avatar{color:#F4ECE3;font-size:12px}
 .mx .pg-inbox .draftai{display:flex;flex-direction:column;gap:8px}
 .mx .pg-inbox .draftai .btn{align-self:flex-start}
+/* Problems clients reported (the Problems tab): a line of explanation, the table, and the statements in the panel. */
+.mx .pg-inbox .pb-note{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:14px;padding:11px 14px;font-size:13.5px;line-height:1.45;color:#1A1513}
+.mx .pg-inbox .pb-box{background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;min-width:0}
+.mx .pg-inbox .pb-box table{min-width:860px}
+.mx .pg-inbox .pb-box th,.mx .pg-inbox .pb-box td{padding-left:14px;padding-right:14px}
+.mx .pg-inbox .pb-box td{vertical-align:top;white-space:nowrap}
+.mx .pg-inbox .pb-box td.wrapc{white-space:normal;min-width:170px;max-width:280px}
+.mx .pg-inbox .pb-box td b{font-weight:600}
+.mx .pg-inbox .pb-box .sub{display:block;font-size:12px;color:#6B5F57;font-weight:400;margin-top:2px}
+.mx .pg-inbox .pb-box a.btn-ink,.mx .pg-inbox .pb-box a.btn-ink:hover{color:#FBF7F2}
+.mx .pg-inbox .pb-box .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-inbox .pb-say{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.mx .pg-inbox .pb-say.mine{background:#F7F0E7}
+.mx .pg-inbox .pb-say.done{border-color:#C5E3CE}
+.mx .pg-inbox .pb-say h3{margin:0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57}
+.mx .pg-inbox .pb-say p{margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.mx .pg-inbox .sheet .kv b{text-align:right}

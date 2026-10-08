@@ -5,15 +5,17 @@ import { Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, LoadError, Topbar } from "@/components/merchant-ui";
 import { getMe, mCan, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { CHANNEL_LABEL, clock, dayShort, firstName, money, STATUS_LABEL, when, ymd } from "@/lib/merchant-format";
+import { careCounts } from "../care-counts";
 import { messageClient } from "../clients/actions";
 import { assignThread, replyThread, saveReplies, setThreadStatus } from "./actions";
 import { deliveryLabel } from "./delivery";
+import { Problems } from "./problems";
 import { DraftReply, InsertText, Messages } from "./reply-tools";
 import "../../css/inbox.css";
 
 export const metadata = { title: "Inbox" };
 
-type SP = { filter?: string; q?: string; thread?: string; new?: string; cq?: string; ok?: string; err?: string };
+type SP = { filter?: string; q?: string; thread?: string; new?: string; cq?: string; ok?: string; err?: string; tab?: string; problem?: string };
 
 const FILTERS: [string, string][] = [["open", "Open"], ["unread", "Unread"], ["mine", "Assigned to me"], ["closed", "Closed"]];
 const CH_CLASS: Record<string, string> = { whatsapp: "ch-wa", sms: "ch-sms", in_app: "ch-app", email: "ch-mail" };
@@ -36,6 +38,8 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   const { merchant: m } = me;
   const tz = m.timezone, cur = m.currency;
   const manager = mCan(me, "manager");
+  if (sp.tab === "problems") return <Problems sp={sp} m={m} />;
+  const care = await careCounts();
   const filter = FILTERS.some(([id]) => id === sp.filter) ? sp.filter! : "open";
   const listPath = "/inbox" + qs({ filter, q: sp.q });
 
@@ -101,6 +105,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
             {name}{Number(counts[id] ?? 0) > 0 ? <small>{counts[id]}</small> : null}
           </Link>
         ))}
+        {manager && <Link href="/business/inbox?tab=problems" className="chip" title="Problems clients reported about a visit">Problems{care.problems > 0 ? <small>{care.problems}</small> : null}</Link>}
         <span style={{ flex: 1 }} />
         {t && (
           <Sheet trigger="Assign" title="Assign conversation" sub={`${t.client_name} · ${assignee ? `with ${assignee} now` : "nobody has it yet"}`}>

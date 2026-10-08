@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Avatar, Empty, Flash, Ic, LoadError, Pill, Topbar, TopSearch } from "@/components/merchant-ui";
 import { getMe, mCan, mLoad, type Row } from "@/lib/merchant-api";
 import { CHANNEL_LABEL, clock, dateOnly, dayLong, dur, firstName, money, pct, plural, shortName, when } from "@/lib/merchant-format";
+import { papersState, setupOpen, standing, stepsOf } from "./setup/shared";
 import "../css/home.css";
 
 export const metadata = { title: "Home" };
@@ -13,11 +14,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ o
   const sp = await searchParams;
   const me = (await getMe())!;
   const { merchant: m } = me;
-  const { data: d, error } = await mLoad("/home");
+  const owner = mCan(me, "owner"), manager = mCan(me, "manager");
+  // The setup list is for managers and the owner, so it is not asked for on behalf of anyone else.
+  const [{ data: d, error }, setup] = await Promise.all([mLoad("/home"), manager ? mLoad("/onboarding") : null]);
   if (error) return <div className="main pg-home"><LoadError title="Home" error={error} /></div>;
 
   const tz = m.timezone, cur = m.currency;
-  const owner = mCan(me, "owner"), manager = mCan(me, "manager");
+  // If the setup list could not be loaded, Home simply goes without the card.
+  const ob = setup && !setup.error ? setup.data : null;
+  const showSetup = !!ob && setupOpen(ob);
+  const papers = ob ? papersState(ob) : null;
+  const askedForMore = papers === "needs_info" || papers === "rejected";
+  const nextStep = ob ? stepsOf(ob).find((s) => !s.done) : undefined;
   const t = d.today as Row, c = d.counts as Row;
   const team = (d.team ?? []) as Row[], upNext = (d.up_next ?? []) as Row[], week = (d.week ?? []) as Row[], inbox = (d.inbox ?? []) as Row[];
   const timeOff = (d.time_off ?? []) as Row[], lowStock = (d.low_stock ?? []) as Row[];
@@ -47,8 +55,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ o
   if (manager && c.unreplied_reviews > 0) todos.push({ href: "/business/storefront#reviews", icon: "star", title: `${plural(c.unreplied_reviews, "review")} without a reply`, sub: "A short reply shows new clients you care", pill: <Pill>Reply</Pill> });
   if (manager && c.services === 0) todos.push({ href: "/business/services", icon: "services", title: "Add your first service", sub: "Clients cannot book until your menu has something on it", pill: <Pill tone="wine">Set up</Pill> });
   if (owner && c.payout_accounts === 0) todos.push({ href: "/business/money/payout-account", icon: "bank", title: "Add a payout account", sub: "So the money you take can reach your bank", pill: <Pill tone="wine">Set up</Pill> });
-  if (manager && c.photos === 0) todos.push({ href: "/business/storefront", icon: "storefront", title: "Add photos to your booking page", sub: "Pages with photos get booked far more often", pill: <Pill>Add</Pill> });
-  if (c.verification !== "verified") todos.push({ href: "/business/settings", icon: "shield", title: "Your listing is being checked", sub: "You can set everything up now. It goes live once our team approves it.", pill: <Pill tone="gold">In review</Pill> });
+  if (manager && c.photos === 0) todos.push({ href: "/business/storefront", icon: "storefront", title: "Add photos to your booking page", sub: "Clients want to see your work before they book", pill: <Pill>Add</Pill> });
+  if (c.verification !== "verified" && !showSetup) todos.push({ href: manager ? "/business/setup#verify" : "/business/settings", icon: "shield", title: "Your listing is being checked", sub: "You can set everything up now. It goes live once our team approves it.", pill: <Pill tone="gold">In review</Pill> });
 
   // The note: plain sentences worked out from the numbers above.
   const weekSoFar = week.reduce((a, w) => a + w.cents, 0), weekBooked = week.reduce((a, w) => a + w.booked_cents, 0);
@@ -75,6 +83,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ o
 
       <div className="content">
         <Flash sp={sp} />
+        {showSetup && ob ? (
+          <section className="card setup-card" aria-label="Setup">
+            <div className="hd"><h3>Get ready to take bookings</h3><Link href="/business/setup">See all steps</Link></div>
+            <div className="setup-prog">
+              <div className="setup-bar" role="progressbar" aria-valuemin={0} aria-valuemax={Number(ob.total)} aria-valuenow={Number(ob.done)} aria-label={`${ob.done} of ${ob.total} steps done`}><i style={{ width: `${pct(ob.done, ob.total)}%` }} /></div>
+              <span>{ob.done} of {ob.total} done</span>
+            </div>
+            {askedForMore && !ob.live ? (
+              <div className="setup-next">
+                <span><b>{standing(ob)}</b><span>Upload what is missing, then send your papers again.</span></span>
+                <Link href="/business/setup#verify" className="btn btn-ink btn-sm">Go to your papers</Link>
+              </div>
+            ) : nextStep ? (
+              <div className="setup-next">
+                <span><b>Next: {nextStep.title}</b><span>{nextStep.hint}</span></span>
+                <Link href={nextStep.href} className="btn btn-ink btn-sm">Do this</Link>
+              </div>
+            ) : (
+              <div className="sub">{standing(ob)}</div>
+            )}
+          </section>
+        ) : null}
         <div className="kpis">
           <div className="kpi"><small>Bookings today</small><b>{t.bookings}</b><span>{open ? `${full}% of the day booked` : "Closed today"}</span></div>
           <div className="kpi"><small>Expected today</small><b>{money(t.expected_cents, cur)}</b><span>{money(t.paid_cents, cur)} already paid</span></div>

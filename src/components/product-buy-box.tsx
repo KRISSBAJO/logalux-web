@@ -10,19 +10,22 @@ import { SaveProduct } from "./save-product";
 export type BuyProduct = {
   slug: string; name: string; seller_name: string; tone: string; description: string; price_cents: number; compare_cents: number | null; stock: number;
   sizes: Size[]; pickup: boolean; shipping: boolean; shipping_cents: number; business: string | null; business_city: string | null;
+  /** What the product is priced in. */
+  currency: string;
 };
 
 /** One way to get the product. The three pick-up ways are the same order to the shop; they differ in what the customer is told. */
 type Way = "visit" | "today" | "pickup" | "ship";
 
 // A gift card's sizes are amounts ("$25"), so the price beside them would only repeat the label.
-const isPrice = (label: string, cents: number) => label.replace(/s/g, "") === money(cents);
+const isPrice = (label: string, cents: number, currency: string) => label.replace(/s/g, "") === money(cents, currency);
 
 /** Price, size, how to get it, quantity and the add-to-cart button. The children of the design's `.info` column, in its order. */
 export function ProductBuyBox({ product: p, extras, signedIn }: { product: BuyProduct; extras: Pick<ProductExtras, "delivery" | "pickup_today" | "next_visit" | "saved">; signedIn: boolean }) {
   const sizes = p.sizes.length ? p.sizes : [{ label: "", price_cents: p.price_cents }];
   // The size the listed price belongs to is the one shown first.
   const [size, setSize] = useState((sizes.find((s) => s.price_cents === p.price_cents) ?? sizes[0]).label);
+  const cur = p.currency;
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(0);
   const { items, how, when } = useCart();
@@ -33,7 +36,7 @@ export function ProductBuyBox({ product: p, extras, signedIn }: { product: BuyPr
     ...(visitOn ? [{ id: "visit" as const, title: "Pick up at your visit", sub: `${visitOn} · ${studio}${p.business_city ? `, ${p.business_city}` : ""}`, cost: "Free" }] : []),
     ...(today ? [{ id: "today" as const, title: "Pick up today", sub: `${pickupTodayText(today).replace(/^r/, "R")} · ${studio}`, cost: "Free" }] : []),
     ...(p.pickup && !visitOn && !today ? [{ id: "pickup" as const, title: `Pick up at ${studio}`, sub: p.business_city ? `Collect it at the studio in ${p.business_city}` : "Collect it at the studio", cost: "Free" }] : []),
-    ...(p.shipping ? [{ id: "ship" as const, title: "Ship to me", sub: [extras.delivery ? `Arrives in ${deliveryDays(extras.delivery)}` : "", p.shipping_cents > 0 ? `One shipping charge for everything you order from ${p.seller_name}` : extras.delivery ? "" : "Sent to your address"].filter(Boolean).join(" · "), cost: p.shipping_cents > 0 ? money(p.shipping_cents) : "Free" }] : []),
+    ...(p.shipping ? [{ id: "ship" as const, title: "Ship to me", sub: [extras.delivery ? `Arrives in ${deliveryDays(extras.delivery)}` : "", p.shipping_cents > 0 ? `One shipping charge for everything you order from ${p.seller_name}` : extras.delivery ? "" : "Sent to your address"].filter(Boolean).join(" · "), cost: p.shipping_cents > 0 ? money(p.shipping_cents, cur) : "Free" }] : []),
   ];
   const [way, setWay] = useState<Way | "">(ways[0]?.id ?? "");
   // What the customer already chose for this seller in their cart is kept.
@@ -54,7 +57,7 @@ export function ProductBuyBox({ product: p, extras, signedIn }: { product: BuyPr
 
   function add() {
     if (room < 1) return;
-    cart.add({ slug: p.slug, name: p.name, seller: p.seller_name, size, unit_cents: unit, tone: p.tone }, n, max);
+    cart.add({ slug: p.slug, name: p.name, seller: p.seller_name, size, unit_cents: unit, tone: p.tone, currency: cur }, n, max);
     if (way) cart.setFulfilment(p.seller_name, way === "ship" ? "ship" : "pickup", way === "visit" || way === "today" ? way : undefined);
     setAdded(n); setQty(1);
   }
@@ -62,8 +65,8 @@ export function ProductBuyBox({ product: p, extras, signedIn }: { product: BuyPr
   return (
     <>
       <div className="price">
-        {money(unit)}{was > 0 && <s>{money(was)}</s>}
-        {((size && !isPrice(size, unit)) || per) && <small>{[isPrice(size, unit) ? "" : size, per ? `${money(per.cents)} per ${per.per === 1 ? "" : `${per.per} `}${per.unit}` : ""].filter(Boolean).join(" · ")}</small>}
+        {money(unit, cur)}{was > 0 && <s>{money(was, cur)}</s>}
+        {((size && !isPrice(size, unit, cur)) || per) && <small>{[isPrice(size, unit, cur) ? "" : size, per ? `${money(per.cents, cur)} per ${per.per === 1 ? "" : `${per.per} `}${per.unit}` : ""].filter(Boolean).join(" · ")}</small>}
       </div>
       {p.description && <p className="muted lead">{p.description}</p>}
 
@@ -72,7 +75,7 @@ export function ProductBuyBox({ product: p, extras, signedIn }: { product: BuyPr
           <span className="lbl" id="size-lbl">Size</span>
           <div className="chips" role="group" aria-labelledby="size-lbl">
             {sizes.map((s) => (
-              <button key={s.label} type="button" className={`chip ${s.label === size ? "on" : ""}`} aria-pressed={s.label === size} onClick={() => { setSize(s.label); setAdded(0); }}>{s.label}{!isPrice(s.label, s.price_cents) && <> <small>{money(s.price_cents)}</small></>}</button>
+              <button key={s.label} type="button" className={`chip ${s.label === size ? "on" : ""}`} aria-pressed={s.label === size} onClick={() => { setSize(s.label); setAdded(0); }}>{s.label}{!isPrice(s.label, s.price_cents, cur) && <> <small>{money(s.price_cents, cur)}</small></>}</button>
             ))}
           </div>
         </div>
@@ -98,7 +101,7 @@ export function ProductBuyBox({ product: p, extras, signedIn }: { product: BuyPr
           <button type="button" onClick={() => setQty(Math.min(room, n + 1))} disabled={n >= room} aria-label="More">+</button>
         </div>
         <button type="button" className="btn btn-ink buy" onClick={add} disabled={room < 1}>
-          {p.stock < 1 ? "Out of stock" : room < 1 ? "All we have is in your cart" : `Add to cart · ${money(unit * n)}`}
+          {p.stock < 1 ? "Out of stock" : room < 1 ? "All we have is in your cart" : `Add to cart · ${money(unit * n, cur)}`}
         </button>
         <SaveProduct variant="page" slug={p.slug} name={p.name} saved={extras.saved === true} signedIn={signedIn} next={`/shop/${p.slug}`} />
       </div>

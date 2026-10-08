@@ -3,11 +3,20 @@
 
 export type Size = { label: string; price_cents: number };
 
+/** The shop sells in two currencies: dollars in Nashville, naira in Lagos. A product is priced in its seller's. */
+export type Currency = "USD" | "NGN";
+export const currencyOf = (c: unknown): Currency => (String(c ?? "").toUpperCase() === "NGN" ? "NGN" : "USD");
+/** The shop a currency belongs to. The dollar shop is the plain address. */
+export const shopHref = (currency: unknown) => (currencyOf(currency) === "NGN" ? "/shop?market=ng" : "/shop");
+/** Who takes the payment: Paystack for naira, Stripe for dollars. */
+export const payProvider = (currency: unknown) => (currencyOf(currency) === "NGN" ? "Paystack" : "Stripe");
+
 /** A product as GET /v1/products lists it. */
 export type ShopProduct = {
   id: string; slug: string; name: string; seller_name: string; business_slug: string | null; seller_verified: boolean | null;
   category: string; description?: string; price_cents: number; compare_cents: number | null; stock: number; tone: string; tags: string[] | null;
   rating: number; review_count: number; sold: number; pickup: boolean; shipping: boolean; shipping_cents: number; sizes: Size[] | null; photo_id: string | null;
+  currency?: string;
 };
 
 export type ShopList = {
@@ -16,13 +25,15 @@ export type ShopList = {
   sellers: { seller_name: string; business_slug: string | null; verified: boolean | null; n: number }[];
   tags: { tag: string; n: number }[];
   booked: string[];
+  /** The currency of this list: every product in it, and every count beside it. */
+  currency?: string;
 };
 
 /** What the cart needs to know about a product today, from GET /api/products. */
 export type CartProduct = {
   slug: string; name: string; seller_name: string; price_cents: number; stock: number; tone: string; sizes: Size[];
   pickup: boolean; shipping: boolean; shipping_cents: number; business_slug: string | null; business_city: string | null;
-  seller_verified: boolean; photo_id: string | null;
+  seller_verified: boolean; photo_id: string | null; currency: Currency;
 };
 
 const CATEGORY: Record<string, string> = {
@@ -57,9 +68,19 @@ export function perUnit(label: string, cents: number): { per: number; unit: stri
   return { per, unit, cents: Math.round((cents / amount) * per) };
 }
 
-/** Sales tax as the order endpoint works it out: 9.25% of the subtotal after the promo, to the nearest cent. */
-export const salesTax = (afterDiscountCents: number) => Math.floor((afterDiscountCents * 925 + 5000) / 10000);
-export const TAX_LABEL = "Sales tax · 9.25%";
+/** What POST /v1/orders/quote says an order comes to. Tax is worked out there, by seller and by the state an order ships to: never in the browser. */
+export type OrderQuote = { subtotal_cents: number; discount_cents: number; shipping_cents: number; tax_cents: number; gift_cents: number; credit_cents: number; total_cents: number; currency?: string };
+
+/** The states an order can ship to, with the two-letter code the API reads tax from. */
+export const US_STATES: [string, string][] = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"], ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"],
+  ["DC", "District of Columbia"], ["FL", "Florida"], ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"], ["IA", "Iowa"],
+  ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"], ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"],
+  ["MS", "Mississippi"], ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"], ["NJ", "New Jersey"], ["NM", "New Mexico"],
+  ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"], ["OH", "Ohio"], ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"],
+  ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"], ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"],
+  ["WV", "West Virginia"], ["WI", "Wisconsin"], ["WY", "Wyoming"],
+];
 
 /** What GET /v1/products/{slug} and /v1/products-extras say about getting a product. A fact that is absent is not stated anywhere. */
 export type ProductExtras = {

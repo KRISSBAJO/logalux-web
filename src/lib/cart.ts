@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-export type CartItem = { slug: string; name: string; seller: string; size: string; unit_cents: number; qty: number; tone: string };
+/** `currency` is what the product is priced in. A line saved before the shop sold in naira has none, and is in dollars. */
+export type CartItem = { slug: string; name: string; seller: string; size: string; unit_cents: number; qty: number; tone: string; currency?: string };
 /** How one seller's items reach the customer. */
 export type Fulfilment = "pickup" | "ship";
 
@@ -63,6 +64,15 @@ export const cart = {
   setFulfilment(seller: string, how: Fulfilment, when?: PickupWhen) {
     if (when) { try { localStorage.setItem(WHEN_KEY, JSON.stringify({ ...readWhen(), [seller]: when })); } catch {} }
     writeHow({ ...readHow(), [seller]: how });
+  },
+  /** Takes out the lines of an order that was just placed. Everything else in the cart stays, with its sellers' choices. */
+  removeLines(lines: { slug: string; size: string }[]) {
+    const gone = new Set(lines.map((l) => `${l.slug}|${l.size}`));
+    const items = read().filter((x) => !gone.has(`${x.slug}|${x.size}`));
+    const sellers = new Set(items.map((x) => x.seller));
+    const keep = <T,>(m: Record<string, T>) => Object.fromEntries(Object.entries(m).filter(([s]) => sellers.has(s)));
+    try { localStorage.setItem(HOW_KEY, JSON.stringify(keep(readHow()))); localStorage.setItem(WHEN_KEY, JSON.stringify(keep(readWhen()))); } catch {}
+    write(items);
   },
   clear() {
     try { localStorage.removeItem(HOW_KEY); localStorage.removeItem(WHEN_KEY); } catch {}

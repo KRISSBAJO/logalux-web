@@ -14,8 +14,20 @@ export function CartLink({ tone = "ghost" }: { tone?: "ghost" | "out" }) {
   );
 }
 
+/** "Keep shopping" on the cart page. A cart that holds only naira items leads back to the naira shop. */
+export function KeepShopping() {
+  const { items } = useCart();
+  const naira = items.length > 0 && items.every((i) => i.currency === "NGN");
+  return (
+    <Link href={naira ? "/shop?market=ng" : "/shop"} className="btn btn-out btn-sm">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m15 18-6-6 6-6" /></svg>
+      Keep shopping
+    </Link>
+  );
+}
+
 /** The small button on a product card. Press again to take the product back out. */
-export function AddToCart({ product, size, unitCents }: { product: { slug: string; name: string; seller_name: string; tone: string; stock: number }; size: string; unitCents: number }) {
+export function AddToCart({ product, size, unitCents }: { product: { slug: string; name: string; seller_name: string; tone: string; stock: number; currency: string }; size: string; unitCents: number }) {
   const { items } = useCart();
   const inCart = items.some((i) => i.slug === product.slug && i.size === size);
   if (product.stock < 1) return <button type="button" className="add" disabled>Sold out</button>;
@@ -25,7 +37,7 @@ export function AddToCart({ product, size, unitCents }: { product: { slug: strin
       className={`add ${inCart ? "in" : ""}`}
       aria-pressed={inCart}
       aria-label={inCart ? `${product.name} is in your cart. Remove it` : `Add ${product.name} to cart`}
-      onClick={() => (inCart ? cart.remove(product.slug, size) : cart.add({ slug: product.slug, name: product.name, seller: product.seller_name, size, unit_cents: unitCents, tone: product.tone }, 1, product.stock))}
+      onClick={() => (inCart ? cart.remove(product.slug, size) : cart.add({ slug: product.slug, name: product.name, seller: product.seller_name, size, unit_cents: unitCents, tone: product.tone, currency: product.currency }, 1, product.stock))}
     >
       {inCart ? "In cart ✓" : "Add"}
     </button>

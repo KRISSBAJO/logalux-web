@@ -85,3 +85,14 @@
 @media (max-width:720px){
 .mx .pg-home .topbar,.mx .pg-home .content{padding-left:16px;padding-right:16px}
 }
+
+/* the setup card at the top of Home, shown until the business is live and its steps are done */
+.mx .pg-home .setup-card{border-color:#D4AF5A}
+.mx .pg-home .setup-prog{display:flex;align-items:center;gap:12px;font-size:12.5px;font-weight:600;color:#6B5F57;white-space:nowrap}
+.mx .pg-home .setup-bar{flex:1;min-width:0;height:8px;border-radius:999px;background:#EFE5DA;overflow:hidden}
+.mx .pg-home .setup-bar i{display:block;height:100%;border-radius:999px;background:#D4AF5A}
+.mx .pg-home .setup-next{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 12px;border-radius:14px;background:#FBF4E3}
+.mx .pg-home .setup-next > span{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mx .pg-home .setup-next b{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.mx .pg-home .setup-next span span{font-size:12.5px;color:#6B5F57}
+.mx .pg-home .setup-card a.btn-ink,.mx .pg-home .setup-card a.btn-ink:hover{color:#FBF7F2}

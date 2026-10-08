@@ -56,3 +56,25 @@ export async function draftReply(threadId: string, hint: string): Promise<Draft>
     return { ok: false, error: m[0].toUpperCase() + m.slice(1) + (/[.?!]$/.test(m) ? "" : ".") };
   }
 }
+
+/** The business gives its side of a problem a client reported. Once; it then goes to LogaLuxe to decide. */
+export async function answerProblem(fd: FormData) {
+  const statement = str(fd, "statement"), id = str(fd, "id");
+  const fail = (message: string): never => {
+    // Back to the open report, so the reason is read beside the form.
+    const url = new URL(str(fd, "back") || "/business/inbox?tab=problems", "http://merchant");
+    url.searchParams.set("problem", id);
+    fd.set("back", url.pathname + url.search);
+    return mBackTo(fd, "err", message);
+  };
+  if (statement.length < 20 || statement.length > 2000) fail("Write your answer in 20 to 2,000 characters. Nothing was sent.");
+  let error = "";
+  try {
+    await mPost(`/problems/${fid(fd)}`, { statement });
+  } catch (e) {
+    const m = (e as Error).message || "Something went wrong";
+    error = m[0].toUpperCase() + m.slice(1) + (/[.?]$/.test(m) ? "" : ".");
+  }
+  if (error) fail(error);
+  mBackTo(fd, "ok", "Your answer was sent to LogaLuxe. They decide and email you and the client.");
+}

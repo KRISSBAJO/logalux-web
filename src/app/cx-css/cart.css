@@ -120,3 +120,29 @@
 .cx.pg-cart .item .r{align-items:center}
 .cx.pg-cart .opt{flex-wrap:nowrap}
 }
+
+/* ---------- After the sale: the state an order ships to, and totals that come from the server ---------- */
+.cx.pg-cart .field select{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:46px;font:inherit;font-size:15px;padding:0 10px;color:#1A1513;outline:none;width:100%}
+.cx.pg-cart .field select:focus{border-color:#1A1513}
+.cx.pg-cart .field select[aria-invalid="true"]{border-color:#7A1F2B}
+.cx.pg-cart .csz{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1fr);gap:12px}
+.cx.pg-cart .nums{display:flex;flex-direction:column;gap:10px;transition:opacity .15s}
+.cx.pg-cart .nums.upd{opacity:.5}
+.cx.pg-cart .nums .msg{color:#6B5F57}
+.cx.pg-cart .sum > .msg[role="status"]:empty{display:none}
+@media (max-width:720px){
+.cx.pg-cart .csz{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cx.pg-cart .csz > :first-child{grid-column:1 / -1}
+}
+/* "fixed" here names a line about a seller with one way to deliver. It shares its name with a utility class that pins an element to the window, which this undoes. */
+.cx.pg-cart .fixed{position:static}
+
+/* ---------- Two currencies: one cart for dollars and one for naira, each paid on its own ---------- */
+.cx.pg-cart .top ~ section > .layout,.cx.pg-cart .top ~ .layout{padding-top:18px}
+.cx.pg-cart .twocur{margin:18px 0 0;background:#F6EBD2;color:#5A430E;border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.5}
+.cx.pg-cart .cur{padding-top:26px}
+.cx.pg-cart .cur + .cur{border-top:1px solid #E6DCD2}
+.cx.pg-cart .cur > .layout{padding-bottom:36px}
+.cx.pg-cart .cur:last-child > .layout{padding-bottom:56px}
+.cx.pg-cart .curh{margin:0;font-size:26px;line-height:1.15}
+.cx.pg-cart .done p + p{margin-top:0}

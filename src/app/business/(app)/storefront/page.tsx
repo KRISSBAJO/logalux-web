@@ -292,7 +292,7 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
                       );
                     })}
                   </div>
-                ) : <Empty title="No photos yet">Pages with photos of finished work get booked far more often.</Empty>}
+                ) : <Empty title="No photos yet">Add photos of finished work so clients can see what you do.</Empty>}
 
                 {!storage ? (
                   <div className="warn"><b>Photo uploads are not set up yet.</b> File storage has not been connected for LogaLuxe on this server, so photos cannot be added for now. Your page shows your page colour in their place. Contact LogaLuxe support if this does not change.</div>

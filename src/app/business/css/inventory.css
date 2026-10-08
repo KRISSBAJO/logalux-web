@@ -150,3 +150,7 @@
 .mx .pg-inventory .pol .grp{border-top:1px solid #E6DCD2;padding-top:12px;display:flex;flex-direction:column;gap:9px}
 .mx .pg-inventory .pol .opt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
 .mx .pg-inventory .pol .opt .inp{width:84px;min-height:36px}
+/* Returns of online orders: the line that says some are waiting, and the answer column. */
+.mx .pg-inventory .oo-wait{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-color:#E7D5A6;background:#FBF4E3}
+.mx .pg-inventory .oo-wait a{font-weight:600;color:#7A1F2B;text-decoration:underline}
+.mx .pg-inventory .oo td.wrapc a.btn-ink,.mx .pg-inventory .oo td.wrapc a.btn-ink:hover{color:#FBF7F2}

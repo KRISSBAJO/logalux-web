@@ -1,0 +1,52 @@
+/* The setup page: what a new business still has to do, and its identity papers.
+   Not in the design canvas, so it is built from the same tokens. Scoped to this screen. */
+.mx .pg-setup{background:#F4ECE2;color:#1A1513}
+.mx .pg-setup *{box-sizing:border-box}
+.mx .pg-setup a{color:#7A1F2B;text-decoration:none}
+.mx .pg-setup a:hover{color:#5A1420}
+.mx .pg-setup .content{max-width:860px;width:100%}
+.mx .pg-setup .card{scroll-margin-top:84px}
+.mx .pg-setup h2{font-size:26px;font-weight:500;line-height:1.1}
+.mx .pg-setup h4{margin:0;font-size:14px;font-weight:600}
+
+.mx .pg-setup .bar{height:10px;border-radius:999px;background:#EFE5DA;overflow:hidden}
+.mx .pg-setup .bar i{display:block;height:100%;border-radius:999px;background:#D4AF5A}
+.mx .pg-setup .where{font-size:14.5px;line-height:1.5;overflow-wrap:anywhere}
+.mx .pg-setup .where.warn{color:#7A1F2B;font-weight:500}
+.mx .pg-setup .lead{font-size:14px;line-height:1.55;color:#4A403A}
+
+.mx .pg-setup .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.mx .pg-setup .step{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #E6DCD2;border-radius:14px;background:#FFFFFF}
+.mx .pg-setup .step.next{border-color:#D4AF5A;background:#FBF4E3;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-setup .tick{width:24px;height:24px;border-radius:50%;border:2px solid #D9CEC2;flex:none;display:flex;align-items:center;justify-content:center;color:#FFFFFF}
+.mx .pg-setup .step.done .tick{background:#1F6B3A;border-color:#1F6B3A}
+.mx .pg-setup .step.next .tick{border-color:#B8923A}
+.mx .pg-setup .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mx .pg-setup .txt b{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mx .pg-setup .txt > span{font-size:12.5px;color:#6B5F57;overflow-wrap:anywhere}
+.mx .pg-setup .step.done .txt b{color:#4A403A}
+
+.mx .pg-setup .state{border:1px solid #E6DCD2;background:#FBF7F2;border-radius:14px;padding:11px 14px;font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.mx .pg-setup .state.warn{background:#F6E3E6;border-color:#EBCFD4;color:#7A1F2B}
+
+.mx .pg-setup .up{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px;border:1px dashed #D9CEC2;border-radius:14px;background:#FBF7F2}
+.mx .pg-setup .up .btn{margin-top:21px}
+.mx .pg-setup .up input[type=file]{padding:8px 10px;height:auto;min-height:42px;font-size:13px}
+.mx .pg-setup .docs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.mx .pg-setup .docs li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #E6DCD2;border-radius:14px}
+.mx .pg-setup .docs .ic{width:34px;height:34px;border-radius:10px;background:#F4ECE2;display:flex;align-items:center;justify-content:center;flex:none;color:#6B5F57}
+.mx .pg-setup .send{display:flex;flex-direction:column;gap:12px;border-top:1px solid #E6DCD2;padding-top:14px;max-width:520px}
+.mx .pg-setup .send select:disabled,.mx .pg-setup .send textarea:disabled{background:#F4ECE2;color:#9A8E85;cursor:not-allowed}
+
+@media (max-width:640px){
+  .mx .pg-setup .up{grid-template-columns:minmax(0,1fr)}
+  .mx .pg-setup .up .btn{margin-top:0}
+  .mx .pg-setup .step{flex-wrap:wrap}
+  .mx .pg-setup .step .txt{flex-basis:calc(100% - 40px)}
+  .mx .pg-setup .step .btn{margin-left:36px}
+  .mx .pg-setup .docs li{flex-wrap:wrap}
+}
+
+/* buttons that are links keep their button colours */
+.mx .pg-setup a.btn-ink,.mx .pg-setup a.btn-ink:hover{color:#FBF7F2}
+.mx .pg-setup a.btn-out,.mx .pg-setup a.btn-out:hover{color:#1A1513}

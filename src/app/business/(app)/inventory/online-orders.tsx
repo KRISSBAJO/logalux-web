@@ -3,8 +3,10 @@ import { DataTable } from "@/components/data-table";
 import { ConfirmButton } from "@/components/merchant-client";
 import { Empty, Flash, LoadError, NoAccess, Topbar } from "@/components/merchant-ui";
 import { mLoad, qs, type Merchant, type Row } from "@/lib/merchant-api";
-import { clock, dateMed, money } from "@/lib/merchant-format";
+import { clock, dateMed, money, plural } from "@/lib/merchant-format";
+import { careCounts } from "../care-counts";
 import { saveShopPolicy, shopOrderAction } from "./actions";
+import { ReturnsView } from "./returns";
 
 // Online orders: this business's part of each order placed in the LogaLuxe shop.
 // A pickup goes new → ready → collected. A shipment goes new → (packed) → shipped → delivered.
@@ -81,41 +83,69 @@ function PolicyCard({ p, back }: { p: Row; back: string }) {
   );
 }
 
-export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string; status?: string }; m: Merchant }) {
+export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string; status?: string; view?: string; answer?: string }; m: Merchant }) {
+  const returnsView = sp.view === "returns";
   const status = TABS.some(([id]) => id === sp.status) ? sp.status! : "open";
-  const [res, policy] = await Promise.all([mLoad("/orders" + qs({ status: status === "all" ? "" : status })), mLoad("/shop-policy")]);
+  // The Returns view needs the orders only for the counts on the chips.
+  const [res, policy, rts, care] = await Promise.all([
+    mLoad("/orders" + qs({ status: returnsView ? "new" : status === "all" ? "" : status })),
+    returnsView ? null : mLoad("/shop-policy"),
+    returnsView ? mLoad("/returns") : null,
+    careCounts(),
+  ]);
   if (res.status === 403) return <div className="main pg-inventory"><NoAccess title="Online orders" need="manager" /></div>;
   if (res.error) return <div className="main pg-inventory"><LoadError title="Online orders" error={res.error} /></div>;
 
-  const tz = m.timezone, cur = "USD"; // the shop sells in US dollars
+  const tz = m.timezone, cur = String(m.currency ?? "USD"); // a business sells in its own currency
   const orders = (res.data.orders ?? []) as Row[], c = (res.data.counts ?? {}) as Record<string, number>;
   const n = (k: string) => Number(c[k] ?? 0);
   const count: Record<string, number> = { open: n("new") + n("ready") + n("shipped"), new: n("new"), ready: n("ready"), shipped: n("shipped"), done: Math.max(n("done"), n("all") - n("new") - n("ready") - n("shipped")), all: n("all") }; // done includes cancelled, as the list does
   const fee = Number(res.data.marketplace_pct ?? 0);
   const back = "/business/inventory" + qs({ tab: "orders", status: status === "open" ? "" : status });
+  const returnsHref = "/business/inventory" + qs({ tab: "orders", view: "returns" });
+  const returns = (rts?.data.returns ?? []) as Row[];
+  const waiting = returnsView && !rts?.error ? returns.filter((r) => r.status === "requested").length : care.returns;
 
   return (
     <div className="main pg-inventory">
       <Topbar title="Online orders" eyebrow="Inventory">
         <span style={{ flex: 1 }} />
-        <a href="#policy" className="btn btn-out">What shoppers are told</a>
+        {returnsView ? <Link href="/business/inventory?tab=orders#policy" className="btn btn-out">What shoppers are told</Link> : <a href="#policy" className="btn btn-out">What shoppers are told</a>}
         <Link href="/business/inventory" className="btn btn-out">Products and stock</Link>
       </Topbar>
 
       <div className="content">
         <Flash sp={sp} />
+        {returnsView ? (
+          <div className="oo-note">
+            A customer can ask to send back what they bought from you while your returns policy allows it. You approve and refund, or refuse and say why.
+            A refund comes out of your balance in Money, and LogaLuxe returns its marketplace fee on the refunded items.
+          </div>
+        ) : (
         <div className="oo-note">
           {fee > 0
             ? <>LogaLuxe keeps {fee}% of items sold through the shop; shipping you charge is yours.</>
             : <>LogaLuxe keeps no fee on items sold through the shop on your plan; shipping you charge is yours.</>}
           {" "}What you receive is added to your balance in Money once the order is paid.
         </div>
+        )}
+        {!returnsView && waiting > 0 ? (
+          <div className="oo-note oo-wait" role="status">
+            <span className="pill pill-gold">Returns</span> {waiting === 1 ? "1 return request is" : `${plural(waiting, "return request")} are`} waiting for your answer. <Link href={returnsHref}>Answer in Returns</Link>
+          </div>
+        ) : null}
 
         <nav style={{ display: "flex", gap: 8, flexWrap: "wrap" }} aria-label="Order status">
           {TABS.map(([id, name]) => (
-            <Link key={id} href={"/business/inventory" + qs({ tab: "orders", status: id === "open" ? "" : id })} className={"chip" + (status === id ? " on" : "")} aria-current={status === id ? "true" : undefined}>{name} <small>{count[id]}</small></Link>
+            <Link key={id} href={"/business/inventory" + qs({ tab: "orders", status: id === "open" ? "" : id })} className={"chip" + (!returnsView && status === id ? " on" : "")} aria-current={!returnsView && status === id ? "true" : undefined}>{name} <small>{count[id]}</small></Link>
           ))}
+          <Link href={returnsHref} className={"chip" + (returnsView ? " on" : "")} aria-current={returnsView ? "true" : undefined} title="Return requests waiting for your answer">Returns <small>{waiting}</small></Link>
         </nav>
+
+        {returnsView ? (
+          rts?.error ? <div role="alert" className="flash flash-err">{rts.status === 403 ? "Only a manager or the owner can answer returns." : `Returns could not be loaded: ${rts.error}`}</div>
+            : <ReturnsView rows={returns} reasons={(rts?.data.reasons ?? {}) as Record<string, string>} tz={tz} answer={sp.answer} />
+        ) : (<>
 
         {orders.length ? (
           <div className="tablebox oo">
@@ -178,9 +208,10 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
         )}
         <div className="muted" style={{ fontSize: 12.5 }}>An order appears here once the customer has paid. The customer sees each step in their account. The last 300 are shown.</div>
 
-        {policy.error
-          ? <div className="card pol" id="policy"><h3>What shoppers are told</h3><div role="alert" className="flash flash-err">{policy.status === 403 ? "Only a manager or the owner can change this." : `This could not be loaded: ${policy.error}`}</div></div>
+        {!policy || policy.error
+          ? <div className="card pol" id="policy"><h3>What shoppers are told</h3><div role="alert" className="flash flash-err">{policy?.status === 403 ? "Only a manager or the owner can change this." : `This could not be loaded: ${policy?.error ?? ""}`}</div></div>
           : <PolicyCard p={policy.data} back={back + "#policy"} />}
+        </>)}
       </div>
     </div>
   );

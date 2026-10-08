@@ -12,6 +12,11 @@ export default async function Verification({ searchParams }: { searchParams: Pro
   const sel = reqs.find((r) => r.id === sp.id) ?? reqs[0];
   const back = `/admin/verification${qs({ status, id: sel?.id })}`;
   const risk = (n: number) => (n < 20 ? "low" : n < 50 ? "medium" : "high");
+  // The papers the selected business uploaded. The files themselves open through /admin/verification/document/[id].
+  const papers = sel ? await load(`/verification/${sel.id}/documents`) : null;
+  const docs: Row[] = papers?.data.documents ?? [];
+  const kinds: Record<string, string> = papers?.data.kinds ?? {};
+  const size = (n: number) => (n < 1024 ? `${n} bytes` : n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
   return (
     <>
@@ -50,8 +55,8 @@ export default async function Verification({ searchParams }: { searchParams: Pro
               <Panel title="Checks">
                 <div className="grid gap-2 sm:grid-cols-2">
                   {([
-                    [true, "Identity verified", `${sel.id_provider} · name and date of birth match the ID`],
-                    [true, "Phone verified", "WhatsApp reachable"],
+                    [docs.some((d) => d.kind === "id"), docs.some((d) => d.kind === "id") ? "Photo ID uploaded" : "No photo ID yet", docs.some((d) => d.kind === "id") ? `${sel.id_type || "Kind not stated"}. Open it below and compare the name with the owner's.` : sel.id_provider ? `Recorded when the business was added: ${sel.id_provider}` : "The business has not uploaded one."],
+                    [!!sel.submitted_at, sel.submitted_at ? "Sent for checking" : "Not sent yet", sel.submitted_at ? "The business pressed Send for checking." : "Documents may be uploaded but the business has not asked for a check."],
                     [sel.licence_status !== "missing", sel.licence_status === "missing" ? "Certificate missing" : sel.licence_status === "not_required" ? "Licence not required" : "Licence valid", sel.licence_status === "missing" ? "Ask before approving regulated services" : "Checked against the local rule"],
                     [!String(sel.portfolio_note).includes("another"), "Portfolio", sel.portfolio_note || "No concerns"],
                   ] as [boolean, string, string][]).map(([ok, t, d]) => (
@@ -63,7 +68,36 @@ export default async function Verification({ searchParams }: { searchParams: Pro
                 </div>
               </Panel>
 
+              <Panel title="Documents" sub="Uploaded by the business. Each time a file is opened it is written to the audit log." flush={docs.length > 0}>
+                {papers?.error ? (
+                  <p className="text-[13px] text-bad">The documents could not be loaded: {papers.error}</p>
+                ) : docs.length === 0 ? (
+                  <p className="text-[14px] text-muted">This business has not uploaded any documents.</p>
+                ) : (
+                  <table className="w-full min-w-[560px] text-left text-[13.5px]">
+                    <thead>
+                      <tr className="border-b border-line-2 text-[11px] font-semibold uppercase tracking-[.05em] text-muted">
+                        <th className="px-5 py-2.5">Kind</th><th className="px-3 py-2.5">File</th><th className="px-3 py-2.5">Size</th><th className="px-3 py-2.5">Uploaded by</th><th className="px-3 py-2.5">When</th><th className="px-5 py-2.5" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {docs.map((d) => (
+                        <tr key={d.id} className="border-b border-line-2 last:border-0">
+                          <td className="px-5 py-3 font-semibold">{kinds[d.kind] ?? d.kind}</td>
+                          <td className="max-w-[220px] break-words px-3 py-3">{d.file_name}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-muted">{size(Number(d.size_bytes ?? 0))}</td>
+                          <td className="break-all px-3 py-3 text-muted">{d.uploaded_by || "Not recorded"}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-muted">{ago(d.created_at)}</td>
+                          <td className="px-5 py-3 text-right"><a href={`/admin/verification/document/${d.id}`} target="_blank" rel="noreferrer" className="font-semibold text-wine hover:underline">Open<span className="sr-only"> {d.file_name}</span></a></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </Panel>
+
               <Panel title="Decision" sub={sel.decided_by ? `Last decided by ${sel.decided_by}, ${ago(sel.decided_at)}` : undefined}>
+                <div className="mb-3"><Facts narrow items={[["ID type", sel.id_type || "Not given"], ["Note from the business", sel.portfolio_note || "None"]]} /></div>
                 {sel.decision_note && <p className="mb-3 rounded-xl bg-warn-bg px-3.5 py-2.5 text-[13px]">Last note: {sel.decision_note}</p>}
                 {can(admin, "ops") ? (
                   <form action={decideVerification} className="flex flex-col gap-3">

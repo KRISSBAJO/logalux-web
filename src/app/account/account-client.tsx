@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { addReviewPhoto, moveMyBooking, removeReviewPhoto, type PhotoState } from "./actions";
+import { money } from "@/lib/api";
+import { addReviewPhoto, addTip, askReturn, moveMyBooking, removeReviewPhoto, reportProblem, type CareState, type PhotoState } from "./actions";
 
 const MAX_PHOTOS = 3;
 const NO_PHOTO: PhotoState = { error: "", done: 0 };
@@ -214,5 +215,122 @@ export function BookingMover({ id, slug, timezone, services, staffId, staff, sta
         {pick && <span className="text-[13px] text-muted">With {pick.staff}. The price you agreed stays the same.</span>}
       </div>
     </form>
+  );
+}
+
+// ---------- after the sale: a return, a tip, a problem with a visit ----------
+
+const NO_CARE: CareState = { error: "" };
+const capLabel = "text-[11px] font-semibold uppercase tracking-[.06em] text-muted";
+const summaryLink = "cursor-pointer text-[14px] font-semibold text-wine";
+const CareError = ({ text }: { text: string }) => <div aria-live="polite">{text ? <p role="alert" className="text-[13.5px] font-medium text-bad">{text}</p> : null}</div>;
+
+// The API sends the reasons as a map, so the order they are offered in is set here. A reason added later still shows, at the end.
+const RETURN_ORDER = ["damaged", "wrong_item", "not_as_described", "changed_mind", "other"];
+
+/** Asks one seller to take back their part of an order. */
+export function ReturnForm({ orderId, seller, reasons, until }: { orderId: string; seller: string; /** Reason key to its wording, from the API. */ reasons: Record<string, string>; /** The last day, already written out. */ until: string }) {
+  const [state, send, sending] = useActionState(askReturn, NO_CARE);
+  const [reason, setReason] = useState("");
+  const needNote = reason === "other" || reason === "not_as_described";
+  return (
+    <details className="mt-1.5">
+      <summary className={summaryLink}>Return these items</summary>
+      <form action={send} className="mt-3 flex max-w-[520px] flex-col gap-3">
+        <input type="hidden" name="order" value={orderId} />
+        <input type="hidden" name="seller" value={seller} />
+        <p className="text-[13.5px] leading-relaxed text-muted">
+          {until ? `You can ask until ${until}. ` : ""}{seller} answers by email. If the return is approved, the refund goes back to the card you paid with. Any part you paid with store credit or a gift card comes back as store credit.
+        </p>
+        <label className="field"><span className={capLabel}>Why are you returning it?</span>
+          <select name="reason" required value={reason} onChange={(e) => setReason(e.target.value)}>
+            <option value="">Choose a reason</option>
+            {[...RETURN_ORDER.filter((k) => k in reasons), ...Object.keys(reasons).filter((k) => !RETURN_ORDER.includes(k))].map((k) => <option key={k} value={k}>{reasons[k]}</option>)}
+          </select>
+        </label>
+        <label className="field"><span className={capLabel}>{needNote ? "What is wrong? A sentence or two" : "A note for the seller, if you like"}</span>
+          <textarea name="note" required={needNote} minLength={needNote ? 10 : undefined} maxLength={1000} />
+        </label>
+        <CareError text={state.error} />
+        <div><button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={sending}>{sending ? "Sending…" : "Ask for a return"}</button></div>
+      </form>
+    </details>
+  );
+}
+
+/** A tip for a finished visit: a share of what the visit cost, or an amount of the client's own. */
+export function TipForm({ id, business, totalCents, currency, tipped }: { id: string; business: string; totalCents: number; currency: string; /** Tipped already, with this in mind another can still be added. */ tipped: number }) {
+  const [state, send, sending] = useActionState(addTip, NO_CARE);
+  // The smallest tip the API takes, and what a choice is rounded to: whole dollars, or the nearest 100 naira.
+  const ngn = currency === "NGN";
+  const floor = ngn ? 20000 : 100, step = ngn ? 10000 : 100;
+  const choices = [15, 20, 25]
+    .map((pct) => ({ pct, cents: Math.round((totalCents * pct) / 100 / step) * step }))
+    .filter((c, i, all) => c.cents >= floor && c.cents <= totalCents && all.findIndex((x) => x.cents === c.cents) === i);
+  const [pick, setPick] = useState<number | "own">(choices[1]?.cents ?? choices[0]?.cents ?? "own");
+  const [own, setOwn] = useState("");
+  const ownCents = Math.round((Number(own.replace(/,/g, "")) || 0) * 100);
+  const cents = pick === "own" ? ownCents : pick;
+  // Payments are live: the tip is paid on the provider's page.
+  useEffect(() => { if (state.url) window.location.href = state.url; }, [state.url]);
+  const chip = (on: boolean) => `flex min-h-[42px] cursor-pointer items-center rounded-full border px-3.5 text-[14px] font-semibold transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-gold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white hover:border-ink"}`;
+  return (
+    <details>
+      <summary className={summaryLink}>{tipped > 0 ? "Add another tip" : "Add a tip"}</summary>
+      <form action={send} className="mt-3 flex max-w-[520px] flex-col gap-3">
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="business" value={business} />
+        <input type="hidden" name="amount_cents" value={cents > 0 ? cents : ""} />
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="mb-2 text-[13.5px] text-muted">A tip for {business}, in {ngn ? "naira" : "US dollars"}. The visit was {money(totalCents, currency)}.</legend>
+          {choices.map((c) => (
+            <label key={c.pct} className={chip(pick === c.cents)}>
+              <input type="radio" name="choice" className="sr-only" checked={pick === c.cents} onChange={() => setPick(c.cents)} />{c.pct}% · {money(c.cents, currency)}
+            </label>
+          ))}
+          <label className={chip(pick === "own")}>
+            <input type="radio" name="choice" className="sr-only" checked={pick === "own"} onChange={() => setPick("own")} />Another amount
+          </label>
+        </fieldset>
+        {pick === "own" && (
+          <label className="field max-w-[220px]"><span className={capLabel}>Amount in {ngn ? "naira (₦)" : "dollars ($)"}</span>
+            <input type="number" inputMode="decimal" min={floor / 100} max={totalCents > 0 ? totalCents / 100 : undefined} step={ngn ? 1 : 0.01} value={own} onChange={(e) => setOwn(e.target.value)} required />
+          </label>
+        )}
+        <p className="text-[13px] text-muted">From {money(floor, currency)}{totalCents > 0 ? ` up to ${money(totalCents, currency)}, the price of the visit` : ""}. If a payment page opens, you pay there. LogaLuxe never sees your card.</p>
+        <CareError text={state.error} />
+        <div><button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={sending || !!state.url || cents <= 0}>{sending || state.url ? "Sending…" : cents > 0 ? `Tip ${money(cents, currency)}` : "Choose an amount"}</button></div>
+      </form>
+    </details>
+  );
+}
+
+const PROBLEMS: [string, string][] = [["quality", "The result was not what was agreed"], ["charged", "I was charged the wrong amount"], ["no_show", "The professional did not show up"], ["conduct", "How I was treated"], ["other", "Something else"]];
+
+/** Reports a problem with a visit, and says what happens next. */
+export function ProblemForm({ id, business }: { id: string; business: string }) {
+  const [state, send, sending] = useActionState(reportProblem, NO_CARE);
+  const [text, setText] = useState("");
+  const short = text.trim().length < 20;
+  return (
+    <details>
+      <summary className={summaryLink}>Report a problem</summary>
+      <form action={send} className="mt-3 flex max-w-[560px] flex-col gap-3">
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="business" value={business} />
+        <p className="text-[13.5px] leading-relaxed text-muted">Your report goes to {business} and to LogaLuxe. {business} has 48 hours to give its side. Then LogaLuxe decides and emails you. You can report a visit once.</p>
+        <label className="field max-w-[360px]"><span className={capLabel}>What went wrong?</span>
+          <select name="reason" required defaultValue="">
+            <option value="">Choose one</option>
+            {PROBLEMS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+        </label>
+        <label className="field"><span className={capLabel}>What happened? 20 characters or more</span>
+          <textarea name="statement" required minLength={20} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder="What was agreed, what happened, and what you would like done" />
+        </label>
+        <CareError text={state.error} />
+        <div><button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={sending || short}>{sending ? "Sending…" : "Send the report"}</button></div>
+      </form>
+    </details>
   );
 }

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/api";
 import { customerApi, getCustomer, type Customer } from "@/lib/customer";
-import { BookingMover, CopyButton, HashTab, ReviewPhotos } from "./account-client";
+import { BookingMover, CopyButton, HashTab, ProblemForm, ReturnForm, ReviewPhotos, TipForm } from "./account-client";
 import { cancelMyBooking, changeMyPassword, leaveReview, removeSaved, removeSavedProduct, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
 
 export const metadata = { title: "Your account" };
@@ -12,7 +12,7 @@ export const metadata = { title: "Your account" };
 type Row = Record<string, any>;
 type SP = { ok?: string; err?: string; to?: string; thread?: string; tab?: string; move?: string; day?: string; reviewed?: string };
 /** A product the client saved in the shop. */
-type SavedProduct = { slug: string; name: string; seller_name: string; price_cents: number; stock: number; tone: string; sizes?: { label: string; price_cents: number }[] | null; photo_id?: string | null };
+type SavedProduct = { slug: string; name: string; seller_name: string; price_cents: number; stock: number; tone: string; sizes?: { label: string; price_cents: number }[] | null; photo_id?: string | null; currency?: string };
 /** Store credit and the invitation that earns it. `on` is false until LogaLuxe staff set an amount. */
 type Referral = { on: boolean; credit_cents: number; currency: string; balance_cents: number; code?: string; link?: string; friends_joined: number; friends_paid: number; history?: { amount_cents: number; reason: string; created_at: string }[] | null };
 
@@ -47,6 +47,31 @@ function progress(s: Row): string {
   if (s.status === "delivered") return `Delivered by ${at}${tracking}`;
   if (s.status === "ready") return `Packed by ${at}, waiting for the courier`;
   return `Being packed by ${at}`;
+}
+
+/** What became of a return the client asked for, in one or two sentences. */
+function returnState(rt: Row, seller: string, currency: string): string {
+  const reply = String(rt.reply ?? "").trim();
+  const said = reply ? ` ${seller} wrote: "${reply}"` : "";
+  if (rt.status === "approved") {
+    const refund = Number(rt.refund_cents) || 0, credit = Math.min(Number(rt.credit_cents) || 0, refund), card = refund - credit;
+    const how = card > 0 && credit > 0 ? `${money(card, currency)} back to your card and ${money(credit, currency)} as store credit` : credit > 0 ? `${money(credit, currency)} as store credit` : `${money(card, currency)} back to your card`;
+    return `Return approved: ${how}.${card > 0 ? " The card refund can take a few days to show." : ""}${said}`;
+  }
+  if (rt.status === "refused") return `Return refused.${said}`;
+  return `Return requested on ${day(rt.created_at)}. ${seller} will answer by email.`;
+}
+
+/** Where a reported problem stands, in plain words. */
+function problemState(p: Row, business: string, currency: string): string {
+  const note = String(p.decision_note ?? "").trim();
+  const said = note ? ` LogaLuxe wrote: "${note}"` : "";
+  const back = Number(p.outcome_cents) || 0;
+  if (p.status === "with_business") return `It is with ${business}, which has 48 hours to give its side. Then LogaLuxe decides and emails you.`;
+  if (p.status === "needs_decision") return "LogaLuxe is deciding. We will email you the decision.";
+  if (p.status === "out_of_scope") return `Decided: this is not something LogaLuxe can rule on.${said}`;
+  const what = p.outcome === "decline" ? "no refund" : back > 0 ? `${money(back, currency)} ${p.outcome === "credit" ? "in credit" : "refunded"} to you` : p.outcome === "full" ? "a full refund" : p.outcome === "partial" ? "a part refund" : p.outcome === "credit" ? "credit to you" : "";
+  return `Decided${what ? `: ${what}` : ""}.${said}`;
 }
 
 function Booking({ b, past, sp }: { b: Row; past?: boolean; sp: SP }) {
@@ -114,6 +139,19 @@ function Booking({ b, past, sp }: { b: Row; past?: boolean; sp: SP }) {
           {(more!.service_ids ?? []).length > 0
             ? <BookingMover id={b.id} slug={b.slug} timezone={b.timezone} services={(more!.service_ids as string[]).join(",")} staffId={more!.staff_id} staff={b.staff} startsAt={b.starts_at} day={sp.day} />
             : <p className="text-[14.5px] text-muted">This booking cannot be moved online. <Link href={`/account?tab=messages&to=${b.slug}`} className="font-semibold text-wine">Message {b.business}</Link> instead.</p>}
+        </div>
+      )}
+
+      {(b.can_tip || b.tip_cents > 0 || b.can_report || b.problem) && (
+        <div className="flex w-full flex-col gap-2.5 border-t border-line-2 pt-3">
+          {b.tip_cents > 0 && <p className="text-[14px]">You tipped <b className="font-semibold">{money(b.tip_cents, b.currency)}</b>.</p>}
+          {b.can_tip && <TipForm id={b.id} business={b.business} totalCents={Number(b.total_cents) || 0} currency={b.currency} tipped={Number(b.tip_cents) || 0} />}
+          {b.problem && (
+            <p className="text-[14px] [overflow-wrap:anywhere]">
+              <b className="font-semibold">Problem reported{b.problem.ref ? ` · reference ${b.problem.ref}` : ""}.</b> {problemState(b.problem, b.business, b.currency)}
+            </p>
+          )}
+          {b.can_report && !b.problem && <ProblemForm id={b.id} business={b.business} />}
         </div>
       )}
 
@@ -195,6 +233,10 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     await Promise.all(orders.slice(0, 30).map(async (o) => {
       const full = (await customerApi<{ order: Row }>(`/orders/${o.id}`, { auth: false }).catch(() => null))?.order;
       o.lines = full?.items; o.shipping_cents = full?.shipping_cents ?? 0; o.tax_cents = full?.tax_cents ?? 0;
+      // The same answer says, seller by seller, whether the items can be sent back and what became of a return.
+      o.parts = full?.shipments ?? []; o.return_reasons = full?.return_reasons ?? {}; o.credit_cents = full?.credit_cents ?? o.credit_cents ?? 0;
+      // An order is in one currency: dollars or naira. Every amount of it is shown in that.
+      o.currency = full?.currency ?? o.currency;
     }));
   } else if (tab === "saved") {
     const [biz, prods] = await Promise.all([
@@ -203,6 +245,10 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     ]);
     saved = biz?.favourites ?? [];
     savedProducts = prods?.products ?? [];
+    // The saved list does not say what each product is priced in, so each product is asked. A price is shown only once its currency is known.
+    await Promise.all(savedProducts.slice(0, 60).map(async (p) => {
+      p.currency = (await customerApi<{ product: { currency?: string } }>(`/products/${encodeURIComponent(p.slug)}`, { auth: false }).catch(() => null))?.product?.currency;
+    }));
   } else if (tab === "wallet") {
     const [w, r] = await Promise.all([
       customerApi<{ wallet: Row[]; credit_cents?: number }>("/auth/wallet").catch((e) => { sectionError = (e as Error).message; return null; }),
@@ -279,14 +325,16 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                 const lines = (o.lines ?? []) as Row[], shipments = (o.shipments ?? []) as Row[];
                 const live = !["pending", "cancelled", "refunded"].includes(o.status);
                 const reviewable = live && shipments.some((s) => ["delivered", "collected"].includes(s.status));
+                const parts = (o.parts ?? []) as Row[], reasons = (o.return_reasons ?? {}) as Record<string, string>;
+                const oc = String(o.currency ?? "USD");
                 return (
-                  <div key={o.id} className="card flex flex-col gap-3 rounded-[20px] p-5">
+                  <div key={o.id} id={`o-${o.id}`} className="card flex scroll-mt-6 flex-col gap-3 rounded-[20px] p-5">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2"><b className="text-[15px] font-semibold uppercase tracking-wide">Order {String(o.id).slice(0, 8)}</b><span className={`pill ${pill}`}>{label}</span></div>
                         <div className="text-[13px] text-muted">Placed {day(o.created_at)}</div>
                       </div>
-                      <b className="text-[17px] font-semibold">{money(o.total_cents)}</b>
+                      <b className="text-[17px] font-semibold">{money(o.total_cents, oc)}</b>
                     </div>
 
                     {lines.length > 0 ? (
@@ -294,13 +342,13 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                         {lines.map((l, i) => (
                           <li key={i} className="flex items-baseline justify-between gap-3 border-b border-line-2 py-2 last:border-0">
                             <span className="min-w-0">{l.qty} × {l.name}{l.size_label ? <span className="text-muted"> · {l.size_label}</span> : null}<span className="block text-[12.5px] text-muted">Sold by {l.seller_name}{reviewable && l.product_slug ? <> · <Link href={`/shop/${l.product_slug}?tab=reviews`} className="font-semibold text-wine">Write a review</Link></> : null}</span></span>
-                            <b className="flex-none font-semibold">{money(l.unit_cents * l.qty)}</b>
+                            <b className="flex-none font-semibold">{money(l.unit_cents * l.qty, oc)}</b>
                           </li>
                         ))}
                       </ul>
                     ) : o.items ? <div className="border-t border-line-2 pt-3 text-[14.5px]">{o.items}</div> : null}
-                    {(o.shipping_cents > 0 || o.tax_cents > 0 || o.discount_cents > 0 || o.gift_cents > 0) && (
-                      <div className="text-[13px] text-muted">{[o.shipping_cents > 0 ? `${money(o.shipping_cents)} shipping` : "", o.tax_cents > 0 ? `${money(o.tax_cents)} tax` : "", o.discount_cents > 0 ? `${money(o.discount_cents)} discount` : "", o.gift_cents > 0 ? `${money(o.gift_cents)} paid by gift card` : ""].filter(Boolean).join(" · ")}</div>
+                    {(o.shipping_cents > 0 || o.tax_cents > 0 || o.discount_cents > 0 || o.gift_cents > 0 || o.credit_cents > 0) && (
+                      <div className="text-[13px] text-muted">{[o.shipping_cents > 0 ? `${money(o.shipping_cents, oc)} shipping` : "", o.tax_cents > 0 ? `${money(o.tax_cents, oc)} tax` : "", o.discount_cents > 0 ? `${money(o.discount_cents, oc)} discount` : "", o.gift_cents > 0 ? `${money(o.gift_cents, oc)} paid by gift card` : "", o.credit_cents > 0 ? `${money(o.credit_cents, oc)} paid with store credit` : ""].filter(Boolean).join(" · ")}</div>
                     )}
 
                     {o.status === "pending" && (
@@ -313,13 +361,23 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                       </div>
                     )}
                     {live && shipments.length > 0 && (
-                      <ul className="flex flex-col gap-1.5 text-[14px]">
-                        {shipments.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2.5">
-                            <i aria-hidden className={`mt-[7px] block h-2 w-2 flex-none rounded-full ${["delivered", "collected"].includes(s.status) ? "bg-muted-2" : s.status === "cancelled" ? "bg-bad" : s.status === "new" ? "bg-gold" : "bg-ok"}`} />
-                            <span className="min-w-0 [overflow-wrap:anywhere]">{progress(s)}</span>
-                          </li>
-                        ))}
+                      <ul className="flex flex-col gap-2 text-[14px]">
+                        {shipments.map((s, i) => {
+                          // This seller's part of the order, as the order itself describes it.
+                          const part = parts.find((x) => x.seller_name === s.seller);
+                          const arrived = ["delivered", "collected"].includes(s.status);
+                          return (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <i aria-hidden className={`mt-[7px] block h-2 w-2 flex-none rounded-full ${arrived ? "bg-muted-2" : s.status === "cancelled" ? "bg-bad" : s.status === "new" ? "bg-gold" : "bg-ok"}`} />
+                              <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                                <div>{progress(s)}</div>
+                                {part?.return && <p className={`mt-1 ${part.return.status === "approved" ? "text-ok" : part.return.status === "refused" ? "text-bad" : "text-gold-ink"}`}>{returnState(part.return, s.seller, oc)}</p>}
+                                {part?.can_return && !part.return && <ReturnForm orderId={o.id} seller={s.seller} reasons={reasons} until={part.return_until ? day(part.return_until) : ""} />}
+                                {part && arrived && !part.can_return && !part.return && part.return_why && <p className="mt-0.5 text-[12.5px] text-muted">{String(part.return_why).charAt(0).toUpperCase() + String(part.return_why).slice(1)}.</p>}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>
@@ -378,7 +436,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                       <Link href={`/shop/${p.slug}`} className="text-[16px] font-semibold leading-snug hover:text-wine">{p.name}</Link>
                       <div className="text-[13px] text-muted">Sold by {p.seller_name}</div>
                       <div className="text-[14.5px]">
-                        <b className="font-semibold">{lowest < p.price_cents ? `From ${money(lowest)}` : money(p.price_cents)}</b>
+                        {p.currency ? <b className="font-semibold">{lowest < p.price_cents ? `From ${money(lowest, p.currency)}` : money(p.price_cents, p.currency)}</b> : <span className="text-muted">See the price on its page</span>}
                         {p.stock <= 0 ? <span className="text-muted"> · out of stock</span> : null}
                       </div>
                       <div className="mt-auto flex flex-wrap gap-2 pt-3">
@@ -410,7 +468,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                     <div className={cap}>Store credit</div>
                     <b className="mt-1 block text-[30px] font-semibold leading-none">{money(creditCents, "USD")}</b>
                   </div>
-                  <p className="text-[13.5px] text-muted">Credit is in US dollars. It comes off your next shop order by itself, after any promo code or gift card.</p>
+                  <p className="text-[13.5px] text-muted">Credit is in US dollars. It comes off your next shop order in dollars by itself, after any promo code or gift card. It is not used on an order in naira.</p>
                   {creditHistory.length > 0 && (
                     <ul className="border-t border-line-2 text-[14px]">
                       {creditHistory.map((c, i) => (
@@ -428,7 +486,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                       <div className={cap}>Invite a friend</div>
                       <b className="mt-1 block text-[20px] font-semibold leading-tight">You each get {money(referral.credit_cents, "USD")} of credit</b>
                     </div>
-                    <p className="text-[13.5px] leading-relaxed text-muted">A friend joins with your link, confirms their email, and pays for a first visit or has a first order delivered. Then you each get the credit. Credit is in US dollars and is spent on shop orders.</p>
+                    <p className="text-[13.5px] leading-relaxed text-muted">A friend joins with your link, confirms their email, and pays for a first visit or has a first order delivered. Then you each get the credit. Credit is in US dollars and is spent on shop orders priced in dollars.</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <label className="min-w-0 flex-[1_1_220px]"><span className="sr-only">Your invitation link</span><input readOnly value={referral.link} className="min-h-[38px] w-full rounded-xl border border-line bg-cream px-3 text-[13.5px]" /></label>
                       <CopyButton text={referral.link!} label="Copy link" />

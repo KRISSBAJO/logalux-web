@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { money } from "@/lib/api";
 import { USER_COOKIE, cookieOptions, customerApi, customerUpload, safeNext } from "@/lib/customer";
 
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -255,4 +256,55 @@ export async function resendConfirmation(fd: FormData) {
     error = (e as Error).message;
   }
   await (error ? back("err", error, tab) : back("ok", email ? `We sent a new link to ${email}. It works for 48 hours.` : "Your email is already confirmed.", tab));
+}
+
+// ---------- after the sale: a return, a tip, a problem with a visit ----------
+
+/** What a form in the account is told after it is sent. `url` is a payment page to go to. */
+export type CareState = { error: string; url?: string };
+const UUID = /^[0-9a-f-]{36}$/i;
+
+/** Asks the seller to take back their part of an order. The seller answers by email. */
+export async function askReturn(_prev: CareState, fd: FormData): Promise<CareState> {
+  const id = v(fd, "order"), seller = v(fd, "seller"), reason = v(fd, "reason"), note = v(fd, "note");
+  if (!UUID.test(id) || !seller) return { error: "We could not find that order." };
+  if (!reason) return { error: "Choose why you are returning it." };
+  if ((reason === "other" || reason === "not_as_described") && note.length < 10) return { error: "Tell the seller what is wrong, in a sentence or two." };
+  try {
+    await customerApi(`/auth/orders/${enc(id)}/returns`, { method: "POST", body: { seller, reason, note } });
+  } catch (e) {
+    return { error: sentence((e as Error).message) };
+  }
+  redirect(`/account?tab=orders&ok=${enc(`Return requested. ${seller} will answer by email.`)}#o-${id}`);
+}
+
+/** Adds a tip to a finished visit. With payments live the answer is a payment page; otherwise the tip is already recorded. */
+export async function addTip(_prev: CareState, fd: FormData): Promise<CareState> {
+  const id = v(fd, "id"), cents = Math.round(Number(v(fd, "amount_cents")));
+  if (!UUID.test(id)) return { error: "We could not find that visit." };
+  if (!Number.isFinite(cents) || cents <= 0) return { error: "Choose an amount for the tip." };
+  let out: { amount_cents?: number; currency?: string; payment?: { url?: string } };
+  try {
+    out = await customerApi(`/auth/bookings/${enc(id)}/tip`, { method: "POST", body: { amount_cents: cents } });
+  } catch (e) {
+    return { error: sentence((e as Error).message) };
+  }
+  if (out.payment?.url) return { error: "", url: out.payment.url };
+  redirect(`/account?tab=bookings&ok=${enc(`Thank you. Your ${money(Number(out.amount_cents) || cents, out.currency || "USD")} tip is on its way to ${v(fd, "business") || "the business"}.`)}#b-${id}`);
+}
+
+/** Reports a problem with a visit. The business has 48 hours to give its side, then LogaLuxe decides. */
+export async function reportProblem(_prev: CareState, fd: FormData): Promise<CareState> {
+  const id = v(fd, "id"), reason = v(fd, "reason"), statement = v(fd, "statement");
+  if (!UUID.test(id)) return { error: "We could not find that visit." };
+  if (!reason) return { error: "Choose what went wrong." };
+  if (statement.length < 20) return { error: "Describe what happened in a few sentences, 20 characters or more." };
+  if (statement.length > 2000) return { error: "Keep it under 2,000 characters." };
+  let ref = "";
+  try {
+    ref = (await customerApi<{ ref?: string }>(`/auth/bookings/${enc(id)}/problem`, { method: "POST", body: { reason, statement } })).ref ?? "";
+  } catch (e) {
+    return { error: sentence((e as Error).message) };
+  }
+  redirect(`/account?tab=bookings&ok=${enc(`Your report is in${ref ? `, reference ${ref}` : ""}. ${v(fd, "business") || "The business"} has 48 hours to give its side. Then LogaLuxe decides and emails you.`)}#b-${id}`);
 }

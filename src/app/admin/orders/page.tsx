@@ -1,4 +1,5 @@
 import { Btn, Content, Empty, FilterSearch, Flash, Hidden, Panel, ReadOnly, Tabs, Topbar, ago, fmtMoney, inputCls, statusPill, inputSm } from "@/components/admin-ui";
+import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
 import { can, getAdmin, load, qs, type Row } from "@/lib/admin-api";
 import { setOrderStatus } from "../actions";
@@ -17,6 +18,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
     <>
       <Topbar title="Orders" sub="Cancelling or refunding an order puts its items back in stock">
         <Tabs items={[["", "All"], ...statuses.map((s) => [s, s[0].toUpperCase() + s.slice(1)] as [string, string])]} current={status} href={(s) => `/admin/orders${qs({ q, status: s })}`} />
+        <Link href="/admin/returns" className="inline-flex h-10 items-center whitespace-nowrap rounded-full border border-line bg-white px-4 text-[13.5px] font-semibold text-ink hover:border-ink">Returns of brand products</Link>
         <ExportLink kind="orders" filters={{ q, status }} />
       </Topbar>
       <Content>

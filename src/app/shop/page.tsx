@@ -6,25 +6,35 @@ import { AddToCart, CartLink } from "@/components/cart-ui";
 import { money } from "@/lib/api";
 import { SaveProduct } from "@/components/save-product";
 import { customerApi, getCustomer } from "@/lib/customer";
-import { categoryName, isValueTag, tagName, type ShopList, type ShopProduct } from "@/lib/shop";
+import { categoryName, currencyOf, isValueTag, tagName, type Currency, type ShopList, type ShopProduct } from "@/lib/shop";
 
 const DESCRIPTION = "Beauty products from the professionals you book, and the brands they trust.";
+const DESCRIPTION_NG = "Beauty products from the professionals you book in Lagos, priced in naira.";
+/** The shop is two shops at one address: dollars by default, naira with ?market=ng. */
+const isNaira = (market: string) => market.toLowerCase() === "ng";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
   const raw = await searchParams;
   const one = (k: string) => String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim();
   const q = one("q"), category = one("category"), seller = one("seller");
   const page = Math.max(1, Number.parseInt(one("page"), 10) || 1);
+  const ng = isNaira(one("market"));
+  const shop = ng ? "Shop Lagos" : "Shop";
   const subject = q ? `"${q}"` : category ? categoryName(category) : "";
-  const title = `${subject ? `${subject} · Shop` : "Shop"}${page > 1 ? ` · page ${page}` : ""}`;
+  const title = `${subject ? `${subject} · ${shop}` : shop}${page > 1 ? ` · page ${page}` : ""}`;
   const description = q
-    ? `Products matching "${q}" in the LogaLuxe shop.`
+    ? `Products matching "${q}" in the LogaLuxe shop${ng ? " in Lagos" : ""}.`
     : category
-      ? `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book and the brands they trust.`
-      : DESCRIPTION;
-  // The shop and each of its categories have one address each. Typed searches, later pages and narrower filters stay out of search engines.
+      ? ng
+        ? `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book in Lagos and priced in naira.`
+        : `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book and the brands they trust.`
+      : ng ? DESCRIPTION_NG : DESCRIPTION;
+  // Each shop and each of its categories have one address each. Typed searches, later pages and narrower filters stay out of search engines.
   const narrowed = !!q || page > 1 || !!seller || ["tag", "delivery", "price"].some((k) => one(k));
-  const canonical = category ? `/shop?category=${encodeURIComponent(category)}` : "/shop";
+  const canon = new URLSearchParams();
+  if (ng) canon.set("market", "ng");
+  if (category) canon.set("category", category);
+  const canonical = `/shop${canon.toString() ? `?${canon}` : ""}`;
   return {
     title,
     description,
@@ -39,13 +49,24 @@ export const dynamic = "force-dynamic";
 type Params = Record<string, string | string[] | undefined>;
 
 const SORTS: [string, string][] = [["recommended", "recommended"], ["price_asc", "price, low to high"], ["price_desc", "price, high to low"], ["rating", "top rated"], ["new", "newest"]];
-// Price bands in cents, as the API's min and max.
-const BANDS: { key: string; label: string; min: number; max: number }[] = [
-  { key: "under-15", label: "Under $15", min: 0, max: 1499 },
-  { key: "15-30", label: "$15 to $30", min: 1500, max: 3000 },
-  { key: "over-30", label: "Over $30", min: 3001, max: 0 },
-];
-const inBand = (cents: number, b: (typeof BANDS)[number]) => cents >= b.min && (b.max === 0 || cents <= b.max);
+// Price bands in cents (kobo for naira), as the API's min and max. Each shop has bands that fit its own prices.
+type Band = { key: string; label: string; min: number; max: number };
+const BANDS: Record<Currency, Band[]> = {
+  USD: [
+    { key: "under-15", label: `Under ${money(1500, "USD")}`, min: 0, max: 1499 },
+    { key: "15-30", label: `${money(1500, "USD")} to ${money(3000, "USD")}`, min: 1500, max: 3000 },
+    { key: "over-30", label: `Over ${money(3000, "USD")}`, min: 3001, max: 0 },
+  ],
+  NGN: [
+    { key: "under-5000", label: `Under ${money(500000, "NGN")}`, min: 0, max: 499999 },
+    { key: "5000-10000", label: `${money(500000, "NGN")} to ${money(1000000, "NGN")}`, min: 500000, max: 1000000 },
+    { key: "over-10000", label: `Over ${money(1000000, "NGN")}`, min: 1000001, max: 0 },
+  ],
+};
+const inBand = (cents: number, b: Band) => cents >= b.min && (b.max === 0 || cents <= b.max);
+/** The gift card is listed in the shop, but it is bought on its own page: an amount, and who it is for. */
+const GIFT_SLUG = "gift-card", GIFT_HREF = "/gift-cards";
+const productHref = (slug: string) => (slug === GIFT_SLUG ? GIFT_HREF : `/shop/${slug}`);
 const KEYS = ["q", "category", "seller", "tag", "delivery", "price", "sort", "page", "per"] as const;
 type Key = (typeof KEYS)[number];
 
@@ -65,12 +86,16 @@ function Tile({ p }: { p: ShopProduct }) {
 export default async function Shop({ searchParams }: { searchParams: Promise<Params> }) {
   const raw = await searchParams;
   const sp = Object.fromEntries(KEYS.map((k) => [k, String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim()])) as Record<Key, string>;
-  const band = BANDS.find((b) => b.key === sp.price);
+  const marketParam = String((Array.isArray(raw.market) ? raw.market[0] : raw.market) ?? "").trim();
+  const ng = isNaira(marketParam);
+  const cur: Currency = ng ? "NGN" : "USD";
+  const band = BANDS[cur].find((b) => b.key === sp.price);
   const sort = SORTS.some(([k]) => k === sp.sort) ? sp.sort : "recommended";
   const page = Math.max(1, Number.parseInt(sp.page, 10) || 1);
   const delivery = sp.delivery === "pickup" || sp.delivery === "ship" ? sp.delivery : "";
 
   const qs = new URLSearchParams();
+  if (ng) qs.set("currency", "NGN");
   if (sp.q) qs.set("q", sp.q);
   if (sp.category) qs.set("category", sp.category);
   if (sp.seller) qs.set("seller", sp.seller);
@@ -90,7 +115,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
   try {
     const [list, best, favs] = await Promise.all([
       customerApi<ShopList>(`/products?${qs}`),
-      customerApi<ShopList>("/products?per=60").catch(() => null),
+      customerApi<ShopList>(`/products?per=60${ng ? "&currency=NGN" : ""}`).catch(() => null),
       signedIn ? customerApi<{ products: { slug: string }[] | null }>("/auth/favourite-products").catch(() => null) : null,
     ]);
     data = list;
@@ -107,10 +132,23 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
   const href = (change: Partial<Record<Key, string>>, hash = "") => {
     const next = { ...sp, sort: sort === "recommended" ? "" : sort, delivery, price: band?.key ?? "", page: "", ...change };
     const out = new URLSearchParams();
+    if (ng) out.set("market", "ng");
     for (const k of KEYS) if (next[k]) out.set(k, next[k]);
     const s = out.toString();
     return `/shop${s ? `?${s}` : ""}${hash}`;
   };
+  // The same search and sort in the other shop. Categories, sellers and price bands belong to one shop, so they are not carried over.
+  const otherShop = (toNaira: boolean) => {
+    const out = new URLSearchParams();
+    if (toNaira) out.set("market", "ng");
+    if (sp.q) out.set("q", sp.q);
+    if (sort !== "recommended") out.set("sort", sort);
+    const s = out.toString();
+    return `/shop${s ? `?${s}` : ""}`;
+  };
+  const home = ng ? "/shop?market=ng" : "/shop";
+  // A product is shown in its own currency. The list says which one it is in, should a product ever leave its out.
+  const curOf = (p: ShopProduct) => currencyOf(p.currency ?? data?.currency ?? cur);
 
   // Where a guest comes back to after signing in to save a product.
   const here = href({ page: page > 1 ? String(page) : "" });
@@ -131,7 +169,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
   const goodFor = shownTags.filter((t) => !isValueTag(t.tag)), values = shownTags.filter((t) => isValueTag(t.tag));
   const canCollect = top.some((p) => p.pickup), shippers = top.filter((p) => p.shipping);
   const shipFrom = shippers.length ? Math.min(...shippers.map((p) => p.shipping_cents)) : 0;
-  const bands = BANDS.filter((b) => b === band || top.length >= 60 || top.some((p) => inBand(p.price_cents, b)));
+  const bands = BANDS[cur].filter((b) => b === band || top.length >= 60 || top.some((p) => inBand(p.price_cents, b)));
 
   const sellerLabel = sellerOptions.find((o) => o.value === sp.seller)?.label;
   const narrowed = [sp.q ? `"${sp.q}"` : "", sellerLabel ?? "", sp.tag ? tagName(sp.tag) : "", delivery === "pickup" ? "Pick up" : delivery === "ship" ? "Shipped" : "", band?.label ?? ""].filter(Boolean);
@@ -154,17 +192,22 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
             <div>
               <div className="eyebrow"><i />The LogaLuxe shop</div>
               <h1 className="serif">What your stylist <em>actually uses.</em></h1>
-              <p>Products sold by the professionals you book, and the brands they trust. {canCollect ? "Pick up at your next visit for free, or get it shipped." : "Shipped to your door."}</p>
+              <p>
+                {ng ? "Products sold by the professionals you book in Lagos. Prices are in naira and you pay through Paystack." : "Products sold by the professionals you book, and the brands they trust."}
+                {top.length > 0 && <> {canCollect ? (shippers.length > 0 ? "Pick up at your next visit for free, or get it shipped." : "Pick up at your next visit for free.") : shippers.length > 0 ? "Shipped to your door." : ""}</>}
+              </p>
               <div className="herobtns">
-                <a href="#grid" className="btn btn-gold">Shop bestsellers</a>
+                {top.length > 0 && <a href="#grid" className="btn btn-gold">{ng ? "Shop Lagos" : "Shop bestsellers"}</a>}
                 {featured && <Link href={href({ q: "", category: "", tag: "", delivery: "", price: "", seller: featured.business_slug! }, "#grid")} className="btn btn-ghost">From {featured.seller_name}</Link>}
+                {/* Gift cards are in US dollars and cannot pay for an order in naira, so the naira shop does not offer them. */}
+                {!ng && <Link href={GIFT_HREF} className="btn btn-ghost">Gift cards</Link>}
                 <CartLink />
               </div>
             </div>
             {top.length > 0 && (
               <div className="herogrid">
                 {top.slice(0, 6).map((p) => (
-                  <Link key={p.slug} href={`/shop/${p.slug}`} style={{ background: p.tone }} aria-label={p.name}><Tile p={p} /></Link>
+                  <Link key={p.slug} href={productHref(p.slug)} style={{ background: p.tone }} aria-label={p.name}><Tile p={p} /></Link>
                 ))}
               </div>
             )}
@@ -172,11 +215,20 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
         </section>
 
         <main className="wrap">
+          <div className="market">
+            <nav className="seg" aria-label="Which shop">
+              <Link href={otherShop(false)} className={ng ? "" : "on"} aria-current={ng ? undefined : "true"}>Nashville · $</Link>
+              <Link href={otherShop(true)} className={ng ? "on" : ""} aria-current={ng ? "true" : undefined}>Lagos · ₦</Link>
+            </nav>
+            <span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}</span>
+          </div>
           <nav className="cats" aria-label="Categories">
             <Link href={href({ category: "" })} scroll={false} className={`chip ${sp.category ? "" : "on"}`} aria-current={sp.category ? undefined : "true"}>All</Link>
-            {categories.map((c) => (
+            {categories.filter((c) => c.category !== "gift").map((c) => (
               <Link key={c.category} href={href({ category: c.category })} scroll={false} className={`chip ${sp.category === c.category ? "on" : ""}`} aria-current={sp.category === c.category ? "true" : undefined}>{categoryName(c.category)}</Link>
             ))}
+            {/* Gift cards have their own page, where the amount and the person it is for are chosen. */}
+            {!ng && <Link href={GIFT_HREF} className="chip">Gift cards</Link>}
           </nav>
 
           <div className="layout" id="grid">
@@ -184,7 +236,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
               {(canCollect || shippers.length > 0) && (
                 <div className="fgrp"><b>Delivery</b>
                   {canCollect && check(delivery === "pickup", href({ delivery: delivery === "pickup" ? "" : "pickup" }), "Pick up at my next visit · free")}
-                  {shippers.length > 0 && check(delivery === "ship", href({ delivery: delivery === "ship" ? "" : "ship" }), shipFrom > 0 ? `Ship to me · from ${money(shipFrom)}` : "Ship to me · free")}
+                  {shippers.length > 0 && check(delivery === "ship", href({ delivery: delivery === "ship" ? "" : "ship" }), shipFrom > 0 ? `Ship to me · from ${money(shipFrom, cur)}` : "Ship to me · free")}
                 </div>
               )}
               {sellerOptions.length > 0 && (
@@ -217,6 +269,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
                 </span>
                 <div className="tools">
                   <form action="/shop" method="get" role="search" className="search">
+                    {ng && <input type="hidden" name="market" value="ng" />}
                     {(["category", "seller", "tag", "delivery", "price", "sort", "per"] as const).map((k) => {
                       const v = k === "sort" ? (sort === "recommended" ? "" : sort) : k === "price" ? band?.key ?? "" : k === "delivery" ? delivery : sp[k];
                       return v ? <input key={k} type="hidden" name={k} value={v} /> : null;
@@ -238,8 +291,13 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
               </div>
 
               {error && <p className="note" role="alert">The shop could not be loaded. {error}</p>}
-              {!error && products.length === 0 && (
-                <p className="note">Nothing matches that. <Link href="/shop">See every product</Link>.</p>
+              {!error && products.length === 0 && (filtered || page > 1 || top.length > 0) && (
+                <p className="note">Nothing matches that. <Link href={home}>See every product{ng ? " in the Lagos shop" : ""}</Link>.</p>
+              )}
+              {!error && products.length === 0 && !filtered && page === 1 && top.length === 0 && (
+                ng
+                  ? <p className="note">No seller in Lagos has products in the shop yet. You can <Link href="/search?market=NG">book a professional in Lagos</Link>, or see <Link href="/shop">the Nashville shop</Link>, which is priced in US dollars.</p>
+                  : <p className="note">The shop has no products yet. You can <Link href="/search">book a professional</Link> in the meantime.</p>
               )}
 
               <div className="grid">
@@ -248,21 +306,23 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
                   const was = !several && p.compare_cents && p.compare_cents > from ? p.compare_cents : 0;
                   const sizes = p.sizes ?? [];
                   const facts = [p.review_count > 0 ? `${Number(p.rating).toFixed(1)} · ${p.review_count} ${p.review_count === 1 ? "review" : "reviews"}` : "", several ? `${sizes.length} sizes` : size].filter(Boolean);
-                  const tag = p.stock < 1 ? ["pill-grey", "Sold out"] : was ? ["pill-ok", `Save ${money(was - from)}`] : (p.tags ?? []).includes("bestseller") ? ["pill-wine", "Bestseller"] : null;
+                  const gift = p.slug === GIFT_SLUG;
+                  const pc = curOf(p);
+                  const tag = p.stock < 1 ? ["pill-grey", "Sold out"] : was ? ["pill-ok", `Save ${money(was - from, pc)}`] : (p.tags ?? []).includes("bestseller") ? ["pill-wine", "Bestseller"] : null;
                   return (
                     <div key={p.slug} className="pc">
-                      <Link href={`/shop/${p.slug}`} className="ph" style={{ background: p.tone }} aria-label={p.name}>
+                      <Link href={productHref(p.slug)} className="ph" style={{ background: p.tone }} aria-label={p.name}>
                         {tag && <span className={`pill ${tag[0]} tag`}>{tag[1]}</span>}
                         <Tile p={p} />
                       </Link>
-                      <SaveProduct variant="card" slug={p.slug} name={p.name} saved={savedSlugs.has(p.slug)} signedIn={signedIn} next={here} />
+                      {!gift && <SaveProduct variant="card" slug={p.slug} name={p.name} saved={savedSlugs.has(p.slug)} signedIn={signedIn} next={here} />}
                       <div className="b">
                         <div className="by"><span className="av" style={{ background: p.tone }} />{p.seller_name}</div>
-                        <Link href={`/shop/${p.slug}`} className="name"><h3>{p.name}</h3></Link>
+                        <Link href={productHref(p.slug)} className="name"><h3>{p.name}</h3></Link>
                         {facts.length > 0 && <div className="rt">{p.review_count > 0 && <i aria-hidden>★</i>}{facts.join(" · ")}</div>}
                         <div className="foot">
-                          <span className="price">{several ? `From ${money(from)}` : money(from)}{was > 0 && <s>{money(was)}</s>}</span>
-                          {several ? <Link href={`/shop/${p.slug}`} className="add">Choose size</Link> : <AddToCart product={{ slug: p.slug, name: p.name, seller_name: p.seller_name, tone: p.tone, stock: p.stock }} size={size} unitCents={from} />}
+                          <span className="price">{several ? `From ${money(from, pc)}` : money(from, pc)}{was > 0 && <s>{money(was, pc)}</s>}</span>
+                          {gift ? <Link href={GIFT_HREF} className="add">Choose amount</Link> : several ? <Link href={`/shop/${p.slug}`} className="add">Choose size</Link> : <AddToCart product={{ slug: p.slug, name: p.name, seller_name: p.seller_name, tone: p.tone, stock: p.stock, currency: pc }} size={size} unitCents={from} />}
                         </div>
                       </div>
                     </div>

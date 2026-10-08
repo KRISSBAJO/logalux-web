@@ -1,7 +1,8 @@
 "use server";
 
 import { mUpload } from "@/lib/merchant-api";
-import { cents, fid, int, mDel, mPost, mPut, mRun, on, str } from "@/lib/merchant-actions";
+import { cents, fid, int, mBackTo, mDel, mPost, mPut, mRun, on, str } from "@/lib/merchant-actions";
+import { money } from "@/lib/merchant-format";
 import { policyFromChoices, sentence } from "../shop-policy";
 
 // Stock: products, what is on the shelf, suppliers, and orders to them.
@@ -172,4 +173,25 @@ export async function saveShopPolicy(fd: FormData) {
       throw new Error(sentence((e as Error).message));
     }
   });
+}
+
+/**
+ * Answers a request to send an online order back: approve and refund, or refuse with a reason.
+ * On a failure the form opens again with the sentence the API gave; nothing has changed then.
+ */
+export async function answerReturn(fd: FormData) {
+  const refuse = str(fd, "decision") === "refuse", reply = str(fd, "reply");
+  const again = () => backWith(fd, { answer: str(fd, "id") });
+  if (refuse && reply.length < 10) { again(); mBackTo(fd, "err", "Tell the customer why, in a sentence. At least 10 characters."); }
+  let out: Record<string, unknown> = {}, error = "";
+  try {
+    out = await mPost(`/returns/${fid(fd)}`, refuse ? { action: "refuse", reply } : { action: "approve", reply, refund_cents: cents(fd, "refund"), restock: on(fd, "restock") });
+  } catch (e) {
+    error = sentence((e as Error).message);
+  }
+  if (error) { again(); mBackTo(fd, "err", error); }
+  if (refuse) mBackTo(fd, "ok", "Return refused. The customer is emailed your message. Nothing was refunded.");
+  const refund = Number(out.refund_cents ?? 0), card = Number(out.to_card_cents ?? 0), credit = Number(out.credit_cents ?? 0);
+  const where = card > 0 && credit > 0 ? `${money(card, "USD")} to the customer's card and ${money(credit, "USD")} as LogaLuxe store credit` : card > 0 ? "to the customer's card" : "as LogaLuxe store credit";
+  mBackTo(fd, "ok", `Return approved. ${money(refund, "USD")} refunded, ${where}. ${on(fd, "restock") ? "The items are back in stock." : "Stock was not changed."}`);
 }

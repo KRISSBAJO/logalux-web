@@ -35,7 +35,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await getAdmin();
   if (!admin) return <SignIn />;
 
-  const k = (await load("/overview")).data.kpis ?? {};
+  const [overview, brandReturns] = await Promise.all([load("/overview"), load("/returns?status=requested")]);
+  const k = overview.data.kpis ?? {};
   const groups: NavGroup[] = [
     { title: "Home", items: [{ href: "/admin", label: "Overview", icon: <Icon.Grid /> }] },
     {
@@ -54,6 +55,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/bookings", label: "Bookings", icon: <Icon.Calendar /> },
         { href: "/admin/clients", label: "Clients", icon: <Icon.Users /> },
         { href: "/admin/orders", label: "Orders", icon: <Icon.Cart /> },
+        { href: "/admin/returns", label: "Returns", icon: <Icon.Back />, count: (brandReturns.data.returns ?? []).length },
         { href: "/admin/products", label: "Products", icon: <Icon.Pin /> },
       ],
     },

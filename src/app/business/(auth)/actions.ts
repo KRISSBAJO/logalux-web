@@ -57,7 +57,7 @@ export async function merchantSignUp(fd: FormData) {
     for (const k of ["name", "email", "phone", "business", "category", "market", "city", "region", "address"]) if (v(fd, k)) keep.set(k, v(fd, k));
     redirect(`/business/signup?${keep}`);
   }
-  redirect(`/business?ok=${enc("Welcome to LogaLuxe. Add your services and your hours, and you are ready to take bookings.")}`);
+  redirect(`/business/setup?ok=${enc("Welcome to LogaLuxe. Add your services and your hours, and you are ready to take bookings.")}`);
 }
 
 export async function merchantForgot(fd: FormData) {

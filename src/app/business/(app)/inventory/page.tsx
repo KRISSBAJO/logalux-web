@@ -11,7 +11,7 @@ import "../../css/inventory.css";
 
 export const metadata = { title: "Inventory" };
 
-type SP = { ok?: string; err?: string; q?: string; filter?: string; sel?: string; product?: string; new?: string; location?: string; tab?: string; status?: string };
+type SP = { ok?: string; err?: string; q?: string; filter?: string; sel?: string; product?: string; new?: string; location?: string; tab?: string; status?: string; view?: string; answer?: string };
 
 const KIND: Record<string, string> = { retail: "Retail", backbar: "Back-bar", both: "Retail and back-bar" };
 const CATEGORY: Record<string, string> = { hair: "Hair", styling: "Styling", tools: "Tools", skin: "Skin", nails: "Nails", gift: "Gifts" };
