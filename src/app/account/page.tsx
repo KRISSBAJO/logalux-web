@@ -4,7 +4,7 @@ import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/api";
 import { customerApi, getCustomer, type Customer } from "@/lib/customer";
 import { BookingMover, HashTab } from "./account-client";
-import { cancelMyBooking, changeMyPassword, leaveReview, removeSaved, saveDetails, sendMessage, cancelMyOrder } from "./actions";
+import { cancelMyBooking, changeMyPassword, leaveReview, removeSaved, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
 
 export const metadata = { title: "Your account" };
 
@@ -207,6 +207,13 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           ))}
         </nav>
 
+        {user.email_verified === false && (
+          <form action={resendConfirmation} className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-warn-bg px-4 py-3 text-[14.5px] text-gold-ink">
+            <input type="hidden" name="tab" value={tab} />
+            <span className="min-w-0 [overflow-wrap:anywhere]">Please confirm your email. We sent a link to <b>{user.email}</b>. You need it to leave reviews.</span>
+            <button className="btn btn-sm border border-line bg-white">Send the link again</button>
+          </form>
+        )}
         {sp.err && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{sp.err}</div>}
         {sp.ok && !sp.err && <div role="status" className="mt-6 rounded-xl border border-ok/25 bg-ok-bg px-4 py-3 text-[14.5px] font-medium text-ok">{sp.ok}</div>}
         {sectionError && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">We could not load this just now. Try again in a moment.</div>}

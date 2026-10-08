@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { MERCHANT_COOKIE, mPublic, merchantCookie } from "@/lib/merchant-api";
+import { MERCHANT_COOKIE, MerchantApiError, mPublic, merchantCookie } from "@/lib/merchant-api";
 
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const enc = encodeURIComponent;
@@ -20,6 +20,22 @@ export async function merchantSignIn(fd: FormData) {
     error = (e as Error).message;
   }
   redirect(error ? `/business/signin?err=${enc(error)}` : "/business");
+}
+
+export type SignInState = { needCode: boolean; error: string };
+
+/** Sign-in in one or two steps: when the account has two-step sign-in on, the form is asked for a code and sent again. */
+export async function merchantSignInStep(prev: SignInState, fd: FormData): Promise<SignInState> {
+  const code = v(fd, "code");
+  try {
+    await start(await mPublic<Session>("/login", { email: v(fd, "email"), password: String(fd.get("password") ?? ""), code }));
+  } catch (e) {
+    const err = e as MerchantApiError;
+    const needCode = !!err.body?.need_code;
+    // The first time a code is asked for is not a mistake, so it is not shown as one.
+    return { needCode: needCode || prev.needCode, error: needCode && !code ? "" : err.message };
+  }
+  redirect("/business");
 }
 
 export async function merchantSignUp(fd: FormData) {

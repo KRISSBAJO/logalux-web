@@ -1,5 +1,6 @@
 // Shared by the merchant server actions. This file is not marked "use server",
 // so nothing in it can be called from the browser.
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { str } from "./action-helpers";
 import { mFetch } from "./merchant-api";
@@ -33,3 +34,22 @@ export async function mRun(fd: FormData, done: string | ((out: Record<string, un
 export const mPost = (path: string, body: unknown = {}) => mFetch(path, { method: "POST", body });
 export const mPut = (path: string, body: unknown = {}) => mFetch(path, { method: "PUT", body });
 export const mDel = (path: string) => mFetch(path, { method: "DELETE" });
+
+const M_FLASH = "lx_mflash";
+type FlashValue = { setup?: { secret: string; uri: string }; recovery?: string[] };
+
+/** Hands a secret (a setup key, recovery codes) to the next page without putting it in the URL. */
+export async function mSetFlash(value: FlashValue, seconds: number) {
+  (await cookies()).set(M_FLASH, JSON.stringify(value), { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/business/settings", maxAge: seconds });
+}
+export async function mClearFlash() {
+  (await cookies()).delete({ name: M_FLASH, path: "/business/settings" });
+}
+export async function mReadFlash(): Promise<FlashValue | null> {
+  try {
+    const raw = (await cookies()).get(M_FLASH)?.value;
+    return raw ? (JSON.parse(raw) as FlashValue) : null;
+  } catch {
+    return null;
+  }
+}

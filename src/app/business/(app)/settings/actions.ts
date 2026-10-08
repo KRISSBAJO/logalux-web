@@ -1,6 +1,6 @@
 "use server";
 
-import { fid, mPost, mPut, mRun, num, on, str } from "@/lib/merchant-actions";
+import { fid, mBackTo, mClearFlash, mPost, mPut, mRun, mSetFlash, num, on, str } from "@/lib/merchant-actions";
 
 // Settings: the business profile, its locations and hours, the rules clients
 // book under, the plan, and the signed-in person's own account.
@@ -75,4 +75,42 @@ export async function changePassword(fd: FormData) {
     if (next !== again) throw new Error("The two new passwords do not match.");
     return mPost("/password", { current, new: next });
   });
+}
+
+/** Two-step sign-in, step one: get a key to add to an authenticator app. It is shown for ten minutes. */
+export async function startTwoStep(fd: FormData) {
+  let error = "";
+  try {
+    await mSetFlash({ setup: await mPost("/2fa/setup") as { secret: string; uri: string } }, 600);
+  } catch (e) {
+    error = (e as Error).message;
+  }
+  return error ? mBackTo(fd, "err", error) : mBackTo(fd, "ok", "Add the key to your authenticator app, then enter a code to finish.");
+}
+
+/** Step two: prove the app works. The recovery codes are shown once, for five minutes. */
+export async function finishTwoStep(fd: FormData) {
+  let error = "";
+  try {
+    const out = await mPost("/2fa/enable", { code: str(fd, "code") }) as { recovery_codes: string[] };
+    await mSetFlash({ recovery: out.recovery_codes }, 300);
+  } catch (e) {
+    error = (e as Error).message;
+  }
+  return error ? mBackTo(fd, "err", error) : mBackTo(fd, "ok", "Two-step sign-in is on. Save your recovery codes now: they are shown only once.");
+}
+
+export async function cancelTwoStepSetup(fd: FormData) {
+  await mClearFlash();
+  return mBackTo(fd, "ok", "Setup cancelled. Nothing changed.");
+}
+
+export async function dismissRecoveryCodes(fd: FormData) {
+  await mClearFlash();
+  return mBackTo(fd, "ok", "Two-step sign-in is on.");
+}
+
+export async function stopTwoStep(fd: FormData) {
+  await mClearFlash();
+  await mRun(fd, "Two-step sign-in is off. Your password alone signs you in.", () => mPost("/2fa/disable", { password: String(fd.get("password") ?? "") }));
 }

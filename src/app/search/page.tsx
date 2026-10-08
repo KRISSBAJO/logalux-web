@@ -4,48 +4,48 @@ import { LogoMark } from "@/components/logo-mark";
 import type { Pin } from "@/components/results-map";
 import { SearchBar } from "@/components/search-bar";
 import { SearchResults, type ResultCard } from "@/components/search-results";
-import { api, duration, money, type Business } from "@/lib/api";
+import type { Metadata } from "next";
+import { api, money } from "@/lib/api";
+import { CATEGORIES, categoryLabel } from "@/lib/categories";
+import { toCard, type ApiPin, type Listing } from "@/lib/listings";
 import { firstByRef, siteMedia } from "@/lib/media";
 
-export const metadata = { title: "Find a professional" };
-
-type Hours = Record<string, [string, string] | null>;
-type Result = Business & { promoted?: boolean; timezone: string; hours: Hours | null; staff_count: number; lat: number | null; lng: number | null; services: { name: string; price_cents: number; duration_min: number }[] };
-type ApiPin = { slug: string; name: string; rating: number; currency: string; lat: number; lng: number; from_cents: number | null };
+type Result = Listing;
 type SP = { q?: string; where?: string; category?: string; market?: string; sort?: string; when?: string; page?: string };
 
 const PER_PAGE = 20;
-const CATEGORIES: [string, string][] = [["hair", "Hair"], ["braids", "Braids & locs"], ["barber", "Barber"], ["nails", "Nails"], ["lashes", "Lashes & brows"], ["skin", "Skin"], ["makeup", "Makeup"], ["spa", "Spa"]];
 const SORTS: [string, string][] = [["", "Top rated"], ["reviews", "Most reviewed"], ["price", "Lowest price"]];
-const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-const DAY_NAME: Record<string, string> = { sun: "Sunday", mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday" };
 
-const clock = (t: string) => {
-  const [h, m] = t.split(":").map(Number);
-  return `${((h + 11) % 12) + 1}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`;
-};
+const titleCase = (s: string) => s.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
-/** Whether the business is open right now, in its own time zone, and what happens next. */
-function openState(hours: Hours | null, timeZone: string): { open: boolean; text: string } | null {
-  if (!hours) return null;
-  let parts: Intl.DateTimeFormatPart[];
-  try {
-    parts = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
-  } catch {
-    return null;
-  }
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  const today = get("weekday").toLowerCase().slice(0, 3);
-  const now = `${get("hour")}:${get("minute")}`;
-  const h = hours[today];
-  if (h && now >= h[0] && now < h[1]) return { open: true, text: `Open until ${clock(h[1])}` };
-  if (h && now < h[0]) return { open: false, text: `Opens ${clock(h[0])}` };
-  const start = DAYS.indexOf(today);
-  for (let i = 1; i <= 7; i++) {
-    const d = DAYS[(start + i) % 7];
-    if (hours[d]) return { open: false, text: `Opens ${i === 1 ? "tomorrow" : DAY_NAME[d]} ${clock(hours[d]![0])}` };
-  }
-  return { open: false, text: "Closed this week" };
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
+  const sp = await searchParams;
+  const one = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const market = sp.market === "NG" ? "NG" : "US";
+  const q = one(sp.q), where = one(sp.where), category = one(sp.category);
+  const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const city = market === "NG" ? "Lagos" : "Nashville";
+  const catName = categoryLabel(category);
+  const place = where ? titleCase(where) : city;
+  const subject = q ? `"${q}"` : catName ?? "Beauty professionals";
+  const title = `${subject} in ${place}${page > 1 ? ` · page ${page}` : ""}`;
+  const description = q
+    ? `Professionals in ${place} matching "${q}" on LogaLuxe. See prices and the next free times, and book online.`
+    : `${catName ? `${catName} professionals` : "Beauty professionals"} in ${place} on LogaLuxe. See prices, reviews from real visits and the next free times, and book online.`;
+  // One address for each list worth finding: a city, or a category in a city. Typed searches and later pages are left out of search engines.
+  const canon = new URLSearchParams();
+  if (catName) canon.set("category", category);
+  if (market === "NG") canon.set("market", "NG");
+  const canonical = `/search${canon.toString() ? `?${canon}` : ""}`;
+  const hidden = !!q || !!where || page > 1 || (!!category && !catName);
+  return {
+    title,
+    description,
+    alternates: hidden ? undefined : { canonical },
+    robots: hidden ? { index: false, follow: true } : undefined,
+    openGraph: { title, description, url: canonical, siteName: "LogaLuxe", type: "website" },
+    twitter: { card: "summary", title, description },
+  };
 }
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -70,25 +70,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const total = found.total ?? found.businesses.length;
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
 
-  const cards: ResultCard[] = found.businesses.map((b) => {
-    const state = openState(b.hours, b.timezone);
-    const img = cover.get(b.slug);
-    return {
-      slug: b.slug, name: b.name, tagline: b.tagline, tone: b.tone, rating: Number(b.rating), reviews: b.review_count, verified: b.verification_status === "verified", promoted: !!b.promoted,
-      area: [b.area, b.city && b.city !== b.area ? b.city : ""].filter(Boolean).join(", "),
-      open: state ? state.open : null, openText: state?.text ?? "",
-      from: b.from_cents ? money(b.from_cents, b.currency) : "",
-      team: b.staff_count > 1 ? `${b.staff_count} professionals` : "Independent",
-      coverId: img?.id, coverAlt: img?.alt, timezone: b.timezone,
-      services: (b.services ?? []).slice(0, 2).map((s) => ({ name: s.name, length: duration(s.duration_min), price: money(s.price_cents, b.currency) })),
-    };
-  });
+  const cards: ResultCard[] = found.businesses.map((b) => toCard(b, cover));
   const pins: Pin[] = (found.pins ?? []).map((p) => ({ slug: p.slug, name: p.name, rating: Number(p.rating), lat: p.lat, lng: p.lng, label: p.from_cents ? money(p.from_cents, p.currency) : p.name.slice(0, 1) }));
 
   const city = market === "NG" ? "Lagos" : "Nashville";
-  const catName = CATEGORIES.find(([id]) => id === category)?.[1];
+  const catName = categoryLabel(category);
   const subject = q ? `“${q}”` : catName ?? "Beauty professionals";
-  const place = where ? where.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : city;
+  const place = where ? titleCase(where) : city;
   /** A link to this page with some filters changed. Changing a filter goes back to the first page. */
   const href = (change: Partial<SP>) => {
     const next = { q, where, category, market, sort, page: "", ...change } as Record<string, string | undefined>;

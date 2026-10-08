@@ -2,6 +2,7 @@
 // The session token lives in an httpOnly cookie that only travels to
 // /business pages, so scripts in the browser can never read it.
 import { cookies } from "next/headers";
+import { visitorHeaders } from "./visitor";
 import { cache } from "react";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
@@ -23,7 +24,7 @@ export type Me = {
 export type Row = Record<string, any>;
 
 export class MerchantApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public body: Row = {}) {
     super(message);
   }
 }
@@ -33,7 +34,7 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
   if (!token) throw new MerchantApiError(401, "You are signed out.");
   let res: Response;
   try {
-    res = await fetch(`${BASE}/v1/m${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, ...(init.headers ?? {}) }, cache: "no-store" });
+    res = await fetch(`${BASE}/v1/m${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, ...(await visitorHeaders()), ...(init.headers ?? {}) }, cache: "no-store" });
   } catch {
     throw new MerchantApiError(503, "The service is not reachable. Try again in a moment.");
   }
@@ -80,12 +81,12 @@ export const mCan = (me: Me | Merchant | null, role: MRole) => {
 export async function mPublic<T = Row>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}/v1/m${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+    res = await fetch(`${BASE}/v1/m${path}`, { method: "POST", headers: { "Content-Type": "application/json", ...(await visitorHeaders()) }, body: JSON.stringify(body), cache: "no-store" });
   } catch {
     throw new MerchantApiError(503, "The service is not reachable. Try again in a moment.");
   }
   const out = await res.json().catch(() => ({}));
-  if (!res.ok) throw new MerchantApiError(res.status, out.error ?? "Something went wrong.");
+  if (!res.ok) throw new MerchantApiError(res.status, out.error ?? "Something went wrong.", out);
   return out as T;
 }
 

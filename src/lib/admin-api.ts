@@ -1,6 +1,7 @@
 // Server-only client for the admin API. The session token lives in an
 // httpOnly cookie and is attached here, so the browser never reads it.
 import { cookies } from "next/headers";
+import { visitorHeaders } from "./visitor";
 import { cache } from "react";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
@@ -75,7 +76,7 @@ export const can = (admin: Admin | null, role: Role) => !!admin && rank[admin.ro
 export async function signIn(email: string, password: string, code = ""): Promise<{ token: string; expires_in: number }> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}/v1/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, code }), cache: "no-store" });
+    res = await fetch(`${BASE}/v1/admin/login`, { method: "POST", headers: { "Content-Type": "application/json", ...(await visitorHeaders()) }, body: JSON.stringify({ email, password, code }), cache: "no-store" });
   } catch {
     throw new AdminApiError(503, "The API is not reachable.");
   }

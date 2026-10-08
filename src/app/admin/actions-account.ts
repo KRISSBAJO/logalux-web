@@ -54,3 +54,8 @@ export async function dismissRecoveryCodes(fd: FormData) {
 export async function resetTwoStepFor(fd: FormData) {
   await run(fd, "Two-step sign-in reset. They can sign in with their password and set it up again.", () => post(`/team/${id(fd)}/reset-2fa`, {}));
 }
+
+/** Super admin: for someone who runs a business and lost both their phone and their recovery codes. */
+export async function resetMerchantTwoStep(fd: FormData) {
+  await run(fd, "Two-step sign-in reset for that business sign-in. They are signed out everywhere and can sign in with their password.", () => post("/merchants/reset-2fa", { email: str(fd, "email") }));
+}

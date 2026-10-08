@@ -1,10 +1,14 @@
 import "@/app/cx-css/storefront.css";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { getCustomer, customerApi } from "@/lib/customer";
 import { Pic } from "@/components/pic";
+import { JsonLd } from "@/components/json-ld";
 import { firstByRef, siteMedia } from "@/lib/media";
+import { isTestEntry } from "@/lib/site";
+import { businessDescription, businessJsonLd, businessTitle } from "./seo";
 import { SaveButton, ShareButton } from "./head-actions";
 import { PinMap } from "./pin-map";
 import { Storefront } from "./storefront";
@@ -16,13 +20,27 @@ const SOURCES = ["search", "marketplace", "category", "app"];
 const DAYS: [string, string, string][] = [["mon", "Mon", "Monday"], ["tue", "Tue", "Tuesday"], ["wed", "Wed", "Wednesday"], ["thu", "Thu", "Thursday"], ["fri", "Fri", "Friday"], ["sat", "Sat", "Saturday"], ["sun", "Sun", "Sunday"]];
 const TILE_TONES = ["#4A2A2A", "#2E2538", "#4A3426", "#1F2A33"];
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const { business } = await customerApi<Payload>(`/businesses/${encodeURIComponent(slug)}`, { auth: false });
-    return { title: business.name, description: business.tagline };
+    const [data, photos] = await Promise.all([customerApi<Payload>(`/businesses/${encodeURIComponent(slug)}`, { auth: false }), siteMedia("business", slug)]);
+    const b = data.business;
+    const title = businessTitle(data), description = businessDescription(data);
+    const canonical = `/b/${b.slug}`;
+    // The first photo the business uploaded, when it has one. No photo, no picture: a stand-in would not be theirs.
+    const images = photos[0] ? [{ url: `/media/${photos[0].id}`, alt: photos[0].alt || b.name }] : undefined;
+    // Only a business that is open to the public belongs in a search engine.
+    const hidden = (b.status ?? "live") !== "live" || isTestEntry(b.name, b.slug);
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      robots: hidden ? { index: false, follow: false } : undefined,
+      openGraph: { title, description, url: canonical, siteName: "LogaLuxe", type: "website", images },
+      twitter: { card: images ? "summary_large_image" : "summary", title, description, images: images?.map((i) => i.url) },
+    };
   } catch {
-    return { title: "Business" };
+    return { title: "Business", robots: { index: false, follow: false } };
   }
 }
 
@@ -173,6 +191,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
 
   return (
     <>
+      {(b.status ?? "live") === "live" && !isTestEntry(b.name, b.slug) ? businessJsonLd(data, { rating, reviewCount, photoId: photos[0]?.id }).map((d, i) => <JsonLd key={i} data={d} />) : null}
       <SiteHeader active="book" />
       <div className="cx pg-storefront">
         <main className="wrap">

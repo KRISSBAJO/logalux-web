@@ -2,11 +2,12 @@
 // an httpOnly cookie, so scripts in the browser can never read it.
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { visitorHeaders } from "./visitor";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
 export const USER_COOKIE = "lx_user";
 
-export type Customer = { id: string; email: string; first_name: string; last_name: string; phone: string };
+export type Customer = { id: string; email: string; first_name: string; last_name: string; phone: string; email_verified?: boolean };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
@@ -22,7 +23,7 @@ export async function userToken(): Promise<string | undefined> {
 
 /** Calls the API. With `auth`, the customer's token is attached when there is one. */
 export async function customerApi<T = Row>(path: string, init: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = { "Content-Type": "application/json", ...(await visitorHeaders()) };
   if (init.auth !== false) {
     const token = await userToken();
     if (token) headers.Authorization = `Bearer ${token}`;

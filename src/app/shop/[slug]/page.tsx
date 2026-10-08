@@ -1,4 +1,5 @@
 import "@/app/cx-css/product.css";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
@@ -8,6 +9,8 @@ import { ProductGallery } from "@/components/product-gallery";
 import { money } from "@/lib/api";
 import { CustomerApiError, customerApi, getCustomer } from "@/lib/customer";
 import { categoryName, tagName, type Size } from "@/lib/shop";
+import { JsonLd, breadcrumbs } from "@/components/json-ld";
+import { absoluteUrl, clip, isTestEntry } from "@/lib/site";
 import { reviewProduct } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +39,56 @@ const day = (iso: string) => {
   return `${part({ day: "numeric" })} ${part({ month: "short" })} ${part({ year: "numeric" })}`;
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+/** What the product costs: one price, or the lowest and highest of its sizes. */
+function priceOf(p: Detail) {
+  const sizes = (p.sizes ?? []).map((x) => x.price_cents).filter((c) => c > 0);
+  return sizes.length > 1 ? { low: Math.min(...sizes), high: Math.max(...sizes), count: sizes.length } : { low: sizes[0] ?? p.price_cents, high: sizes[0] ?? p.price_cents, count: 1 };
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const { product } = await load(slug);
-    return { title: `${product.name} by ${product.seller_name}`, description: product.description ?? undefined };
-  } catch { return { title: "Product" }; }
+    const { product: p, photos } = await load(slug);
+    const price = priceOf(p);
+    const title = `${p.name} by ${p.seller_name}`;
+    const facts = [price.count > 1 ? `From ${money(price.low)}.` : `${money(price.low)}.`, p.stock < 1 ? "Sold out." : "", `Sold by ${p.seller_name}${p.business_city ? `, ${p.business_city}` : ""}.`, p.pickup ? "Free pickup at your visit." : ""].filter(Boolean).join(" ");
+    const description = clip([p.description ?? "", facts].filter(Boolean).join(" "), 220);
+    const canonical = `/shop/${p.slug}`;
+    const first = (photos ?? [])[0];
+    const images = first ? [{ url: `/media/${first.id}`, alt: first.alt || p.name }] : undefined;
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      robots: isTestEntry(p.name, p.slug) ? { index: false, follow: false } : undefined,
+      openGraph: { title, description, url: canonical, siteName: "LogaLuxe", type: "website", images },
+      twitter: { card: images ? "summary_large_image" : "summary", title, description, images: images?.map((i) => i.url) },
+    };
+  } catch { return { title: "Product", robots: { index: false, follow: false } }; }
+}
+
+/** The product as schema.org structured data, from what the shop really holds. */
+function productJsonLd(p: Detail, photos: { id: string; alt: string }[]) {
+  const url = absoluteUrl(`/shop/${p.slug}`);
+  const price = priceOf(p);
+  const availability = `https://schema.org/${p.stock > 0 ? "InStock" : "OutOfStock"}`;
+  const seller = { "@type": "Organization", name: p.seller_name, ...(p.business_slug ? { url: absoluteUrl(`/b/${p.business_slug}`) } : {}) };
+  const amount = (cents: number) => (cents / 100).toFixed(2);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${url}#product`,
+    name: p.name,
+    url,
+    ...(p.description ? { description: p.description } : {}),
+    ...(photos.length ? { image: photos.map((ph) => absoluteUrl(`/media/${ph.id}`)) } : {}),
+    category: categoryName(p.category),
+    brand: { "@type": "Brand", name: p.seller_name },
+    offers: price.count > 1
+      ? { "@type": "AggregateOffer", lowPrice: amount(price.low), highPrice: amount(price.high), offerCount: price.count, priceCurrency: "USD", availability, url, seller }
+      : { "@type": "Offer", price: amount(price.low), priceCurrency: "USD", availability, url, seller },
+    ...(p.review_count > 0 && Number(p.rating) > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Number(Number(p.rating).toFixed(2)), reviewCount: p.review_count, bestRating: 5, worstRating: 1 } } : {}),
+  };
 }
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string; ok?: string; err?: string }> }) {
@@ -75,6 +122,12 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   return (
     <>
+      {!isTestEntry(p.name, p.slug) && (
+        <>
+          <JsonLd data={productJsonLd(p, photos)} />
+          <JsonLd data={breadcrumbs([["Shop", absoluteUrl("/shop")], [categoryName(p.category), absoluteUrl(`/shop?category=${encodeURIComponent(p.category)}`)], [p.name, absoluteUrl(`/shop/${p.slug}`)]])} />
+        </>
+      )}
       <SiteHeader active="shop" />
       <div className="cx pg-product">
         <main className="wrap">

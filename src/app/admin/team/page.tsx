@@ -1,7 +1,7 @@
 import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, Topbar, ago, inputCls, statusPill, inputSm } from "@/components/admin-ui";
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
 import { inviteAdmin, updateAdmin } from "../actions";
-import { resetTwoStepFor } from "../actions-account";
+import { resetMerchantTwoStep, resetTwoStepFor } from "../actions-account";
 
 const roles: [string, string, string][] = [
   ["support", "Support", "Reads everything. Adds notes. Cancels, completes and moves bookings."],
@@ -87,6 +87,13 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
                 <Field label="First password"><input type="password" name="password" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
               </div>
               <div><Btn kind="ink">Add admin</Btn></div>
+            </form>
+          </Panel>
+          <Panel title="Reset a business owner's two-step sign-in" sub="For someone who runs a business and has lost their phone and their recovery codes. Check who they are first: call the number on the business, or ask for the date and amount of their last payout.">
+            <form action={resetMerchantTwoStep} className="flex flex-wrap items-end gap-3">
+              <Hidden values={{ back }} />
+              <Field label="The email they sign in with" className="min-w-[240px] flex-1"><input type="email" name="email" required autoComplete="off" className={inputCls} /></Field>
+              <Btn kind="danger">Reset</Btn>
             </form>
           </Panel>
           <Panel title="What each role can do">

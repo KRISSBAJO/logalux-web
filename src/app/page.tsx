@@ -94,6 +94,9 @@ export default async function Landing() {
               </Link>
             ))}
           </div>
+          <p className="mt-6 text-[14.5px] text-muted">
+            Browse by city: <Link href="/nashville" className="font-semibold text-wine hover:underline">Beauty professionals in Nashville</Link> · <Link href="/lagos" className="font-semibold text-wine hover:underline">Beauty professionals in Lagos</Link>
+          </p>
         </div>
       </section>
 

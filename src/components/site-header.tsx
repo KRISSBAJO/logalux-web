@@ -53,7 +53,7 @@ export function SiteFooter() {
           <p className="mt-4 text-[13px] text-muted-2">LogaXP · 1108 Berry Street, Old Hickory, TN 37138</p>
         </div>
         {[
-          ["Clients", ["Browse services", "/search"], ["Shop", "/shop"], ["How it works", "/#how"], ["Help", "/help"]],
+          ["Clients", ["Browse services", "/search"], ["Beauty in Nashville", "/nashville"], ["Beauty in Lagos", "/lagos"], ["Shop", "/shop"], ["How it works", "/#how"], ["Help", "/help"]],
           ["Professionals", ["List your business", "/business/signup"], ["Business sign in", "/business/signin"], ["Pricing", "/#pros"], ["Switch from another app", "/#pros"]],
           ["Company", ["About LogaXP", "/"], ["For professionals", "/#pros"], ["Help", "/help"], ["Contact", "/help"]],
           ["Legal", ["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Cancellation policy", "/legal/cancellation"], ["Accessibility", "/legal/accessibility"]],

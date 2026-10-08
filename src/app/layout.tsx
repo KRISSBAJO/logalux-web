@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SubmitterFix } from "@/components/submitter-fix";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { default: "LogaLuxe — Discover and book beauty you can trust", template: "%s · LogaLuxe" },
   description:
     "Find verified beauty professionals near you, see real openings, and book in under a minute. Braids, barbers, nails, lashes, skin, and more. Nashville and Lagos.",
-  metadataBase: new URL("https://logaluxe.com"),
+  metadataBase: new URL(SITE_URL),
   openGraph: { siteName: "LogaLuxe", type: "website" },
 };
 

@@ -1,11 +1,13 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { toDataURL } from "qrcode";
 import type { ReactNode } from "react";
 import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Flash, LoadError, Topbar } from "@/components/merchant-ui";
+import { mReadFlash } from "@/lib/merchant-actions";
 import { getMe, mCan, mLoad, qs, type Me, type Row } from "@/lib/merchant-api";
 import { dateMed, dateOnly, money, plural, when } from "@/lib/merchant-format";
-import { changePassword, changePlan, locationAction, saveAccount, saveLocation, saveProfile, saveRules, setListing } from "./actions";
+import { cancelTwoStepSetup, changePassword, changePlan, dismissRecoveryCodes, finishTwoStep, locationAction, saveAccount, saveLocation, saveProfile, saveRules, setListing, startTwoStep, stopTwoStep } from "./actions";
 import "../../css/settings.css";
 
 export const metadata = { title: "Settings" };
@@ -82,10 +84,33 @@ function HoursKept({ hours }: { hours: Hours }) {
 }
 
 /** "Your account": the one part of Settings every person on the team can use. */
-function Account({ me, account, back }: { me: Me; account: Row | null; back: string }) {
+type Security = { twoStep: boolean; left: number; setup?: { secret: string; uri: string }; recovery?: string[]; qr: string };
+
+/** How this person signs in, with the setup key or the new recovery codes when there are some to show. */
+async function loadSecurity(): Promise<Security> {
+  const [{ data }, flash] = await Promise.all([mLoad("/security"), mReadFlash()]);
+  const twoStep = !!data.two_step;
+  const setup = !twoStep ? flash?.setup : undefined;
+  return {
+    twoStep, left: Number(data.recovery_left ?? 0), setup, recovery: twoStep ? flash?.recovery : undefined,
+    qr: setup ? await toDataURL(setup.uri, { margin: 1, width: 220, color: { dark: "#1A1513", light: "#FFFFFF" } }) : "",
+  };
+}
+
+function Account({ me, account, back, sec }: { me: Me; account: Row | null; back: string; sec: Security }) {
   const m = me.merchant;
   return (
     <>
+      {sec.recovery ? (
+        <div className="card">
+          <h3>Save your recovery codes</h3>
+          <div className="sub">Each code signs you in once if you lose your phone. They are shown only now, so write them down or keep them in a password manager.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 8, maxWidth: 520, margin: "14px 0", fontFamily: "ui-monospace,Menlo,Consolas,monospace", fontSize: 15 }}>
+            {sec.recovery.map((c) => <span key={c} style={{ background: "#F4ECE2", borderRadius: 10, padding: "8px 12px", textAlign: "center", letterSpacing: ".06em" }}>{c}</span>)}
+          </div>
+          <form action={dismissRecoveryCodes}><input type="hidden" name="back" value={back} /><button className="btn btn-ink btn-sm">I have saved them</button></form>
+        </div>
+      ) : null}
       <div className="card">
         <h3>Your account</h3>
         <div className="sub">These are your own details, not the business&apos;s. You are signed in to {m.business} as {ROLE[m.role]?.toLowerCase() ?? m.role}.</div>
@@ -116,6 +141,42 @@ function Account({ me, account, back }: { me: Me; account: Row | null; back: str
           <div><button className="btn btn-out btn-sm">Change password</button></div>
         </form>
       </div>
+      <div className="card" id="two-step">
+        <h3>Two-step sign-in <span className={"pill " + (sec.twoStep ? "pill-ok" : "pill-grey")} style={{ marginLeft: 8, verticalAlign: "middle" }}>{sec.twoStep ? "On" : "Off"}</span></h3>
+        {sec.twoStep ? (
+          <>
+            <div className="sub">Signing in needs your password and a 6-digit code from your authenticator app. You have {plural(sec.left, "recovery code")} left{sec.left <= 2 ? "; turn it off and set it up again to get a fresh set" : ""}.</div>
+            <form action={stopTwoStep} className="stack">
+              <input type="hidden" name="back" value={back} />
+              <div className="field" style={{ maxWidth: 320 }}><label htmlFor="ts-pw">Your password, to turn it off</label><input id="ts-pw" name="password" type="password" required autoComplete="current-password" /></div>
+              <div><button className="btn btn-out btn-sm">Turn off two-step sign-in</button></div>
+            </form>
+          </>
+        ) : sec.setup ? (
+          <>
+            <div className="sub">1. Open an authenticator app, such as Google Authenticator, Authy or 1Password. 2. Scan this code, or type the key in by hand. 3. Enter the 6-digit code the app shows.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20, margin: "14px 0" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={sec.qr} alt="QR code for your authenticator app" width={176} height={176} style={{ borderRadius: 12, border: "1px solid #E6DCD2" }} />
+              <div style={{ minWidth: 0 }}>
+                <small className="muted" style={{ display: "block", fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" }}>Key</small>
+                <code style={{ display: "block", wordBreak: "break-all", fontSize: 14, letterSpacing: ".06em" }}>{sec.setup.secret.replace(/(.{4})/g, "$1 ").trim()}</code>
+              </div>
+            </div>
+            <form action={finishTwoStep} style={{ display: "flex", alignItems: "flex-end", gap: 8, flexWrap: "wrap" }}>
+              <input type="hidden" name="back" value={back} />
+              <div className="field" style={{ width: 170 }}><label htmlFor="ts-code">6-digit code</label><input id="ts-code" name="code" required inputMode="numeric" pattern="[0-9 ]{6,7}" autoComplete="one-time-code" style={{ textAlign: "center", letterSpacing: ".3em", fontSize: 18 }} /></div>
+              <button className="btn btn-ink btn-sm">Turn on</button>
+            </form>
+            <form action={cancelTwoStepSetup} style={{ marginTop: 10 }}><input type="hidden" name="back" value={back} /><button className="btn btn-ghost btn-sm">Cancel setup</button></form>
+          </>
+        ) : (
+          <>
+            <div className="sub">Adds a 6-digit code from your phone to every sign-in, so a stolen password alone cannot get into your calendar, your clients or your payouts.{m.role === "owner" ? " We recommend it for every owner." : ""}</div>
+            <form action={startTwoStep}><input type="hidden" name="back" value={back} /><button className="btn btn-ink btn-sm">Set up two-step sign-in</button></form>
+          </>
+        )}
+      </div>
     </>
   );
 }
@@ -135,7 +196,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           <nav className="menu" aria-label="Settings sections"><Link href="/business/settings" className="mi on" aria-current="page">Your account</Link></nav>
           <div className="pane">
             <Flash sp={sp} />
-            <Account me={me} account={null} back="/business/settings" />
+            <Account me={me} account={null} back="/business/settings" sec={await loadSecurity()} />
             <div className="card">
               <h3>Business settings</h3>
               <div className="sub">The business profile, opening hours, booking rules and the plan are looked after by managers and the owner. Ask them if something there needs changing.</div>
@@ -509,7 +570,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             </>
           ) : null}
 
-          {tab === "account" ? <Account me={me} account={account} back={back} /> : null}
+          {tab === "account" ? <Account me={me} account={account} back={back} sec={await loadSecurity()} /> : null}
         </div>
       </div>
     </div>

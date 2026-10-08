@@ -179,3 +179,26 @@ export async function cancelMyOrder(fd: FormData) {
   }
   await (error ? back("err", error, "orders") : back("ok", "Order cancelled. Nothing was charged.", "orders"));
 }
+
+/** The button on /verify: confirms the address the link was sent to. */
+export async function confirmEmail(fd: FormData) {
+  const token = v(fd, "token");
+  let error = "", email = "";
+  try {
+    email = (await customerApi<{ email: string }>("/auth/verify", { method: "POST", auth: false, body: { token } })).email;
+  } catch (e) {
+    error = (e as Error).message;
+  }
+  redirect(error ? `/verify?err=${enc(error)}` : `/verify?ok=${enc(`${email} is confirmed. Thank you.`)}`);
+}
+
+export async function resendConfirmation(fd: FormData) {
+  const tab = v(fd, "tab") || "bookings";
+  let error = "", email = "";
+  try {
+    email = (await customerApi<{ email?: string }>("/auth/verify/send", { method: "POST" })).email ?? "";
+  } catch (e) {
+    error = (e as Error).message;
+  }
+  await (error ? back("err", error, tab) : back("ok", email ? `We sent a new link to ${email}. It works for 48 hours.` : "Your email is already confirmed.", tab));
+}

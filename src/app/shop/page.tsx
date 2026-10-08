@@ -1,4 +1,5 @@
 import "@/app/cx-css/shop.css";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { AddToCart, CartLink } from "@/components/cart-ui";
@@ -6,7 +7,32 @@ import { money } from "@/lib/api";
 import { customerApi } from "@/lib/customer";
 import { categoryName, isValueTag, tagName, type ShopList, type ShopProduct } from "@/lib/shop";
 
-export const metadata = { title: "Shop", description: "Beauty products from the professionals you book, and the brands they trust." };
+const DESCRIPTION = "Beauty products from the professionals you book, and the brands they trust.";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
+  const raw = await searchParams;
+  const one = (k: string) => String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim();
+  const q = one("q"), category = one("category"), seller = one("seller");
+  const page = Math.max(1, Number.parseInt(one("page"), 10) || 1);
+  const subject = q ? `"${q}"` : category ? categoryName(category) : "";
+  const title = `${subject ? `${subject} · Shop` : "Shop"}${page > 1 ? ` · page ${page}` : ""}`;
+  const description = q
+    ? `Products matching "${q}" in the LogaLuxe shop.`
+    : category
+      ? `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book and the brands they trust.`
+      : DESCRIPTION;
+  // The shop and each of its categories have one address each. Typed searches, later pages and narrower filters stay out of search engines.
+  const narrowed = !!q || page > 1 || !!seller || ["tag", "delivery", "price"].some((k) => one(k));
+  const canonical = category ? `/shop?category=${encodeURIComponent(category)}` : "/shop";
+  return {
+    title,
+    description,
+    alternates: narrowed ? undefined : { canonical },
+    robots: narrowed ? { index: false, follow: true } : undefined,
+    openGraph: { title, description, url: canonical, siteName: "LogaLuxe", type: "website" },
+    twitter: { card: "summary", title, description },
+  };
+}
 export const dynamic = "force-dynamic";
 
 type Params = Record<string, string | string[] | undefined>;
