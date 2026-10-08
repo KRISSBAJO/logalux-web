@@ -77,7 +77,8 @@ export function StaffFields({ p = {} }: { p?: Row }) {
   );
 }
 
-export function ProductFields({ p = {}, creating }: { p?: Row; creating?: boolean }) {
+/** `howToApart`: the edit screen has "How to use" in its own panel beside the ingredients, so here it only travels along unchanged. */
+export function ProductFields({ p = {}, creating, howToApart }: { p?: Row; creating?: boolean; howToApart?: boolean }) {
   const sizes = ((p.sizes ?? []) as { label: string; price_cents: number }[]).map((s) => `${s.label} = ${s.price_cents / 100}`).join("\n");
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -90,7 +91,9 @@ export function ProductFields({ p = {}, creating }: { p?: Row; creating?: boolea
       <Field label="Sold by this business, optional"><input name="business_slug" defaultValue={p.business_slug ?? ""} placeholder="booking link, like ada" className={inputCls} /></Field>
       {creating && <Field label="Shop link, optional" className="sm:col-span-2"><input name="slug" pattern="[a-z0-9][a-z0-9-]{1,59}" placeholder="made from the name if left empty" className={inputCls} /></Field>}
       <Field label="Description" className="sm:col-span-2 lg:col-span-4"><textarea name="description" rows={3} maxLength={2000} defaultValue={p.description} className={area} /></Field>
-      <Field label="How to use" className="sm:col-span-2 lg:col-span-4"><textarea name="how_to_use" rows={2} maxLength={2000} defaultValue={p.how_to_use} className={area} /></Field>
+      {howToApart
+        ? <input type="hidden" name="how_to_use" value={p.how_to_use ?? ""} />
+        : <Field label="How to use" className="sm:col-span-2 lg:col-span-4"><textarea name="how_to_use" rows={2} maxLength={2000} defaultValue={p.how_to_use} className={area} /></Field>}
       <Field label="Sizes, one per line as name = price" className="sm:col-span-2"><textarea name="sizes" rows={3} defaultValue={sizes} placeholder={"30 ml = 11\n60 ml = 18"} className={`${area} font-mono text-[13px]`} /></Field>
       <div className="flex flex-col gap-3 sm:col-span-2">
         <Field label="Tags, comma separated. 'bestseller' shows a badge"><input name="tags" defaultValue={(p.tags ?? []).join(", ")} className={inputCls} /></Field>

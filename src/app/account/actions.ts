@@ -1,13 +1,19 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { USER_COOKIE, cookieOptions, customerApi, safeNext } from "@/lib/customer";
+import { USER_COOKIE, cookieOptions, customerApi, customerUpload, safeNext } from "@/lib/customer";
 
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const enc = encodeURIComponent;
 
 type Session = { token: string; expires_in: number };
+
+/** A friend's invitation code as it arrives in a link: letters and digits only, twelve at most. */
+const refCode = (raw: unknown) => (typeof raw === "string" && /^[A-Za-z0-9]{1,12}$/.test(raw.trim()) ? raw.trim() : "");
+/** The API's own words, as a sentence. */
+const sentence = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) + (/[.!?]$/.test(s) ? "" : ".") : s);
 
 async function startSession(s: Session) {
   (await cookies()).set(USER_COOKIE, s.token, cookieOptions(s.expires_in));
@@ -15,19 +21,22 @@ async function startSession(s: Session) {
 
 export async function signUp(fd: FormData) {
   const next = safeNext(fd.get("next"));
+  // The code of the friend who invited them, when they came by an invitation link.
+  const ref = refCode(fd.get("ref"));
   let error = "";
   if (String(fd.get("password") ?? "") !== String(fd.get("again") ?? "")) error = "The two passwords do not match.";
   if (!error) {
     try {
       await startSession(await customerApi<Session>("/auth/signup", {
         method: "POST", auth: false,
-        body: { first_name: v(fd, "first_name"), last_name: v(fd, "last_name"), email: v(fd, "email"), phone: v(fd, "phone"), password: String(fd.get("password") ?? "") },
+        body: { first_name: v(fd, "first_name"), last_name: v(fd, "last_name"), email: v(fd, "email"), phone: v(fd, "phone"), password: String(fd.get("password") ?? ""), ...(ref ? { ref } : {}) },
       }));
     } catch (e) {
       error = (e as Error).message;
     }
   }
-  redirect(error ? `/signup?next=${enc(next)}&err=${enc(error)}` : next);
+  // When the form is shown again, the invitation stays with it.
+  redirect(error ? `/signup?next=${enc(next)}${ref ? `&ref=${ref}` : ""}&err=${enc(error)}` : next);
 }
 
 export async function signIn(fd: FormData) {
@@ -136,7 +145,52 @@ export async function leaveReview(fd: FormData) {
   } catch (e) {
     error = (e as Error).message;
   }
-  await (error ? back("err", error, "bookings") : back("ok", "Thank you. Your review is published.", "bookings"));
+  if (error) await back("err", error, "bookings");
+  // Straight to the visit they reviewed, where photos can be added.
+  redirect(`/account?tab=bookings&reviewed=${enc(v(fd, "id"))}#b-${enc(v(fd, "id"))}`);
+}
+
+export type PhotoState = { error: string; done: number };
+
+/** Adds one photo to a review the client wrote. The API allows three, and asks for a confirmed email. */
+export async function addReviewPhoto(prev: PhotoState, fd: FormData): Promise<PhotoState> {
+  const id = v(fd, "review_id"), file = fd.get("file");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { error: "We could not find that review.", done: prev.done };
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo to upload.", done: prev.done };
+  if (file.size > 8 * 1024 * 1024) return { error: "The photo is too large. The limit is 8 MB.", done: prev.done };
+  try {
+    const out = new FormData();
+    out.set("file", file, file.name);
+    await customerUpload(`/auth/reviews/${enc(id)}/photos`, out);
+  } catch (e) {
+    return { error: sentence((e as Error).message), done: prev.done };
+  }
+  revalidatePath("/account");
+  return { error: "", done: prev.done + 1 };
+}
+
+/** Takes one of the client's own photos off their review. */
+export async function removeReviewPhoto(prev: PhotoState, fd: FormData): Promise<PhotoState> {
+  const id = v(fd, "photo_id");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { error: "We could not find that photo.", done: prev.done };
+  try {
+    await customerApi(`/auth/review-photos/${enc(id)}`, { method: "DELETE" });
+  } catch (e) {
+    return { error: sentence((e as Error).message), done: prev.done };
+  }
+  revalidatePath("/account");
+  return { error: "", done: prev.done + 1 };
+}
+
+/** Takes a product off the saved list. */
+export async function removeSavedProduct(fd: FormData) {
+  let error = "";
+  try {
+    await customerApi(`/auth/favourite-products/${enc(v(fd, "slug"))}`, { method: "DELETE" });
+  } catch (e) {
+    error = sentence((e as Error).message);
+  }
+  await (error ? back("err", error, "saved") : back("ok", "Removed from your saved products.", "saved"));
 }
 
 /** Moves one of the client's own bookings to a new free time. The price agreed when booking is kept. */

@@ -3,14 +3,18 @@ import { redirect } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/api";
 import { customerApi, getCustomer, type Customer } from "@/lib/customer";
-import { BookingMover, HashTab } from "./account-client";
-import { cancelMyBooking, changeMyPassword, leaveReview, removeSaved, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
+import { BookingMover, CopyButton, HashTab, ReviewPhotos } from "./account-client";
+import { cancelMyBooking, changeMyPassword, leaveReview, removeSaved, removeSavedProduct, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
 
 export const metadata = { title: "Your account" };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
-type SP = { ok?: string; err?: string; to?: string; thread?: string; tab?: string; move?: string; day?: string };
+type SP = { ok?: string; err?: string; to?: string; thread?: string; tab?: string; move?: string; day?: string; reviewed?: string };
+/** A product the client saved in the shop. */
+type SavedProduct = { slug: string; name: string; seller_name: string; price_cents: number; stock: number; tone: string; sizes?: { label: string; price_cents: number }[] | null; photo_id?: string | null };
+/** Store credit and the invitation that earns it. `on` is false until LogaLuxe staff set an amount. */
+type Referral = { on: boolean; credit_cents: number; currency: string; balance_cents: number; code?: string; link?: string; friends_joined: number; friends_paid: number; history?: { amount_cents: number; reason: string; created_at: string }[] | null };
 
 const TABS: [string, string][] = [["bookings", "Bookings"], ["orders", "Orders"], ["saved", "Saved"], ["wallet", "Wallet"], ["messages", "Messages"], ["details", "Details and password"]];
 const TAB_IDS = TABS.map(([id]) => id);
@@ -113,7 +117,17 @@ function Booking({ b, past, sp }: { b: Row; past?: boolean; sp: SP }) {
         </div>
       )}
 
-      {b.can_review && (
+      {b.review_id && (
+        <div className="flex w-full flex-col gap-3 border-t border-line-2 pt-3">
+          <div>
+            <h3 className="text-[14.5px] font-semibold">Your review</h3>
+            <p className="text-[13.5px] text-muted">{sp.reviewed === b.id ? "Thank you. Your review is published. You can add up to three photos of the result." : `Photos you add are shown with your review on the page of ${b.business}.`}</p>
+          </div>
+          <ReviewPhotos reviewId={b.review_id} photos={Array.isArray(b.review_photos) ? b.review_photos : []} business={b.business} />
+        </div>
+      )}
+
+      {b.can_review && !b.review_id && (
         <details className="w-full border-t border-line-2 pt-3">
           <summary className="cursor-pointer text-[14px] font-semibold text-wine">Leave a review</summary>
           <form action={leaveReview} className="mt-3 flex flex-col gap-3">
@@ -165,6 +179,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
 
   // What each section needs beyond the account itself. Each is loaded only when its section is open.
   let saved: Row[] = [], wallet: Row[] = [], sectionError = "";
+  let savedProducts: SavedProduct[] = [], productsError = false, referral: Referral | null = null, creditCents = 0;
   if (tab === "bookings") {
     // What may still be done to each upcoming booking, and where to pay a deposit that is still owed.
     await Promise.all(upcoming.slice(0, 20).map(async (b) => {
@@ -182,10 +197,24 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       o.lines = full?.items; o.shipping_cents = full?.shipping_cents ?? 0; o.tax_cents = full?.tax_cents ?? 0;
     }));
   } else if (tab === "saved") {
-    try { saved = (await customerApi<{ favourites: Row[] }>("/auth/favourites")).favourites ?? []; } catch (e) { sectionError = (e as Error).message; }
+    const [biz, prods] = await Promise.all([
+      customerApi<{ favourites: Row[] }>("/auth/favourites").catch((e) => { sectionError = (e as Error).message; return null; }),
+      customerApi<{ products: SavedProduct[] }>("/auth/favourite-products").catch(() => { productsError = true; return null; }),
+    ]);
+    saved = biz?.favourites ?? [];
+    savedProducts = prods?.products ?? [];
   } else if (tab === "wallet") {
-    try { wallet = (await customerApi<{ wallet: Row[] }>("/auth/wallet")).wallet ?? []; } catch (e) { sectionError = (e as Error).message; }
+    const [w, r] = await Promise.all([
+      customerApi<{ wallet: Row[]; credit_cents?: number }>("/auth/wallet").catch((e) => { sectionError = (e as Error).message; return null; }),
+      // The invitation is an extra: if it cannot be read, the wallet still shows.
+      customerApi<Referral>("/auth/referral").catch(() => null),
+    ]);
+    wallet = w?.wallet ?? [];
+    referral = r;
+    creditCents = Number(w?.credit_cents ?? r?.balance_cents) || 0;
   }
+  const creditHistory = referral?.history ?? [];
+  const inviting = !!referral?.on && !!referral.link && !!referral.code && referral.credit_cents > 0;
 
   const count: Record<string, number> = { bookings: upcoming.length, messages: unread };
   const h2 = "serif mb-4 text-[28px]";
@@ -304,6 +333,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         {tab === "saved" && (
           <section className="mt-8 scroll-mt-6" id="saved">
             <h2 className={h2}>Saved</h2>
+            <h3 className="mb-3 text-[16px] font-semibold">Businesses</h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {saved.map((f) => (
                 <div key={f.slug} className="card flex flex-col overflow-hidden rounded-[20px]">
@@ -327,8 +357,44 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             </div>
             {saved.length === 0 && !sectionError && (
               <div className="card flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-6">
-                <p className="text-[15.5px] text-muted">Nothing saved yet. Use Save on a business page to keep it here.</p>
+                <p className="text-[15.5px] text-muted">No businesses saved yet. Use Save on a business page to keep it here.</p>
                 <Link href="/search" className="btn btn-ink">Find a professional</Link>
+              </div>
+            )}
+
+            <h3 className="mb-3 mt-10 text-[16px] font-semibold">Products</h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {savedProducts.map((p) => {
+                const lowest = Math.min(p.price_cents, ...(p.sizes ?? []).map((s) => Number(s.price_cents)).filter((n) => Number.isFinite(n) && n > 0));
+                return (
+                  <div key={p.slug} className="card flex flex-col overflow-hidden rounded-[20px]">
+                    <Link href={`/shop/${p.slug}`} aria-hidden tabIndex={-1} className="relative block h-[150px]" style={{ background: p.tone || "#3B1D22" }}>
+                      {p.photo_id ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/media/${p.photo_id}`} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                      ) : null}
+                    </Link>
+                    <div className="flex flex-1 flex-col gap-1 p-4">
+                      <Link href={`/shop/${p.slug}`} className="text-[16px] font-semibold leading-snug hover:text-wine">{p.name}</Link>
+                      <div className="text-[13px] text-muted">Sold by {p.seller_name}</div>
+                      <div className="text-[14.5px]">
+                        <b className="font-semibold">{lowest < p.price_cents ? `From ${money(lowest)}` : money(p.price_cents)}</b>
+                        {p.stock <= 0 ? <span className="text-muted"> · out of stock</span> : null}
+                      </div>
+                      <div className="mt-auto flex flex-wrap gap-2 pt-3">
+                        <Link href={`/shop/${p.slug}`} className="btn btn-ink btn-sm">View</Link>
+                        <form action={removeSavedProduct}><input type="hidden" name="slug" value={p.slug} /><button className="btn btn-out btn-sm" aria-label={`Remove ${p.name} from saved`}>Remove</button></form>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {productsError && <div role="alert" className="card rounded-[20px] p-6 text-[15px] text-bad">We could not load your saved products just now. Try again in a moment.</div>}
+            {savedProducts.length === 0 && !productsError && (
+              <div className="card flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-6">
+                <p className="text-[15.5px] text-muted">No products saved yet. Use the heart on a product in the shop to keep it here.</p>
+                <Link href="/shop" className="btn btn-out">Visit the shop</Link>
               </div>
             )}
           </section>
@@ -337,6 +403,46 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         {tab === "wallet" && (
           <section className="mt-8 scroll-mt-6" id="wallet">
             <h2 className={h2}>Wallet</h2>
+            {(creditCents !== 0 || creditHistory.length > 0 || inviting) && (
+              <div className="mb-8 grid items-start gap-4 md:grid-cols-2">
+                <div className="card flex flex-col gap-3 rounded-[20px] p-5">
+                  <div>
+                    <div className={cap}>Store credit</div>
+                    <b className="mt-1 block text-[30px] font-semibold leading-none">{money(creditCents, "USD")}</b>
+                  </div>
+                  <p className="text-[13.5px] text-muted">Credit is in US dollars. It comes off your next shop order by itself, after any promo code or gift card.</p>
+                  {creditHistory.length > 0 && (
+                    <ul className="border-t border-line-2 text-[14px]">
+                      {creditHistory.map((c, i) => (
+                        <li key={i} className="flex items-baseline justify-between gap-3 border-b border-line-2 py-2 last:border-0">
+                          <span className="min-w-0">{c.reason}<span className="block text-[12.5px] text-muted">{day(c.created_at)}</span></span>
+                          <b className={`flex-none font-semibold ${c.amount_cents < 0 ? "text-muted" : "text-ok"}`}>{c.amount_cents < 0 ? `-${money(-c.amount_cents, "USD")}` : `+${money(c.amount_cents, "USD")}`}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {inviting && referral && (
+                  <div className="card flex flex-col gap-3 rounded-[20px] p-5">
+                    <div>
+                      <div className={cap}>Invite a friend</div>
+                      <b className="mt-1 block text-[20px] font-semibold leading-tight">You each get {money(referral.credit_cents, "USD")} of credit</b>
+                    </div>
+                    <p className="text-[13.5px] leading-relaxed text-muted">A friend joins with your link, confirms their email, and pays for a first visit or has a first order delivered. Then you each get the credit. Credit is in US dollars and is spent on shop orders.</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="min-w-0 flex-[1_1_220px]"><span className="sr-only">Your invitation link</span><input readOnly value={referral.link} className="min-h-[38px] w-full rounded-xl border border-line bg-cream px-3 text-[13.5px]" /></label>
+                      <CopyButton text={referral.link!} label="Copy link" />
+                    </div>
+                    <div className="text-[13.5px]">Your code: <b className="font-semibold tracking-[.08em]">{referral.code}</b></div>
+                    <div className="border-t border-line-2 pt-3 text-[13.5px] text-muted">
+                      {referral.friends_joined > 0
+                        ? <>{plural(referral.friends_joined, "friend has", "friends have")} joined · {referral.friends_paid} {referral.friends_paid === 1 ? "has" : "have"} made a first purchase</>
+                        : "No friends have joined with your link yet."}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <p className="-mt-2 mb-5 max-w-[640px] text-[14.5px] text-muted">Packages, memberships and points belong to the business you got them from. They are used there when you pay: tell them at the desk.</p>
             <div className="flex flex-col gap-4">
               {wallet.map((w) => {

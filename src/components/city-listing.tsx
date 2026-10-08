@@ -126,10 +126,14 @@ export async function CityListing({ city, category }: { city: City; category?: C
 
         {cards.length > 0 && (
           <>
-            <p className="mb-4 text-[13.5px] text-muted">
-              <b className="text-ink">{people(total)}</b>{total > cards.length ? ` · showing the first ${cards.length}` : ""} · <Link href={fullSearch} className="font-semibold text-wine">{total > cards.length ? "See them all in search" : "Search with filters and a map"}</Link>
-            </p>
-            <SearchResults cards={cards} pins={pins} />
+            <SearchResults
+              cards={cards} pins={pins}
+              header={(
+                <p>
+                  <b className="text-ink">{people(total)}</b>{total > cards.length ? ` · showing the first ${cards.length}` : ""} · <Link href={fullSearch} className="font-semibold text-wine">{total > cards.length ? "See them all in search" : "Search with filters and a map"}</Link>
+                </p>
+              )}
+            />
           </>
         )}
 

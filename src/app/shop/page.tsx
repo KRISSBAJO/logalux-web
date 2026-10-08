@@ -4,7 +4,8 @@ import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { AddToCart, CartLink } from "@/components/cart-ui";
 import { money } from "@/lib/api";
-import { customerApi } from "@/lib/customer";
+import { SaveProduct } from "@/components/save-product";
+import { customerApi, getCustomer } from "@/lib/customer";
 import { categoryName, isValueTag, tagName, type ShopList, type ShopProduct } from "@/lib/shop";
 
 const DESCRIPTION = "Beauty products from the professionals you book, and the brands they trust.";
@@ -82,11 +83,19 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
   if (Number.parseInt(sp.per, 10) > 0) qs.set("per", sp.per);
 
   // The list being looked at, and the shop's bestsellers for the pictures in the hero.
+  // A signed-in customer also sees which products they saved.
+  const signedIn = !!(await getCustomer());
   let data: ShopList | null = null, top: ShopProduct[] = [], error = "";
+  let savedSlugs = new Set<string>();
   try {
-    const [list, best] = await Promise.all([customerApi<ShopList>(`/products?${qs}`), customerApi<ShopList>("/products?per=60").catch(() => null)]);
+    const [list, best, favs] = await Promise.all([
+      customerApi<ShopList>(`/products?${qs}`),
+      customerApi<ShopList>("/products?per=60").catch(() => null),
+      signedIn ? customerApi<{ products: { slug: string }[] | null }>("/auth/favourite-products").catch(() => null) : null,
+    ]);
     data = list;
     top = best?.products ?? [];
+    savedSlugs = new Set((favs?.products ?? []).map((f) => f.slug));
   } catch (e) {
     error = (e as Error).message;
   }
@@ -102,6 +111,9 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
     const s = out.toString();
     return `/shop${s ? `?${s}` : ""}${hash}`;
   };
+
+  // Where a guest comes back to after signing in to save a product.
+  const here = href({ page: page > 1 ? String(page) : "" });
 
   // Only what the shop really has is offered as a filter.
   const studios = sellers.filter((s) => s.business_slug);
@@ -243,6 +255,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
                         {tag && <span className={`pill ${tag[0]} tag`}>{tag[1]}</span>}
                         <Tile p={p} />
                       </Link>
+                      <SaveProduct variant="card" slug={p.slug} name={p.name} saved={savedSlugs.has(p.slug)} signedIn={signedIn} next={here} />
                       <div className="b">
                         <div className="by"><span className="av" style={{ background: p.tone }} />{p.seller_name}</div>
                         <Link href={`/shop/${p.slug}`} className="name"><h3>{p.name}</h3></Link>

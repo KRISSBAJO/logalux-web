@@ -8,8 +8,11 @@ export type Policy = { instant?: boolean; waitlist?: boolean; cancel_hours?: num
 export type Biz = Business & { tiktok?: string; website?: string; logo_id?: string | null; review_summary?: string };
 export type Loc = Location & { lat?: number | null; lng?: number | null };
 export type StoreProduct = Pick<Product, "id" | "slug" | "name" | "price_cents" | "tone" | "rating" | "review_count">;
-export type StoreReview = Review & { pinned?: boolean };
-export type Payload = { business: Biz; locations: Loc[]; staff: Staff[]; services: Service[]; reviews: StoreReview[]; products: StoreProduct[]; display?: Display; policy?: Policy; saved?: boolean; photo_count?: number };
+/** `photos` are media ids (0 to 3), shown from /media/<id>. */
+export type StoreReview = Review & { pinned?: boolean; photos?: string[] | null };
+/** What the business says about itself beyond the basics. `reply_minutes` is absent until it has answered at least three messages. */
+export type Extras = { languages?: string[] | null; reply_minutes?: number | null; reply_sample?: number | null };
+export type Payload = { business: Biz; locations: Loc[]; staff: Staff[]; services: Service[]; reviews: StoreReview[]; products: StoreProduct[]; display?: Display; policy?: Policy; saved?: boolean; photo_count?: number; extras?: Extras };
 export type Slot = { time: string; starts_at: string; staff_id: string; staff: string; price_cents: number };
 export type DayCell = { date: string; open: number; from_cents: number; past: boolean; too_far: boolean };
 export type Breakdown = { all?: number; average?: number; s1?: number; s2?: number; s3?: number; s4?: number; s5?: number };
@@ -62,6 +65,16 @@ export function bookHref(slug: string, o: { services: string[]; staff?: string; 
   if (o.src) q.set("src", o.src);
   // Commas are safe in a query string and keep the address readable.
   return `/b/${slug}/book?${q.toString().replace(/%2C/g, ",").replace(/%3A/g, ":")}`;
+}
+
+/** "Usually replies within 42 min", from the median time the business took to answer. "" when there is nothing to go on. */
+export function replyLine(minutes: number | null | undefined) {
+  const m = Number(minutes);
+  if (minutes === null || minutes === undefined || !Number.isFinite(m) || m < 0) return "";
+  if (m < 60) return `Usually replies within ${Math.max(1, Math.round(m))} min`;
+  if (m < 1440) return `Usually replies within about ${Math.round(m / 60)} h`;
+  const days = Math.round(m / 1440);
+  return `Usually replies within about ${days} day${days === 1 ? "" : "s"}`;
 }
 
 /** What the business keeps when a client cancels late, in plain words. */

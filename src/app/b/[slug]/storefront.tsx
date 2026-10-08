@@ -28,6 +28,51 @@ function reviewDate(at: string, tz: string) {
   return `${d} ${MON[m - 1]}${y !== new Date().getFullYear() ? ` ${y}` : ""}`;
 }
 
+/** The photos a client added to their review: small, and each opens larger. */
+function ReviewPhotos({ ids, by }: { ids: string[]; by: string }) {
+  const [open, setOpen] = useState(-1);
+  const box = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = box.current;
+    if (!d) return;
+    if (open >= 0 && !d.open) d.showModal();
+    if (open < 0 && d.open) d.close();
+  }, [open]);
+  if (!ids.length) return null;
+  const alt = (i: number) => `Photo ${i + 1} of ${ids.length} from ${by}'s review`;
+  return (
+    <>
+      <div className="ph">
+        {ids.map((id, i) => (
+          <button type="button" key={id} onClick={() => setOpen(i)} aria-label={`${alt(i)}. Open it larger.`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/media/${id}`} alt="" loading="lazy" decoding="async" />
+          </button>
+        ))}
+      </div>
+      {/* The browser's own dialog: Escape closes it and focus goes back to the photo that opened it. */}
+      <dialog ref={box} className="lightbox" aria-label={open >= 0 ? alt(open) : "Review photo"} onClose={() => setOpen(-1)} onClick={(e) => { if (e.target === e.currentTarget) setOpen(-1); }}>
+        {open >= 0 ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/media/${ids[open]}`} alt={alt(open)} />
+            <div className="lb-bar">
+              {ids.length > 1 ? (
+                <>
+                  <button type="button" className="btn btn-out btn-sm" onClick={() => setOpen((open + ids.length - 1) % ids.length)}>Previous</button>
+                  <span>{open + 1} of {ids.length}</span>
+                  <button type="button" className="btn btn-out btn-sm" onClick={() => setOpen((open + 1) % ids.length)}>Next</button>
+                </>
+              ) : null}
+              <button type="button" className="btn btn-ink btn-sm" style={{ marginLeft: "auto" }} onClick={() => setOpen(-1)} autoFocus>Close</button>
+            </div>
+          </>
+        ) : null}
+      </dialog>
+    </>
+  );
+}
+
 function ReviewRow({ r, tz, ownerFirst }: { r: StoreReview; tz: string; ownerFirst: string }) {
   return (
     <div className="rev">
@@ -36,6 +81,7 @@ function ReviewRow({ r, tz, ownerFirst }: { r: StoreReview; tz: string; ownerFir
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><b>{r.author_name}</b><span className="muted" style={{ fontSize: 12.5, textAlign: "right" }}>{[reviewDate(r.created_at, tz), r.service_name].filter(Boolean).join(" · ")}</span></div>
         <div className="stars" style={{ fontSize: 12 }} role="img" aria-label={`${r.rating} out of 5`}>{stars(r.rating)}</div>
         <p>{r.body}</p>
+        <ReviewPhotos ids={r.photos ?? []} by={r.author_name} />
         {r.reply ? <div className="reply"><b>{ownerFirst || "The business"} replied:</b> {r.reply}</div> : null}
       </div>
     </div>

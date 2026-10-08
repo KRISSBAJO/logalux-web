@@ -1,6 +1,6 @@
-import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, ReadOnly, Topbar, fmtDate, fmtMoney, inputCls } from "@/components/admin-ui";
+import { Btn, Content, Empty, Facts, Field, Flash, Hidden, Panel, Pill, ReadOnly, Topbar, fmtDate, fmtMoney, inputCls } from "@/components/admin-ui";
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
-import { createPromo, deletePromo, togglePromo } from "../actions-growth";
+import { createPromo, deletePromo, saveReferralCredit, togglePromo } from "../actions-growth";
 
 const where: Record<string, string> = { both: "Bookings and shop", bookings: "Bookings only", orders: "Shop only" };
 
@@ -14,10 +14,12 @@ function state(p: Row) {
 
 export default async function Promos({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
   const sp = await searchParams;
-  const [admin, res] = await Promise.all([getAdmin(), load("/promos")]);
+  const [admin, res, ref] = await Promise.all([getAdmin(), load("/promos"), load("/settings/referral")]);
   const promos: Row[] = res.data.promos ?? [];
   const ops = can(admin, "ops");
   const back = "/admin/promos";
+  const boss = can(admin, "super_admin");
+  const credit = Number(ref.data.credit_cents ?? 0), stats: Row = ref.data.stats ?? {};
 
   return (
     <>
@@ -73,6 +75,34 @@ export default async function Promos({ searchParams }: { searchParams: Promise<{
             </form>
           </Panel>
         )}
+
+        <div id="referral" className="scroll-mt-24">
+          <Panel title="Referral credit" sub="Store credit for a customer and the friend they invite. LogaLuxe pays for it.">
+            {ref.error ? <p className="text-[14px] text-bad">The referral setting could not be loaded: {ref.error}</p> : (
+              <div className="flex flex-col gap-4">
+                <Facts items={[
+                  ["Credit for each person", credit > 0 ? fmtMoney(credit) : <Pill key="off" kind="grey">Off</Pill>],
+                  ["Friends who joined", Number(stats.joined ?? 0).toLocaleString("en-US")],
+                  ["Friends who have paid", Number(stats.paid ?? 0).toLocaleString("en-US")],
+                  ["Credit given", fmtMoney(Number(stats.given_cents ?? 0))],
+                  ["Credit spent", fmtMoney(Number(stats.spent_cents ?? 0))],
+                ]} />
+                <p className="max-w-[720px] text-[13.5px] leading-relaxed text-muted">
+                  How it works: a friend joins with a customer&apos;s link, confirms their email, and pays for a first visit or has a first order delivered. Then the customer and the friend each get this much store credit. Credit is in US dollars, is spent on shop orders, and is paid for by LogaLuxe.
+                  {credit > 0 ? "" : " While it is off, customers see no invitation. Credit they already have can still be spent."}
+                </p>
+                {boss ? (
+                  <form action={saveReferralCredit} className="flex flex-wrap items-end gap-3">
+                    <Hidden values={{ back: back + "#referral" }} />
+                    <Field label="Credit for each person (USD), 0 to 100" className="w-[260px]"><input name="amount" type="number" min="0" max="100" step="0.01" required defaultValue={credit / 100} className={inputCls} /></Field>
+                    <Btn kind="ink">Save credit</Btn>
+                    <span className="pb-2.5 text-[13px] text-muted">0 switches it off.</span>
+                  </form>
+                ) : <ReadOnly need="super admin" />}
+              </div>
+            )}
+          </Panel>
+        </div>
       </Content>
     </>
   );

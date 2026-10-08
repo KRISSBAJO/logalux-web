@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { distanceTo, kmBetween, nearProblem, usePosition } from "@/lib/near";
 import { Icon } from "./icons";
 import { LogoMark } from "./logo-mark";
 import type { Pin } from "./results-map";
@@ -18,6 +19,8 @@ export type ResultCard = {
   area: string; open: boolean | null; openText: string; from: string; team: string; coverId?: string; coverAlt?: string;
   services: { name: string; length: string; price: string }[];
   timezone?: string;
+  /** Where the business is, for the distance from a visitor who has shared their position. Miles in the US, kilometres in Nigeria. */
+  lat?: number | null; lng?: number | null; miles?: boolean;
 };
 
 type Opening = { service: string; service_id: string; slots: { time: string; starts_at: string; staff_id: string; staff: string }[] };
@@ -40,7 +43,19 @@ function dayLabel(date: string, today: string): string {
   return new Date(noon(date)).toLocaleDateString("en-GB", away < 7 ? { timeZone: "UTC", weekday: "short" } : { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
 }
 
-export function SearchResults({ cards, pins, q = "" }: { cards: ResultCard[]; pins: Pin[]; q?: string }) {
+export function SearchResults({ cards: listed, pins, q = "", header }: { cards: ResultCard[]; pins: Pin[]; q?: string; /** The line above the list: how many there are. The "Near me" control sits beside it. */ header?: ReactNode }) {
+  // Distance is worked out here, in the browser, and only once the visitor has shared where they are.
+  const { point, status, ask, forget } = usePosition();
+  const [nearest, setNearest] = useState(false);
+  const placed = listed.some((c) => typeof c.lat === "number" && typeof c.lng === "number");
+  const cards = useMemo(() => {
+    if (!point || !nearest) return listed;
+    const km = (c: ResultCard) => (typeof c.lat === "number" && typeof c.lng === "number" ? kmBetween(point, { lat: c.lat, lng: c.lng }) : Infinity);
+    return [...listed].sort((a, b) => km(a) - km(b));
+  }, [listed, point, nearest]);
+  const problem = point ? "" : nearProblem(status);
+  const pillBtn = "inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-default disabled:opacity-60";
+
   const [active, setActive] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false); // phones show the list or the map, not both
 
@@ -70,6 +85,24 @@ export function SearchResults({ cards, pins, q = "" }: { cards: ResultCard[]; pi
   }, []);
 
   return (
+    <>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="min-w-0 text-[13.5px] text-muted">{header}</div>
+      {placed && (
+        <div className="flex flex-wrap items-center gap-2">
+          {point ? (
+            <>
+              <button type="button" aria-pressed={nearest} onClick={() => setNearest((v) => !v)} title="Orders the results on this page only" className={`${pillBtn} ${nearest ? "border-ink bg-ink text-cream" : "border-line bg-white hover:border-ink"}`}>Nearest first on this page</button>
+              <button type="button" onClick={() => { setNearest(false); forget(); }} className="text-[13px] font-semibold text-wine underline underline-offset-2">Stop using my location</button>
+            </>
+          ) : (
+            <button type="button" onClick={ask} disabled={status === "asking"} className={`${pillBtn} border-line bg-white hover:border-ink`}><Icon.Pin width={13} height={13} />{status === "asking" ? "Finding you…" : "Near me"}</button>
+          )}
+        </div>
+      )}
+      {problem && <p role="status" className="basis-full text-[13px] text-muted">{problem}</p>}
+      {point && <p className="sr-only" role="status">Showing how far each one is from you.</p>}
+    </div>
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className={`flex min-w-0 flex-col gap-3.5 ${showMap ? "max-lg:hidden" : ""}`}>
         {cards.map((c) => (
@@ -103,6 +136,7 @@ export function SearchResults({ cards, pins, q = "" }: { cards: ResultCard[]; pi
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] text-muted">
                 <span className="flex items-center gap-1"><Icon.Pin width={12} height={12} />{c.area}</span>
+                {(() => { const far = distanceTo(point, c, c.miles !== false); return far ? <span className="whitespace-nowrap font-semibold text-ink">{far}</span> : null; })()}
                 {c.open !== null && <span className="flex items-center gap-1.5"><i className={`block h-1.5 w-1.5 rounded-full ${c.open ? "bg-ok" : "bg-muted-2"}`} />{c.openText}</span>}
               </div>
 
@@ -160,5 +194,6 @@ export function SearchResults({ cards, pins, q = "" }: { cards: ResultCard[]; pi
         </button>
       )}
     </div>
+    </>
   );
 }

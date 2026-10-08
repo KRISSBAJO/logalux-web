@@ -2,6 +2,7 @@
 
 import { mUpload } from "@/lib/merchant-api";
 import { cents, fid, int, mDel, mPost, mPut, mRun, on, str } from "@/lib/merchant-actions";
+import { policyFromChoices, sentence } from "../shop-policy";
 
 // Stock: products, what is on the shelf, suppliers, and orders to them.
 
@@ -145,4 +146,30 @@ const SHOP_DONE: Record<string, string> = {
 export async function shopOrderAction(fd: FormData) {
   const action = str(fd, "step");
   await mRun(fd, SHOP_DONE[action] ?? "Saved.", () => mPost(`/orders/${fid(fd)}`, { action, tracking: action === "shipped" ? str(fd, "tracking") : "" }));
+}
+
+/** Ingredients and directions for one product, shown on its page in the shop. */
+export async function productDetails(fd: FormData) {
+  await mRun(fd, "Saved. The product page in the shop shows this now.", async () => {
+    try {
+      return await mPut(`/products/${fid(fd)}/details`, { ingredients: str(fd, "ingredients"), how_to_use: str(fd, "how_to_use") });
+    } catch (e) {
+      throw new Error(sentence((e as Error).message));
+    }
+  });
+}
+
+/**
+ * What shoppers are told about returns, delivery time and same-day pick-up.
+ * The API replaces the whole policy, so the languages travel back unchanged.
+ */
+export async function saveShopPolicy(fd: FormData) {
+  await mRun(fd, "Saved. Shoppers see this on your products now.", async () => {
+    const body = policyFromChoices(fd);
+    try {
+      return await mPut("/shop-policy", body);
+    } catch (e) {
+      throw new Error(sentence((e as Error).message));
+    }
+  });
 }

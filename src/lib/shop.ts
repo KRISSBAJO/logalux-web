@@ -60,3 +60,37 @@ export function perUnit(label: string, cents: number): { per: number; unit: stri
 /** Sales tax as the order endpoint works it out: 9.25% of the subtotal after the promo, to the nearest cent. */
 export const salesTax = (afterDiscountCents: number) => Math.floor((afterDiscountCents * 925 + 5000) / 10000);
 export const TAX_LABEL = "Sales tax · 9.25%";
+
+/** What GET /v1/products/{slug} and /v1/products-extras say about getting a product. A fact that is absent is not stated anywhere. */
+export type ProductExtras = {
+  ingredients?: string;
+  delivery?: { days_min: number; days_max: number };
+  returns?: { days: number; note: string };
+  pickup_today?: { ready_at: string; until: string; ready_mins: number; open_now: boolean };
+  saved?: boolean;
+  next_visit?: { id: string; starts_at: string; timezone: string };
+};
+
+/** "2 to 4 business days", or "3 business days" when the two ends are the same. */
+export const deliveryDays = (d: { days_min: number; days_max: number }) =>
+  d.days_min === d.days_max ? `${d.days_max} business ${d.days_max === 1 ? "day" : "days"}` : `${d.days_min} to ${d.days_max} business days`;
+
+/** The seller's returns policy in one or two sentences. */
+export function returnsText(r: { days: number; note: string }) {
+  const note = (r.note ?? "").trim();
+  const head = r.days > 0 ? `Returns within ${r.days} ${r.days === 1 ? "day" : "days"}.` : "This seller does not take returns.";
+  return note ? `${head} ${note}${/[.!?]$/.test(note) ? "" : "."}` : head;
+}
+
+/** "ready from 14:30, open until 18:00" */
+export const pickupTodayText = (t: { ready_at: string; until: string }) => `ready from ${t.ready_at}, open until ${t.until}`;
+
+/** The day of a booked visit in the business's own timezone: "Sat 10 Oct". */
+export function visitDay(v: { starts_at: string; timezone: string }) {
+  const d = new Date(v.starts_at);
+  if (Number.isNaN(d.getTime())) return "";
+  const part = (o: Intl.DateTimeFormatOptions) => {
+    try { return d.toLocaleDateString("en-US", { ...o, timeZone: v.timezone || "UTC" }); } catch { return d.toLocaleDateString("en-US", { ...o, timeZone: "UTC" }); }
+  };
+  return `${part({ weekday: "short" })} ${part({ day: "numeric" })} ${part({ month: "short" })}`;
+}

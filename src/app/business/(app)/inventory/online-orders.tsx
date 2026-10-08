@@ -4,7 +4,7 @@ import { ConfirmButton } from "@/components/merchant-client";
 import { Empty, Flash, LoadError, NoAccess, Topbar } from "@/components/merchant-ui";
 import { mLoad, qs, type Merchant, type Row } from "@/lib/merchant-api";
 import { clock, dateMed, money } from "@/lib/merchant-format";
-import { shopOrderAction } from "./actions";
+import { saveShopPolicy, shopOrderAction } from "./actions";
 
 // Online orders: this business's part of each order placed in the LogaLuxe shop.
 // A pickup goes new → ready → collected. A shipment goes new → (packed) → shipped → delivered.
@@ -23,9 +23,67 @@ function addressLine(a: unknown): string {
   return ["line1", "line2", "city", "region", "postcode", "postal_code", "zip", "country"].map((k) => (o[k] ? String(o[k]).trim() : "")).filter(Boolean).join(", ");
 }
 
+/** Returns, delivery time and same-day pick-up: what a shopper reads beside this business’s products. */
+function PolicyCard({ p, back }: { p: Row; back: string }) {
+  const returns = p.returns_days === null || p.returns_days === undefined ? "none" : Number(p.returns_days) === 0 ? "no" : "days";
+  const ships = p.ship_days_min !== null && p.ship_days_min !== undefined && p.ship_days_max !== null && p.ship_days_max !== undefined;
+  const pickup = p.pickup_ready_mins !== null && p.pickup_ready_mins !== undefined;
+  return (
+    <div className="card pol" id="policy">
+      <div>
+        <h3>What shoppers are told</h3>
+        <div className="hint">Shown beside every product you sell in the shop. Where you state nothing, shoppers are told nothing.</div>
+      </div>
+      <form action={saveShopPolicy} className="pform">
+        <input type="hidden" name="back" value={back} />
+        {((p.languages ?? []) as string[]).map((l) => <input key={l} type="hidden" name="languages" value={l} />)}
+
+        <div className="grp" role="radiogroup" aria-labelledby="pol-ret">
+          <div className="cap" id="pol-ret">Returns</div>
+          <label className="chk"><input type="radio" name="returns_mode" value="none" defaultChecked={returns === "none"} />We do not state a returns policy</label>
+          <label className="chk"><input type="radio" name="returns_mode" value="no" defaultChecked={returns === "no"} />No returns</label>
+          <div className="opt">
+            <label className="chk"><input type="radio" name="returns_mode" value="days" defaultChecked={returns === "days"} />Returns within</label>
+            <input className="inp" type="number" name="returns_n" min={1} max={90} step={1} inputMode="numeric" defaultValue={returns === "days" ? p.returns_days : ""} aria-label="Days a shopper has to return an item, 1 to 90" />
+            <span>days</span>
+          </div>
+          <div className="field"><label htmlFor="pol-note">Note, optional</label><input id="pol-note" type="text" name="returns_note" maxLength={300} defaultValue={p.returns_note ?? ""} placeholder="Unopened items only" /></div>
+          <small className="hint">The note is shown with your returns line. Up to 300 characters.</small>
+        </div>
+
+        <div className="grp" role="radiogroup" aria-labelledby="pol-ship">
+          <div className="cap" id="pol-ship">Delivery time</div>
+          <label className="chk"><input type="radio" name="ship_mode" value="none" defaultChecked={!ships} />We do not state a delivery time</label>
+          <div className="opt">
+            <label className="chk"><input type="radio" name="ship_mode" value="days" defaultChecked={ships} />Arrives in</label>
+            <input className="inp" type="number" name="ship_min" min={0} max={30} step={1} inputMode="numeric" defaultValue={ships ? p.ship_days_min : ""} aria-label="Shortest delivery time in business days, 0 to 30" />
+            <span>to</span>
+            <input className="inp" type="number" name="ship_max" min={0} max={30} step={1} inputMode="numeric" defaultValue={ships ? p.ship_days_max : ""} aria-label="Longest delivery time in business days, 0 to 30" />
+            <span>business days</span>
+          </div>
+          <small className="hint">Shortest first. Use the same number twice for a fixed time.</small>
+        </div>
+
+        <div className="grp" role="radiogroup" aria-labelledby="pol-pick">
+          <div className="cap" id="pol-pick">Pick up today</div>
+          <label className="chk"><input type="radio" name="pickup_mode" value="none" defaultChecked={!pickup} />Not offered</label>
+          <div className="opt">
+            <label className="chk"><input type="radio" name="pickup_mode" value="mins" defaultChecked={pickup} />Ready</label>
+            <input className="inp" type="number" name="pickup_n" min={0} max={480} step={1} inputMode="numeric" defaultValue={pickup ? p.pickup_ready_mins : ""} aria-label="Minutes until an order is ready to collect, 0 to 480" />
+            <span>minutes after ordering</span>
+          </div>
+          <small className="hint">While you are open, shoppers see &quot;Pick up today&quot; with the time it will be ready.</small>
+        </div>
+
+        <div><button className="btn btn-ink btn-sm">Save what shoppers are told</button></div>
+      </form>
+    </div>
+  );
+}
+
 export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string; status?: string }; m: Merchant }) {
   const status = TABS.some(([id]) => id === sp.status) ? sp.status! : "open";
-  const res = await mLoad("/orders" + qs({ status: status === "all" ? "" : status }));
+  const [res, policy] = await Promise.all([mLoad("/orders" + qs({ status: status === "all" ? "" : status })), mLoad("/shop-policy")]);
   if (res.status === 403) return <div className="main pg-inventory"><NoAccess title="Online orders" need="manager" /></div>;
   if (res.error) return <div className="main pg-inventory"><LoadError title="Online orders" error={res.error} /></div>;
 
@@ -40,6 +98,7 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
     <div className="main pg-inventory">
       <Topbar title="Online orders" eyebrow="Inventory">
         <span style={{ flex: 1 }} />
+        <a href="#policy" className="btn btn-out">What shoppers are told</a>
         <Link href="/business/inventory" className="btn btn-out">Products and stock</Link>
       </Topbar>
 
@@ -82,6 +141,7 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
                           <small className="sub">{ship ? (where || "No address given") : "Picked up from you"}</small>
                           {ship && o.shipping_cents > 0 ? <small className="sub">Shipping charged: {money(o.shipping_cents, cur)}</small> : null}
                           {o.tracking ? <small className="sub">Tracking {o.tracking}</small> : null}
+                          {o.note ? <small className="sub note">{o.note}</small> : null}
                         </td>
                         <td data-sort={o.items_cents}>{money(o.items_cents, cur)}</td>
                         <td data-sort={o.net_cents}>{o.status === "cancelled" && !o.net_cents ? <span className="muted">Nothing</span> : <b>{money(o.net_cents, cur)}</b>}</td>
@@ -117,6 +177,10 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
           </Empty>
         )}
         <div className="muted" style={{ fontSize: 12.5 }}>An order appears here once the customer has paid. The customer sees each step in their account. The last 300 are shown.</div>
+
+        {policy.error
+          ? <div className="card pol" id="policy"><h3>What shoppers are told</h3><div role="alert" className="flash flash-err">{policy.status === 403 ? "Only a manager or the owner can change this." : `This could not be loaded: ${policy.error}`}</div></div>
+          : <PolicyCard p={policy.data} back={back + "#policy"} />}
       </div>
     </div>
   );

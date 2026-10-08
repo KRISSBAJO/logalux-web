@@ -8,7 +8,7 @@ import { ProductBuyBox } from "@/components/product-buy-box";
 import { ProductGallery } from "@/components/product-gallery";
 import { money } from "@/lib/api";
 import { CustomerApiError, customerApi, getCustomer } from "@/lib/customer";
-import { categoryName, tagName, type Size } from "@/lib/shop";
+import { categoryName, deliveryDays, pickupTodayText, returnsText, tagName, visitDay, type ProductExtras, type Size } from "@/lib/shop";
 import { JsonLd, breadcrumbs } from "@/components/json-ld";
 import { absoluteUrl, clip, isTestEntry } from "@/lib/site";
 import { reviewProduct } from "./actions";
@@ -28,6 +28,7 @@ type Payload = {
   related: { slug: string; name: string; seller_name: string; price_cents: number; tone: string; rating: number; photo_id: string | null }[] | null;
   reviews: { id: string; author_name: string; rating: number; body: string; verified: boolean; created_at: string }[] | null;
   can: { review: boolean; why: string };
+  extras?: ProductExtras | null;
 };
 
 const load = (slug: string) => customerApi<Payload>(`/products/${encodeURIComponent(slug)}`);
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const { product: p, photos } = await load(slug);
     const price = priceOf(p);
     const title = `${p.name} by ${p.seller_name}`;
-    const facts = [price.count > 1 ? `From ${money(price.low)}.` : `${money(price.low)}.`, p.stock < 1 ? "Sold out." : "", `Sold by ${p.seller_name}${p.business_city ? `, ${p.business_city}` : ""}.`, p.pickup ? "Free pickup at your visit." : ""].filter(Boolean).join(" ");
+    const facts = [price.count > 1 ? `From ${money(price.low)}.` : `${money(price.low)}.`, p.stock < 1 ? "Sold out." : "", `Sold by ${p.seller_name}${p.business_city ? `, ${p.business_city}` : ""}.`, p.pickup ? "Free pickup at the studio." : ""].filter(Boolean).join(" ");
     const description = clip([p.description ?? "", facts].filter(Boolean).join(" "), 220);
     const canonical = `/shop/${p.slug}`;
     const first = (photos ?? [])[0];
@@ -105,7 +106,21 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const studio = p.business_slug ? p.business ?? p.seller_name : "";
   const here = `/shop/${p.slug}`;
 
-  const tabs: [string, string][] = [["details", "Details"], ...(p.how_to_use ? [["how", "How to use"] as [string, string]] : []), ["reviews", reviews.length ? `Reviews · ${p.review_count || reviews.length}` : "Reviews"], ["delivery", "Delivery"]];
+  // What the seller states about delivery, returns and pick-up. Anything it does not state is left unsaid.
+  const extras = data.extras ?? {};
+  const ingredients = (extras.ingredients ?? "").trim();
+  const delivery = p.shipping ? extras.delivery : undefined, returns = extras.returns;
+  const today = p.pickup ? extras.pickup_today : undefined, visit = p.pickup ? extras.next_visit : undefined;
+  const visitOn = visit ? visitDay(visit) : "";
+  const deliveryTab = p.pickup ? (returns ? "Pickup & returns" : "Pickup & delivery") : returns ? "Delivery & returns" : "Delivery";
+
+  const tabs: [string, string][] = [
+    ["details", "Details"],
+    ...(ingredients ? [["ingredients", "Ingredients"] as [string, string]] : []),
+    ...(p.how_to_use ? [["how", "How to use"] as [string, string]] : []),
+    ["reviews", reviews.length ? `Reviews · ${p.review_count || reviews.length}` : "Reviews"],
+    ["delivery", deliveryTab],
+  ];
   const tab = tabs.some(([k]) => k === sp.tab) ? sp.tab! : "details";
 
   const badge = usedIn.length > 0 && studio ? `Used in the chair at ${studio}` : tags.includes("bestseller") ? "Bestseller" : "";
@@ -114,11 +129,13 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     `Sold by ${p.seller_name}${p.business_city ? `, ${p.business_city}` : ""}`,
     tags.filter((t) => t !== "bestseller" && t !== p.category).length ? `Good to know: ${tags.filter((t) => t !== "bestseller" && t !== p.category).map(tagName).join(", ")}` : "",
   ].filter(Boolean);
-  const trust: [string, string][] = [
-    ...(p.pickup ? [["Free pickup", `Collect it at ${studio || p.seller_name}, nothing to pay for shipping`] as [string, string]] : []),
-    ...(p.shipping ? [[p.shipping_cents > 0 ? `Ships for ${money(p.shipping_cents)}` : "Ships free", `One charge per order from ${p.seller_name}`] as [string, string]] : []),
+  const returnsNote = (returns?.note ?? "").trim().replace(/[.!?]$/, "");
+  const trust = ([
+    ...(p.pickup ? [["Free pickup", visitOn ? `Waiting at your visit on ${visitOn}, no shipping` : today ? `Today, ${pickupTodayText(today)}` : `Collect it at ${studio || p.seller_name}, nothing to pay for shipping`]] : []),
+    ...(p.shipping ? [[p.shipping_cents > 0 ? `Ships for ${money(p.shipping_cents)}` : "Ships free", delivery ? `Arrives in ${deliveryDays(delivery)}` : `One charge per order from ${p.seller_name}`]] : []),
+    ...(returns ? [[returns.days > 0 ? `Returns within ${returns.days} ${returns.days === 1 ? "day" : "days"}` : "No returns", returnsNote || (returns.days > 0 ? `Stated by ${p.seller_name}` : "This seller does not take returns")]] : []),
     ["Pay securely", "On Stripe's page. LogaLuxe never sees your card"],
-  ];
+  ] as [string, string][]).slice(0, 3);
 
   return (
     <>
@@ -153,7 +170,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 </div>
               )}
 
-              <ProductBuyBox product={{ slug: p.slug, name: p.name, seller_name: p.seller_name, tone: p.tone, description: p.description ?? "", price_cents: p.price_cents, compare_cents: p.compare_cents, stock: p.stock, sizes, pickup: p.pickup, shipping: p.shipping, shipping_cents: p.shipping_cents, business: p.business, business_city: p.business_city }} />
+              <ProductBuyBox product={{ slug: p.slug, name: p.name, seller_name: p.seller_name, tone: p.tone, description: p.description ?? "", price_cents: p.price_cents, compare_cents: p.compare_cents, stock: p.stock, sizes, pickup: p.pickup, shipping: p.shipping, shipping_cents: p.shipping_cents, business: p.business, business_city: p.business_city }} extras={{ delivery, pickup_today: today, next_visit: visit, saved: extras.saved === true }} signedIn={!!me} />
 
               <div className={`trust n${trust.length}`}>
                 {trust.map(([t, d]) => <div key={t}><b>{t}</b>{d}</div>)}
@@ -169,6 +186,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   {facts.length > 0 && <ul>{facts.map((f) => <li key={f}>{f}</li>)}</ul>}
                 </div>
               )}
+              {tab === "ingredients" && <div className="body">{ingredients}</div>}
               {tab === "how" && <div className="body">{p.how_to_use}</div>}
               {tab === "reviews" && (
                 <div id="reviews">
@@ -205,8 +223,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               {tab === "delivery" && (
                 <div className="body">
                   <ul className="plain">
-                    {p.pickup && <li>Pick up is free. Collect your order at {studio}{p.business_city ? ` in ${p.business_city}` : ""}. Choose pick up in your cart and the studio tells you when it is ready.</li>}
-                    {p.shipping && <li>{p.shipping_cents > 0 ? `Shipping is ${money(p.shipping_cents)}, charged once for everything you order from ${p.seller_name} in the same order.` : `${p.seller_name} ships this free.`}</li>}
+                    {p.pickup && <li>Pick up is free. Choose pick up in your cart and collect your order at {studio}{p.business_city ? ` in ${p.business_city}` : ""}.</li>}
+                    {visitOn && <li>You have a visit booked on {visitOn}. Choose pick up and {studio} is told to have it ready for you then.</li>}
+                    {today && <li>Pick up today: {pickupTodayText(today)}.{today.open_now ? "" : " The studio is not open yet."}</li>}
+                    {p.shipping && <li>{p.shipping_cents > 0 ? `Shipping is ${money(p.shipping_cents)}, charged once for everything you order from ${p.seller_name} in the same order.` : `${p.seller_name} ships this free.`}{delivery ? ` Arrives in ${deliveryDays(delivery)}.` : ""}</li>}
+                    {returns && <li>{returnsText(returns)}</li>}
                     {!p.shipping && <li>{p.seller_name} does not ship this product{p.pickup ? ", so it is pick up only" : ""}.</li>}
                     {!p.pickup && p.business_slug && <li>It cannot be collected at the studio.</li>}
                     {!p.pickup && !p.shipping && <li>It cannot be ordered online right now.</li>}

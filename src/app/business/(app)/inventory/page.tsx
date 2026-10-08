@@ -2,9 +2,10 @@ import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, Ic, LoadError, NoAccess, Topbar, TopSearch } from "@/components/merchant-ui";
+import { api } from "@/lib/api";
 import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { clock, dateMed, dateOnly, initials, money, pct, plural, ymd } from "@/lib/merchant-format";
-import { orderAction, orderCreate, orderSuggest, productCreate, productPhoto, productPhotoRemove, productSave, productStock, productTransfer, productUses, stockCount, supplierCreate, supplierDelete } from "./actions";
+import { orderAction, orderCreate, orderSuggest, productCreate, productDetails, productPhoto, productPhotoRemove, productSave, productStock, productTransfer, productUses, stockCount, supplierCreate, supplierDelete } from "./actions";
 import { OnlineOrders } from "./online-orders";
 import "../../css/inventory.css";
 
@@ -87,6 +88,11 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   const draft = orders.find((o) => o.status === "draft");
   const sel = all.find((p) => p.id === (sp.sel ?? sp.product)) ?? rows[0];
   const shown = all.find((p) => p.id === sp.product);
+  // The stock list does not carry a product’s ingredients and directions. The shop’s own product page does,
+  // and only for a product that is on sale there, so that is where the saved text is read from.
+  const listed = !!sel && sells(sel) && !!sel.active && !!sel.slug;
+  const pub: Row | null = sel ? ((await mLoad(`/products/${encodeURIComponent(sel.id)}/details`)).data as Row) : null;
+  void listed;
   // Stock per location only shows when there is more than one location. With one, nothing here changes.
   const locations = (d.locations ?? []) as Row[], multi = locations.length > 1;
   const loc = multi ? locations.find((l) => l.id === sp.location) : undefined, at = loc?.id as string | undefined;
@@ -354,6 +360,28 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
                   )}
                   <Link href={href({ sel: sel.id, product: sel.id })} className="btn btn-out btn-sm">History</Link>
                 </div>
+              </div>
+            )}
+
+            {sel && (
+              <div className="card" id="details">
+                <h3>Ingredients and directions</h3>
+                {pub ? (
+                  <form action={productDetails} key={sel.id} className="pform">
+                    <input type="hidden" name="back" value={back} />
+                    <input type="hidden" name="id" value={sel.id} />
+                    <div className="field"><label htmlFor="dt-ing">Ingredients</label><textarea id="dt-ing" name="ingredients" maxLength={3000} defaultValue={String(pub.extras?.ingredients ?? "")} placeholder="As listed on the label" /></div>
+                    <div className="field"><label htmlFor="dt-how">How to use</label><textarea id="dt-how" name="how_to_use" maxLength={3000} defaultValue={String(pub.product?.how_to_use ?? "")} placeholder="How much, how often, and what to avoid" /></div>
+                    <small className="hint">Shown on this product&apos;s page in the shop. Up to 3,000 characters each. Leave a box empty to show nothing.</small>
+                    <button className="btn btn-out btn-sm">Save ingredients and directions</button>
+                  </form>
+                ) : (
+                  <div className="muted" style={{ fontSize: 13, lineHeight: 1.45 }}>
+                    {!sells(sel) ? "A back-bar product is not sold, so it has no page in the shop to show these on."
+                      : !sel.active ? "Shoppers read these on the product’s page in the shop. Tick Sell online above and save, then add them here."
+                        : "These could not be loaded just now. Reload the page to try again."}
+                  </div>
+                )}
               </div>
             )}
 

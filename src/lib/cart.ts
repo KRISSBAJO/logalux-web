@@ -10,6 +10,9 @@ export type Fulfilment = "pickup" | "ship";
 // per-seller choice existed still opens. The choice lives beside it.
 const KEY = "logaluxe.cart.v1";
 const HOW_KEY = "logaluxe.cart.how.v1";
+// Which pick-up promise the customer chose to go by, per seller: at their booked visit, or today. Only wording; the order is plain pick-up either way.
+const WHEN_KEY = "logaluxe.cart.when.v1";
+export type PickupWhen = "visit" | "today";
 export const MAX_QTY = 9;
 const listeners = new Set<() => void>();
 
@@ -24,6 +27,13 @@ function readHow(): Record<string, Fulfilment> {
   if (typeof window === "undefined") return {};
   try {
     const raw = JSON.parse(localStorage.getItem(HOW_KEY) ?? "{}");
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  } catch { return {}; }
+}
+function readWhen(): Record<string, PickupWhen> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = JSON.parse(localStorage.getItem(WHEN_KEY) ?? "{}");
     return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   } catch { return {}; }
 }
@@ -50,9 +60,12 @@ export const cart = {
   },
   remove(slug: string, size: string) { write(read().filter((x) => !(x.slug === slug && x.size === size))); },
   /** The customer's choice for one seller: collect at the studio, or have it shipped. */
-  setFulfilment(seller: string, how: Fulfilment) { writeHow({ ...readHow(), [seller]: how }); },
+  setFulfilment(seller: string, how: Fulfilment, when?: PickupWhen) {
+    if (when) { try { localStorage.setItem(WHEN_KEY, JSON.stringify({ ...readWhen(), [seller]: when })); } catch {} }
+    writeHow({ ...readHow(), [seller]: how });
+  },
   clear() {
-    try { localStorage.removeItem(HOW_KEY); } catch {}
+    try { localStorage.removeItem(HOW_KEY); localStorage.removeItem(WHEN_KEY); } catch {}
     write([]);
   },
 };
@@ -60,10 +73,11 @@ export const cart = {
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [how, setHow] = useState<Record<string, Fulfilment>>({});
+  const [when, setWhen] = useState<Record<string, PickupWhen>>({});
   // False until the saved cart has been read, so a page can tell "empty" from "not loaded yet".
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    const sync = () => { setItems(read()); setHow(readHow()); setReady(true); };
+    const sync = () => { setItems(read()); setHow(readHow()); setWhen(readWhen()); setReady(true); };
     sync();
     listeners.add(sync);
     window.addEventListener("storage", sync);
@@ -71,5 +85,5 @@ export function useCart() {
   }, []);
   const count = items.reduce((a, i) => a + i.qty, 0);
   const subtotal = items.reduce((a, i) => a + i.qty * i.unit_cents, 0);
-  return { items, count, subtotal, how, ready };
+  return { items, count, subtotal, how, when, ready };
 }

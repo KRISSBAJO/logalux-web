@@ -119,3 +119,30 @@ export async function createProduct(fd: FormData) {
 export async function saveProduct(fd: FormData) {
   await run(fd, "Product saved.", () => put(`/products/${id(fd)}`, productBody(fd)));
 }
+
+/**
+ * Ingredients and directions for any product; delivery time and returns for a brand product.
+ * A number that is not stated goes to the API as null, never as 0.
+ */
+export async function saveProductDetails(fd: FormData) {
+  await run(fd, "Details saved. The product page in the shop shows them now.", async () => {
+    const days = (key: string, missing: string) => {
+      const raw = str(fd, key);
+      if (raw === "" || !Number.isFinite(Number(raw))) throw new Error(missing);
+      return Math.round(Number(raw));
+    };
+    const ship = str(fd, "ship_mode") === "days", returns = str(fd, "returns_mode");
+    const body = {
+      ingredients: str(fd, "ingredients"), how_to_use: str(fd, "how_to_use"),
+      ship_days_min: ship ? days("ship_min", "Enter the shortest and the longest delivery time.") : null,
+      ship_days_max: ship ? days("ship_max", "Enter the shortest and the longest delivery time.") : null,
+      returns_days: returns === "days" ? days("returns_n", "Enter how many days returns are taken for.") : returns === "no" ? 0 : null,
+    };
+    try {
+      return await put(`/products/${id(fd)}/details`, body);
+    } catch (e) {
+      const m = (e as Error).message;
+      throw new Error(m ? m[0].toUpperCase() + m.slice(1) + (/[.?]$/.test(m) ? "" : ".") : "Something went wrong.");
+    }
+  });
+}

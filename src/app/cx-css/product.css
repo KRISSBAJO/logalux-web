@@ -173,3 +173,8 @@
 .cx.pg-product .row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .cx.pg-product .tabs a{padding:0 10px}
 }
+
+/* ---------- Added: the save (heart) button beside Add to cart, and its message ---------- */
+.cx.pg-product .cta .save{flex:none;width:50px;min-height:50px;padding:0}
+.cx.pg-product .cta .save.on{color:#7A1F2B;border-color:#7A1F2B}
+.cx.pg-product .cta .favmsg{flex-basis:100%;font-size:12.5px;font-weight:600;line-height:1.5;color:#7A1F2B}

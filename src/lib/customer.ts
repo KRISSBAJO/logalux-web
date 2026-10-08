@@ -56,3 +56,19 @@ export function safeNext(raw: unknown, fallback = "/account"): string {
 }
 
 export const cookieOptions = (maxAge: number) => ({ httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge });
+
+/** Sends a file as the signed-in customer. The form data from the browser is passed on as it is. */
+export async function customerUpload<T = Row>(path: string, form: FormData): Promise<T> {
+  const token = await userToken();
+  if (!token) throw new CustomerApiError(401, "You are signed out. Sign in and try again.");
+  let res: Response;
+  try {
+    // No Content-Type here: fetch writes the multipart boundary itself.
+    res = await fetch(`${BASE}/v1${path}`, { method: "POST", headers: { Authorization: `Bearer ${token}`, ...(await visitorHeaders()) }, body: form, cache: "no-store" });
+  } catch {
+    throw new CustomerApiError(503, "We could not reach the service. Try again in a moment.");
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new CustomerApiError(res.status, body.error ?? "Something went wrong.");
+  return body as T;
+}

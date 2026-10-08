@@ -164,3 +164,5 @@
 .mx .pg-storefront .logo-box{position:relative;width:72px;height:72px;border-radius:18px;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#1A1513;border:1px solid #E6DCD2;background:#FFFFFF}
 .mx .pg-storefront .logo-f{display:flex;align-items:flex-end;gap:10px;flex:1 1 300px;flex-wrap:wrap}
 .mx .pg-storefront .logo-f .field{flex:1 1 220px}
+/* Languages you speak: its own small form inside a card. */
+.mx .pg-storefront .langs{display:flex;flex-direction:column;gap:12px}

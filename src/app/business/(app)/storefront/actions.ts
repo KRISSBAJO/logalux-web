@@ -2,6 +2,7 @@
 
 import { mUpload } from "@/lib/merchant-api";
 import { fid, list, mDel, mPost, mPut, mRun, on, str } from "@/lib/merchant-actions";
+import { policyWithLanguages, sentence } from "../shop-policy";
 
 // The storefront: the words, photos and switches of the public booking page,
 // and the replies to its reviews. A save goes live at once; there is no draft.
@@ -92,4 +93,20 @@ export async function replyReview(fd: FormData) {
 export async function pinReview(fd: FormData) {
   const pinned = on(fd, "pinned");
   await mRun(fd, pinned ? "Pinned. It now shows first on your page." : "Unpinned.", () => mPost(`/reviews/${fid(fd)}`, { pinned }));
+}
+
+/**
+ * Saves the languages the business speaks. They are stored with the shop policy,
+ * which the API replaces whole, so the form carries the other values back as they were.
+ */
+export async function saveLanguages(fd: FormData) {
+  await mRun(fd, (out) => (out.n ? "Saved. Your page now lists the languages you speak." : "Saved. Your page no longer lists any languages."), async () => {
+    const body = policyWithLanguages(fd);
+    try {
+      await mPut("/shop-policy", body);
+    } catch (e) {
+      throw new Error(sentence((e as Error).message));
+    }
+    return { n: body.languages.length };
+  });
 }

@@ -146,3 +146,11 @@
 .cx.pg-shop .band{padding:20px}
 .cx.pg-shop .band .txt{min-width:0;flex-basis:100%}
 }
+
+/* ---------- Added: the save (heart) button is a real button beside the picture link, not inside it ---------- */
+.cx.pg-shop .pc{position:relative}
+.cx.pg-shop .pc .fav{z-index:2;border:0;padding:0;margin:0;min-height:0;font:inherit;cursor:pointer;transition:background .15s,color .15s}
+.cx.pg-shop .pc .fav::after{content:"";position:absolute;inset:-5px}
+.cx.pg-shop .pc .fav:hover{background:#FFFFFF}
+.cx.pg-shop .pc .fav.on{color:#7A1F2B}
+.cx.pg-shop .pc .favmsg{position:absolute;z-index:2;top:52px;left:10px;right:10px;background:#FBF7F2;color:#7A1F2B;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;line-height:1.4;box-shadow:0 6px 18px rgba(26,21,19,.18)}

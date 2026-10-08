@@ -122,11 +122,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
         {cards.length > 0 && (
           <>
-            <p className="mb-4 text-[13.5px] text-muted">
-              <b className="text-ink">{total.toLocaleString("en-US")}</b> verified {total === 1 ? "professional" : "professionals"}{pages > 1 ? ` · showing ${first} to ${last}` : ""}
-              {filtered && <> · <Link href={href({ q: "", where: "", category: "" })} className="font-semibold text-wine">Clear filters</Link></>}
-            </p>
-            <SearchResults cards={cards} pins={pins} q={q} />
+            <SearchResults
+              cards={cards} pins={pins} q={q}
+              header={(
+                <p>
+                  <b className="text-ink">{total.toLocaleString("en-US")}</b> verified {total === 1 ? "professional" : "professionals"}{pages > 1 ? ` · showing ${first} to ${last}` : ""}
+                  {filtered && <> · <Link href={href({ q: "", where: "", category: "" })} className="font-semibold text-wine">Clear filters</Link></>}
+                </p>
+              )}
+            />
           </>
         )}
 

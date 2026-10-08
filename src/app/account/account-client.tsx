@@ -1,8 +1,78 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { moveMyBooking } from "./actions";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { addReviewPhoto, moveMyBooking, removeReviewPhoto, type PhotoState } from "./actions";
+
+const MAX_PHOTOS = 3;
+const NO_PHOTO: PhotoState = { error: "", done: 0 };
+
+/** The photos on a review the client wrote: each can be removed, and up to three can be added. */
+export function ReviewPhotos({ reviewId, photos, business }: { reviewId: string; photos: string[]; business: string }) {
+  const [added, add, adding] = useActionState(addReviewPhoto, NO_PHOTO);
+  const [removed, remove, removing] = useActionState(removeReviewPhoto, NO_PHOTO);
+  const [local, setLocal] = useState("");
+  const form = useRef<HTMLFormElement>(null);
+  // Once a photo is in, the file field is emptied for the next one.
+  useEffect(() => { if (added.done > 0) form.current?.reset(); }, [added.done]);
+  const error = local || added.error || removed.error;
+  const room = MAX_PHOTOS - photos.length;
+  return (
+    <div className="flex flex-col gap-3">
+      {photos.length > 0 && (
+        <ul className="flex flex-wrap gap-3">
+          {photos.map((id, i) => (
+            <li key={id} className="flex flex-col items-start gap-1.5">
+              <a href={`/media/${id}`} target="_blank" rel="noreferrer" className="block h-[84px] w-[84px] overflow-hidden rounded-xl bg-cream-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/media/${id}`} alt={`Photo ${i + 1} on your review of ${business}. Opens larger in a new tab.`} loading="lazy" className="h-full w-full object-cover" />
+              </a>
+              <form action={remove}>
+                <input type="hidden" name="photo_id" value={id} />
+                <button className="text-[13px] font-semibold text-wine underline underline-offset-2 disabled:opacity-50" disabled={removing} aria-label={`Remove photo ${i + 1} from your review of ${business}`}>Remove</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+      {room > 0 ? (
+        <form
+          ref={form} action={add} className="flex flex-wrap items-end gap-3"
+          onSubmit={(e) => {
+            const f = (e.currentTarget.elements.namedItem("file") as HTMLInputElement | null)?.files?.[0];
+            // Checked here too, so a file that is far too large is never sent.
+            if (f && f.size > 8 * 1024 * 1024) { e.preventDefault(); setLocal("The photo is too large. The limit is 8 MB."); } else setLocal("");
+          }}
+        >
+          <input type="hidden" name="review_id" value={reviewId} />
+          <label className="flex min-w-0 flex-col gap-1.5 text-[13.5px]">
+            <span className="font-semibold">Add a photo <span className="font-normal text-muted">· {photos.length} of {MAX_PHOTOS} added · JPEG, PNG or WebP, up to 8 MB</span></span>
+            <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required className="max-w-full text-[13.5px] file:mr-3 file:min-h-[38px] file:cursor-pointer file:rounded-full file:border file:border-solid file:border-line file:bg-white file:px-3.5 file:text-[13px] file:font-semibold file:text-ink" />
+          </label>
+          <button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={adding}>{adding ? "Uploading…" : "Upload photo"}</button>
+        </form>
+      ) : (
+        <p className="text-[13.5px] text-muted">A review can have three photos. Remove one to add another.</p>
+      )}
+      <div aria-live="polite">{error ? <p role="alert" className="text-[13.5px] font-medium text-bad">{error}</p> : null}</div>
+    </div>
+  );
+}
+
+/** Copies a piece of text, and says so. Where the browser will not copy, the text is shown to copy by hand. */
+export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [note, setNote] = useState("");
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setNote("Copied");
+      window.setTimeout(() => setNote(""), 2500);
+    } catch {
+      window.prompt("Copy this", text);
+    }
+  }
+  return <button type="button" className="btn btn-ink btn-sm" onClick={copy}><span aria-live="polite">{note || label}</span></button>;
+}
 
 /**
  * Older links point at a section with a hash: /account#orders, /account#details.

@@ -4,7 +4,7 @@ import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Ic, LoadError, NoAccess, Topbar } from "@/components/merchant-ui";
 import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { clock, dateMed, dur, money, plural } from "@/lib/merchant-format";
-import { deletePhoto, orderPhotos, pinReview, removeLogo, replyReview, saveStorefront, updatePhoto, uploadLogo, uploadPhoto } from "./actions";
+import { deletePhoto, orderPhotos, pinReview, removeLogo, replyReview, saveLanguages, saveStorefront, updatePhoto, uploadLogo, uploadPhoto } from "./actions";
 import { HashTab, LivePreview, type PreviewData } from "./preview";
 import "../../css/storefront.css";
 
@@ -48,6 +48,10 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
   if (error) return <div className="main pg-storefront"><LoadError title="Storefront" error={error} /></div>;
 
   const tab = TABS.some(([k]) => k === sp.tab) ? sp.tab! : "basics";
+  // The languages are kept with the shop policy, which is saved whole: the form sends the rest back as it came.
+  const policy = tab === "basics" ? await mLoad("/shop-policy") : null;
+  const pol = policy && !policy.error ? policy.data : null;
+  const spoken = ((pol?.languages ?? []) as string[]), langChoices = [...new Set([...((pol?.language_choices ?? []) as string[]), ...spoken])];
   const back = "/business/storefront" + qs({ tab: tab === "basics" ? undefined : tab });
   const b = d.business as Row, disp = d.display as PreviewData["display"], loc = (d.location ?? null) as Row | null;
   const photos = (d.photos ?? []) as Row[], reviews = (d.reviews ?? []) as Row[];
@@ -192,6 +196,29 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
                 </div>
                 <div className="field"><label htmlFor="hl-more">Add your own · separate with commas</label><input id="hl-more" name="highlights_more" type="text" form={FORM} placeholder="Private room, Open late" /></div>
               </div>
+              {pol ? (
+                <div className="card" id="languages">
+                  <h3>Languages you speak</h3>
+                  <div className="sub">Clients see these on your page. Tick only the ones someone on your team can serve a client in.</div>
+                  <form action={saveLanguages} className="langs">
+                    <input type="hidden" name="back" value={back} />
+                    <input type="hidden" name="returns_days" value={pol.returns_days ?? ""} />
+                    <input type="hidden" name="returns_note" value={pol.returns_note ?? ""} />
+                    <input type="hidden" name="ship_days_min" value={pol.ship_days_min ?? ""} />
+                    <input type="hidden" name="ship_days_max" value={pol.ship_days_max ?? ""} />
+                    <input type="hidden" name="pickup_ready_mins" value={pol.pickup_ready_mins ?? ""} />
+                    <div className="chips" role="group" aria-label="Languages you speak">
+                      {langChoices.map((l) => <label key={l} className="chip pick"><input type="checkbox" name="languages" value={l} defaultChecked={spoken.includes(l)} />{l}</label>)}
+                    </div>
+                    <div className="rowx"><button className="btn btn-out btn-sm">Save languages</button><span className="sub">Saves straight away, apart from the rest of this page.</span></div>
+                  </form>
+                </div>
+              ) : policy?.error ? (
+                <div className="card" id="languages">
+                  <h3>Languages you speak</h3>
+                  <div className="warn">The languages could not be loaded: {policy.error}</div>
+                </div>
+              ) : null}
               <div className="card">
                 <h3>Contact and social</h3>
                 <div className="two">

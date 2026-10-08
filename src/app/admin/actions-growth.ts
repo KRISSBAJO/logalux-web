@@ -22,6 +22,20 @@ export async function deletePromo(fd: FormData) {
   await run(fd, "Promo code deleted.", () => del(`/promos/${id(fd)}`));
 }
 
+/** The store credit a customer and the friend they invite each get. 0 switches the programme off. */
+export async function saveReferralCredit(fd: FormData) {
+  const credit = cents(fd, "amount");
+  await run(fd, credit > 0 ? "Referral credit saved. Customers can invite friends now." : "Referral credit switched off. Credit already given stays with the customers who have it.", async () => {
+    if (!/^\d+(\.\d{1,2})?$/.test(str(fd, "amount"))) throw new Error("Enter an amount in dollars, from 0 to 100.");
+    try {
+      return await put("/settings/referral", { credit_cents: credit });
+    } catch (e) {
+      const m = (e as Error).message;
+      throw new Error(m ? m[0].toUpperCase() + m.slice(1) + (/[.?]$/.test(m) ? "" : ".") : "Something went wrong.");
+    }
+  });
+}
+
 export async function issueGiftCard(fd: FormData) {
   let message = "", error = "";
   try {

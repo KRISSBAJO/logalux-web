@@ -144,3 +144,9 @@
 .mx .pg-inventory .tablebox.oo{flex:none}
 /* The next step stays in view while the rest of a wide orders table scrolls. */
 .mx .pg-inventory .oo th:last-child,.mx .pg-inventory .oo td:last-child{position:sticky;right:0;background:#FFFFFF;box-shadow:-1px 0 0 #E6DCD2}
+/* What shoppers are told: returns, delivery time and pick-up, on the Online orders view. */
+.mx .pg-inventory .oo .sub.note{color:#1A1513;font-weight:600;margin-top:3px}
+.mx .pg-inventory .pol{max-width:720px;scroll-margin-top:80px}
+.mx .pg-inventory .pol .grp{border-top:1px solid #E6DCD2;padding-top:12px;display:flex;flex-direction:column;gap:9px}
+.mx .pg-inventory .pol .opt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.mx .pg-inventory .pol .opt .inp{width:84px;min-height:36px}

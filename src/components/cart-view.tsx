@@ -4,24 +4,37 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { money } from "@/lib/api";
 import { MAX_QTY, cart, useCart, type CartItem, type Fulfilment } from "@/lib/cart";
-import { TAX_LABEL, possessive, salesTax, type CartProduct } from "@/lib/shop";
+import { TAX_LABEL, deliveryDays, pickupTodayText, possessive, salesTax, visitDay, type CartProduct, type ProductExtras } from "@/lib/shop";
 
 type Check = { discount_cents: number; promo_error: string; gift_balance_cents: number; gift_error: string };
 const NONE: Check = { discount_cents: 0, promo_error: "", gift_balance_cents: 0, gift_error: "" };
 type Shipment = { seller_name: string; fulfilment: Fulfilment; status: string; items_cents: number; shipping_cents: number };
-type Order = { id: string; total_cents: number; discount_cents: number; gift_cents: number; promo_code: string; shipments?: Shipment[]; payment?: { url?: string } };
+type Order = { id: string; status?: string; total_cents: number; discount_cents: number; gift_cents: number; credit_cents?: number; promo_code: string; shipments?: Shipment[]; payment?: { url?: string } };
+/** One way a seller's items can reach the customer. The three pick-up ways are the same order to the shop; they differ in what the customer is told. */
+type Way = "visit" | "today" | "pickup" | "ship";
+type WayOption = { id: Way; title: string; sub: string; cost: string };
 type Line = CartItem & { key: string; live: CartProduct | null | undefined; unit: number; max: number; problem: string };
-type Group = { seller: string; lines: Line[]; items: number; count: number; canPickup: boolean; canShip: boolean; how: Fulfilment | ""; shipping: number; live?: CartProduct };
+type Group = {
+  seller: string; lines: Line[]; items: number; count: number; canPickup: boolean; canShip: boolean; how: Fulfilment | ""; shipping: number; live?: CartProduct;
+  /** The day of the customer's next visit to this seller, when they have one booked. */
+  visitOn: string;
+  /** Set only when every one of the seller's items in the cart can be collected today. */
+  today?: { ready_at: string; until: string };
+  /** Set only when a delivery time is stated for every one of the seller's items. */
+  delivery?: { days_min: number; days_max: number };
+  ways: WayOption[]; way: Way | "";
+};
 type Errors = Partial<Record<"name" | "email" | "address" | "promo" | "gift" | "pay", string>> & { items?: Record<string, string> };
 
 const sentence = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) + (/[.!?]$/.test(s) ? "" : ".") : s);
-const list = (names: string[]) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`);
 const Shield = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" /></svg>;
 
-export function CartView({ me }: { me?: { name: string; phone: string; email: string } }) {
-  const { items, how, ready } = useCart();
+export function CartView({ me, creditCents = 0 }: { me?: { name: string; phone: string; email: string }; creditCents?: number }) {
+  const { items, how, when, ready } = useCart();
   // What each product costs and how it can be delivered today. The saved cart only remembers what was added.
   const [live, setLive] = useState<Record<string, CartProduct | null>>({});
+  // What each seller states about delivery and pick-up today, and the customer's next visit there.
+  const [extras, setExtras] = useState<Record<string, ProductExtras>>({});
   const [liveError, setLiveError] = useState("");
   const [refresh, setRefresh] = useState(0);
   const slugs = useMemo(() => [...new Set(items.map((i) => i.slug))].sort().join(","), [items]);
@@ -30,7 +43,7 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
     let on = true;
     fetch(`/api/products?slugs=${encodeURIComponent(slugs)}`)
       .then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; })
-      .then((j) => { if (on) { setLive(j.products ?? {}); setLiveError(""); } })
+      .then((j) => { if (on) { setLive(j.products ?? {}); setExtras(j.extras ?? {}); setLiveError(""); } })
       .catch((e: Error) => { if (on) setLiveError(e.message || "We could not check your cart just now. Try again in a moment."); });
     return () => { on = false; };
   }, [slugs, refresh]);
@@ -40,6 +53,8 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
   const [line1, setLine1] = useState(""), [city, setCity] = useState(""), [zip, setZip] = useState("");
   const [busy, setBusy] = useState(false), [errors, setErrors] = useState<Errors>({}), [order, setOrder] = useState<Order | null>(null);
   const [shippedTo, setShippedTo] = useState("");
+  // What each seller's part of the placed order was promised, kept for the confirmation.
+  const [told, setTold] = useState<Record<string, string>>({});
   // What the shopper typed, and what they pressed Apply on.
   const [promoInput, setPromoInput] = useState(""), [giftInput, setGiftInput] = useState("");
   const [promo, setPromo] = useState(""), [gift, setGift] = useState("");
@@ -59,7 +74,7 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
       if (p) left[i.slug] = Math.max(0, stock - i.qty);
       const seller = p?.seller_name ?? i.seller;
       let g = out.find((x) => x.seller === seller);
-      if (!g) out.push((g = { seller, lines: [], items: 0, count: 0, canPickup: true, canShip: true, how: "", shipping: 0, live: p ?? undefined }));
+      if (!g) out.push((g = { seller, lines: [], items: 0, count: 0, canPickup: true, canShip: true, how: "", shipping: 0, live: p ?? undefined, visitOn: "", ways: [], way: "" }));
       g.lines.push({ ...i, key: `${i.slug}|${i.size}`, live: p, unit, max: Math.min(MAX_QTY, Math.max(1, stock)), problem });
       if (p === null) continue;
       g.items += unit * i.qty; g.count += i.qty;
@@ -71,9 +86,27 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
       // One shipping charge per seller that ships: the first of its products in the order sets it.
       const first = g.lines.find((l) => l.live);
       g.shipping = g.how === "ship" ? first?.live?.shipping_cents ?? 0 : 0;
+
+      // A seller's choice covers all its items, so a promise is made only when it holds for every one of them.
+      const facts = g.lines.filter((l) => l.live).map((l) => extras[l.slug]);
+      if (!facts.length) continue;
+      const visit = g.canPickup ? facts.find((x) => x?.next_visit)?.next_visit : undefined;
+      g.visitOn = visit ? visitDay(visit) : "";
+      const todays = facts.map((x) => x?.pickup_today);
+      if (g.canPickup && todays.every((t) => t)) g.today = { ready_at: todays.map((t) => t!.ready_at).sort().at(-1)!, until: todays.map((t) => t!.until).sort()[0] };
+      const times = facts.map((x) => x?.delivery);
+      if (g.canShip && times.every((t) => t)) g.delivery = { days_min: Math.max(...times.map((t) => t!.days_min)), days_max: Math.max(...times.map((t) => t!.days_max)) };
+      const place = g.live?.business_city ? `At the studio in ${g.live.business_city}` : "At the studio";
+      g.ways = [
+        ...(g.visitOn ? [{ id: "visit" as const, title: "Pick up at your visit", sub: `${g.visitOn} · ${g.seller}`, cost: "Free" }] : []),
+        ...(g.today ? [{ id: "today" as const, title: "Pick up today", sub: pickupTodayText(g.today).replace(/^r/, "R"), cost: "Free" }] : []),
+        ...(g.canPickup && !g.visitOn && !g.today ? [{ id: "pickup" as const, title: `Pick up at ${g.seller}`, sub: place, cost: "Free" }] : []),
+        ...(g.canShip ? [{ id: "ship" as const, title: "Ship to me", sub: g.delivery ? `Arrives in ${deliveryDays(g.delivery)}` : "To the address you give below", cost: (first?.live?.shipping_cents ?? 0) > 0 ? money(first!.live!.shipping_cents) : "Free" }] : []),
+      ];
+      g.way = g.how === "ship" ? "ship" : g.how === "pickup" ? (when[g.seller] === "today" && g.today ? "today" : g.visitOn ? "visit" : g.today ? "today" : "pickup") : "";
     }
     return out;
-  }, [items, live, how]);
+  }, [items, live, how, when, extras]);
 
   const lines = groups.flatMap((g) => g.lines);
   const count = lines.reduce((a, l) => a + (l.live === null ? 0 : l.qty), 0);
@@ -98,6 +131,17 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
   const beforeGift = subtotal - discount + shipping + tax;
   const giftUsed = gift && !check.gift_error ? Math.min(check.gift_balance_cents, beforeGift) : 0;
   const total = beforeGift - giftUsed;
+  // Store credit, as the order endpoint spends it: after the promo, shipping, tax and the gift card, up to what is left. A guest has none.
+  const credit = me ? Math.max(0, creditCents) : 0;
+  const creditUsed = Math.min(credit, total);
+  const due = total - creditUsed;
+  const covered = [giftUsed > 0 ? "gift card" : "", creditUsed > 0 ? "store credit" : ""].filter(Boolean);
+
+  /** What the customer is told about collecting one seller's items. */
+  const collectText = (g: Group) =>
+    g.way === "visit" ? `Your items from ${g.seller} will be waiting at your visit on ${g.visitOn}.`
+      : g.way === "today" && g.today ? `Your items from ${g.seller} can be collected today: ${pickupTodayText(g.today)}.`
+        : `Your items from ${g.seller} are collected at the studio.`;
 
   async function pay() {
     const next: Errors = {};
@@ -143,6 +187,7 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
     // Paid online: hand over to the secure payment page. The order is confirmed when the payment arrives.
     if (j.order.payment?.url) { cart.clear(); window.location.href = j.order.payment.url; return; }
     setShippedTo(anyShip ? [line1.trim(), city.trim()].filter(Boolean).join(", ") : "");
+    setTold(Object.fromEntries(groups.filter((g) => g.how).map((g) => [g.seller, g.how === "pickup" ? collectText(g) : g.delivery ? `Arrives in ${deliveryDays(g.delivery)}.` : ""])));
     cart.clear(); setBusy(false); setOrder(j.order);
   }
 
@@ -153,11 +198,11 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
         <div className="left done">
           <div className="card" role="status">
             <h2 className="serif">Order placed</h2>
-            <p className="muted">Order {String(order.id).slice(0, 8)} · {Number(order.total_cents) > 0 ? `${money(Number(order.total_cents))} paid` : "nothing to pay"}{Number(order.discount_cents) > 0 ? ` · ${money(Number(order.discount_cents))} off with ${order.promo_code}` : ""}{Number(order.gift_cents) > 0 ? ` · ${money(Number(order.gift_cents))} from your gift card` : ""}</p>
+            <p className="muted">Order {String(order.id).slice(0, 8)} · {Number(order.total_cents) > 0 ? `${money(Number(order.total_cents))} ${order.status === "pending" ? "to pay" : "paid"}` : "nothing was charged"}{Number(order.discount_cents) > 0 ? ` · ${money(Number(order.discount_cents))} off with ${order.promo_code}` : ""}{Number(order.gift_cents) > 0 ? ` · ${money(Number(order.gift_cents))} from your gift card` : ""}{Number(order.credit_cents) > 0 ? ` · ${money(Number(order.credit_cents))} from your store credit` : ""}</p>
             {shipments.map((s) => (
               <div key={s.seller_name} className="seller ship">
                 <span className="av" />
-                <span><b>{s.seller_name}</b><span className="muted">{s.fulfilment === "pickup" ? `Collect at ${s.seller_name}. The studio lets you know when it is ready.` : `Ships to ${shippedTo || "your address"}.`}</span></span>
+                <span><b>{s.seller_name}</b><span className="muted">{s.fulfilment === "pickup" ? told[s.seller_name] || `Collect at ${s.seller_name}.` : `Ships to ${shippedTo || "your address"}.${told[s.seller_name] ? ` ${told[s.seller_name]}` : ""}`}</span></span>
                 <span className="amt">{money(Number(s.items_cents) + Number(s.shipping_cents))}</span>
               </div>
             ))}
@@ -184,7 +229,7 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
     );
   }
 
-  const choosers = groups.filter((g) => g.canPickup && g.canShip && g.lines.some((l) => l.live));
+  const choosers = groups.filter((g) => g.ways.length > 1 && g.lines.some((l) => l.live));
   const fixed = groups.filter((g) => !choosers.includes(g) && g.how);
   const collecting = groups.filter((g) => g.how === "pickup"), sending = groups.filter((g) => g.how === "ship");
 
@@ -223,7 +268,7 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
                     </Link>
                     <div>
                       <b>{l.live?.name ?? l.name}{l.size ? ` · ${l.size}` : ""}</b>
-                      {l.live !== null && <span>{[g.how === "pickup" ? "Pick up at your visit" : g.how === "ship" ? "Ships to you" : "", l.qty > 1 || !g.how ? `${money(l.unit)} each` : ""].filter(Boolean).join(" · ")}</span>}
+                      {l.live !== null && <span>{[g.way === "visit" ? `Pick up at your visit · ${g.visitOn}` : g.way === "today" ? "Pick up today" : g.how === "pickup" ? "Pick up at the studio" : g.how === "ship" ? (g.delivery ? `Ships to you · ${deliveryDays(g.delivery)}` : "Ships to you") : "", l.qty > 1 || !g.how ? `${money(l.unit)} each` : ""].filter(Boolean).join(" · ")}</span>}
                       {problem && <span role="alert" className="bad">{problem}</span>}
                     </div>
                     <div className="r">
@@ -250,10 +295,9 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
           {choosers.map((g) => (
             <div key={g.seller} className="choose" role="radiogroup" aria-label={`How you get the items from ${g.seller}`}>
               {choosers.length > 1 && <span className="lbl">{g.seller}</span>}
-              {([["pickup", `Pick up at ${g.seller}`, g.live?.business_city ? `At the studio in ${g.live.business_city}. They let you know when it is ready.` : "At the studio. They let you know when it is ready.", "Free"],
-                ["ship", "Ship to me", "To the address you give below", money(g.lines.find((l) => l.live)?.live?.shipping_cents ?? 0)]] as const).map(([k, title, sub, cost]) => (
-                <button key={k} type="button" role="radio" aria-checked={g.how === k} className={`opt ${g.how === k ? "on" : ""}`} onClick={() => { cart.setFulfilment(g.seller, k); setErrors((e) => ({ ...e, items: undefined })); }}>
-                  <span className="radio">{g.how === k && <i />}</span><span><b>{title}</b><span>{sub}</span></span><span className="r">{cost === "$0" ? "Free" : cost}</span>
+              {g.ways.map((w) => (
+                <button key={w.id} type="button" role="radio" aria-checked={g.way === w.id} className={`opt ${g.way === w.id ? "on" : ""}`} onClick={() => { cart.setFulfilment(g.seller, w.id === "ship" ? "ship" : "pickup", w.id === "visit" || w.id === "today" ? w.id : undefined); setErrors((e) => ({ ...e, items: undefined })); }}>
+                  <span className="radio">{g.way === w.id && <i />}</span><span><b>{w.title}</b><span>{w.sub}</span></span><span className="r">{w.cost}</span>
                 </button>
               ))}
             </div>
@@ -268,7 +312,9 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
           )}
           {fixed.map((g) => (
             <div key={g.seller} className="muted fixed">
-              {g.how === "ship" ? `${g.seller} ships to you${choosers.length ? " either way" : ""}, ${g.shipping > 0 ? money(g.shipping) : "free"}, included below.` : `${possessive(g.seller)} items are collected at the studio, free. ${g.lines.length > 1 ? "Not all of them can be shipped." : "It cannot be shipped."}`}
+              {g.how === "ship"
+                ? `${g.seller} ships to you${choosers.length ? " either way" : ""}, ${g.shipping > 0 ? money(g.shipping) : "free"}, included below.${g.delivery ? ` Arrives in ${deliveryDays(g.delivery)}.` : ""}`
+                : `${possessive(g.seller)} items are collected at the studio, free. ${g.lines.length > 1 ? "Not all of them can be shipped." : "It cannot be shipped."}${g.way === "visit" ? ` They will be waiting at your visit on ${g.visitOn}.` : g.way === "today" && g.today ? ` Pick up today: ${pickupTodayText(g.today)}.` : ""}`}
             </div>
           ))}
         </div>
@@ -280,7 +326,7 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
             <div className="field"><label htmlFor="ph">Mobile · so the seller can reach you</label><input id="ph" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" /></div>
             <div className="field wide"><label htmlFor="em">Email · for your receipt</label><input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" aria-invalid={!!errors.email} />{errors.email && <p role="alert" className="msg bad">{errors.email}</p>}</div>
           </div>
-          <div className="tip"><Shield /><span>You will pay on Stripe&apos;s secure page. LogaLuxe never sees your card. It is one payment for the whole order, and each seller is paid their share.</span></div>
+          <div className="tip"><Shield /><span>{due === 0 && loaded ? `Your ${covered.join(" and ") || "discount"} ${covered.length > 1 ? "cover" : "covers"} this order, so nothing will be charged and there is no payment page.` : <>You will pay on Stripe&apos;s secure page. LogaLuxe never sees your card. It is one payment for the whole order, and each seller is paid their share.</>}</span></div>
           {!me && <div className="muted fixed"><Link href="/signin?next=%2Fcart">Sign in</Link> before you pay to keep this order in your account.</div>}
         </div>
       </div>
@@ -292,20 +338,24 @@ export function CartView({ me }: { me?: { name: string; phone: string; email: st
           {groups.filter((g) => g.how).map((g) => <div key={g.seller} className="line"><span className="muted">{g.how === "ship" ? "Shipping" : "Pickup"} · {g.seller}</span><span className="muted">{g.shipping > 0 ? money(g.shipping) : "Free"}</span></div>)}
           <div className="line"><span className="muted">{TAX_LABEL}</span><span className="muted">{money(tax)}</span></div>
           {giftUsed > 0 && <div className="line good"><span>Gift card</span><span>−{money(giftUsed)}</span></div>}
-          <div className="line total"><span>Total</span><span>{money(total)}</span></div>
+          {creditUsed > 0 && <div className="line good"><span>Store credit</span><span>−{money(creditUsed)}</span></div>}
+          <div className="line total"><span>Total</span><span>{money(due)}</span></div>
           {codeRow("Promo code", promoInput, setPromoInput, () => { setPromo(promoInput.trim()); setErrors((e) => ({ ...e, promo: undefined })); }, promo, () => { setPromo(""); setPromoInput(""); setErrors((e) => ({ ...e, promo: undefined })); }, "Promo code", discount ? `${money(discount)} off` : "", errors.promo ?? (promo ? check.promo_error : ""))}
           {codeRow("Gift card code", giftInput, setGiftInput, () => { setGift(giftInput.trim()); setErrors((e) => ({ ...e, gift: undefined })); }, gift, () => { setGift(""); setGiftInput(""); setErrors((e) => ({ ...e, gift: undefined })); }, "Gift card code", check.gift_balance_cents ? `${money(check.gift_balance_cents)} on this card${giftUsed < check.gift_balance_cents ? `, ${money(giftUsed)} used here` : ""}` : "", errors.gift ?? (gift ? check.gift_error : ""))}
           {errors.pay && <p role="alert" className="msg bad">{errors.pay}</p>}
-          <button type="button" className="btn btn-ink pay" disabled={busy || blocked} onClick={pay}>{busy ? "Opening the payment page…" : total === 0 ? "Place order · nothing to pay" : `Pay ${money(total)}`}</button>
+          <button type="button" className="btn btn-ink pay" disabled={busy || blocked} onClick={pay}>{busy ? (due === 0 ? "Placing your order…" : "Opening the payment page…") : due === 0 ? "Place order" : `Pay ${money(due)}`}</button>
+          {due === 0 && loaded && !blocked && <p className="msg">Nothing will be charged.{covered.length ? ` Your ${covered.join(" and ")} ${covered.length > 1 ? "cover" : "covers"} this order.` : ""}</p>}
           {blocked && loaded && <p className="msg bad">Sort out the items marked in your cart first.</p>}
           {(collecting.length > 0 || sending.length > 0) && (
             <div className="ok">
-              {collecting.length > 0 && `Your items from ${list(collecting.map((g) => g.seller))} will be ready to collect at the studio. `}
-              {sending.length > 0 && `${list(sending.map((g) => g.seller))} ${sending.length > 1 ? "ship" : "ships"} to you${sending.length > 1 ? ", one parcel each" : ""}.`}
+              {[...collecting.map(collectText), ...sending.map((g) => `${g.seller} ships to you${g.delivery ? `, arriving in ${deliveryDays(g.delivery)}` : ""}.`)].join(" ")}
             </div>
           )}
         </div>
-        <div className="muted small">Prices and stock are checked again when you pay. {me ? "You can follow the order in your account." : ""}</div>
+        <div className="muted small">
+          Prices and stock are checked again when you pay. {me ? "You can follow the order in your account." : ""}
+          {credit > 0 && ` You have ${money(credit)} in store credit. It is used on this order automatically${creditUsed < credit && loaded ? `, and ${money(credit - creditUsed)} stays for your next one` : ""}.`}
+        </div>
       </aside>
     </div>
   );

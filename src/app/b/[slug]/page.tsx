@@ -10,9 +10,10 @@ import { firstByRef, siteMedia } from "@/lib/media";
 import { isTestEntry } from "@/lib/site";
 import { businessDescription, businessJsonLd, businessTitle } from "./seo";
 import { SaveButton, ShareButton } from "./head-actions";
+import { HowFar } from "@/components/near";
 import { PinMap } from "./pin-map";
 import { Storefront } from "./storefront";
-import { clock, firstName, inZone, lateRule, type Breakdown, type Loc, type Payload } from "./shared";
+import { clock, firstName, inZone, lateRule, replyLine, type Breakdown, type Loc, type Payload, type StoreReview } from "./shared";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
     siteMedia("business", slug),
     products.length ? siteMedia("product") : Promise.resolve([]),
     getCustomer(),
-    display.show_reviews === false ? Promise.resolve(null) : customerApi<{ breakdown?: Breakdown }>(`/businesses/${encodeURIComponent(slug)}/reviews?page=1`, { auth: false }).catch(() => null),
+    display.show_reviews === false ? Promise.resolve(null) : customerApi<{ breakdown?: Breakdown; reviews?: StoreReview[] }>(`/businesses/${encodeURIComponent(slug)}/reviews?page=1`, { auth: false }).catch(() => null),
   ]);
   const productPic = firstByRef(productMedia);
   const loc = locations.find((l) => l.is_primary) ?? locations[0];
@@ -120,6 +121,11 @@ export default async function BusinessPage({ params, searchParams }: { params: P
   const signIn = (next: string) => `/signin?next=${encodeURIComponent(next)}`;
   const place = [loc?.name, loc?.city && !loc?.name?.includes(loc.city) ? loc.city : ""].filter(Boolean).join(" · ");
   const hasPin = showAddress && typeof loc?.lat === "number" && typeof loc?.lng === "number";
+  const languages = (data.extras?.languages ?? []).filter((l) => typeof l === "string" && l.trim());
+  const replies = replyLine(data.extras?.reply_minutes);
+  // The reviews that come with the business carry no photos; the first page of the full list does, so they are matched up by id.
+  const photosOf = new Map((reviewPage?.reviews ?? []).map((r) => [r.id, r.photos ?? []]));
+  const firstReviews = reviews.map((r) => ({ ...r, photos: r.photos ?? photosOf.get(r.id) ?? [] }));
 
   // Every photo, on its own view: /b/<slug>?photos=1
   if (sp.photos && photos.length > 0) {
@@ -162,7 +168,12 @@ export default async function BusinessPage({ params, searchParams }: { params: P
             : <>{[loc?.city, loc?.region].filter(Boolean).join(" ")} <span className="muted">· the exact address is sent when you book</span></>}
         </div>
         {showAddress && loc?.arrival_notes ? <div className="muted" style={{ fontSize: 12.5 }}>{loc.arrival_notes}</div> : null}
-        {hasPin ? <a href={`https://www.openstreetmap.org/?mlat=${loc!.lat}&mlon=${loc!.lng}#map=17/${loc!.lat}/${loc!.lng}`} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 600 }}>Open in maps</a> : null}
+        {hasPin ? (
+          <div className="where">
+            <a href={`https://www.openstreetmap.org/?mlat=${loc!.lat}&mlon=${loc!.lng}#map=17/${loc!.lat}/${loc!.lng}`} target="_blank" rel="noreferrer">Open in maps</a>
+            <HowFar lat={loc!.lat as number} lng={loc!.lng as number} miles={b.market !== "NG"} className="far" buttonClassName="lnk" noteClassName="muted" />
+          </div>
+        ) : null}
         <div className="kv">
           {hourRows(loc?.hours).map(([d, h]) => <div key={d}><span>{d}</span><b>{h}</b></div>)}
         </div>
@@ -180,6 +191,8 @@ export default async function BusinessPage({ params, searchParams }: { params: P
           <div><span>Cancelling</span><b>{cancelHours > 0 ? `Free until ${cancelHours} h before${late ? `; after that ${late}` : ""}` : "Free at any time"}</b></div>
           {policy.payments_live === false ? <div><span>Pays with</span><b>Paid at the visit</b></div> : <div><span>Pays with</span><b>{b.market === "NG" ? "Card, transfer or USSD, on Paystack" : "Card, on Stripe's secure page"}</b></div>}
           {(policy.new_client_deposit_pct ?? 0) > 0 ? <div><span>First visit</span><b>{policy.new_client_deposit_pct}% deposit when you book</b></div> : null}
+          {languages.length > 0 ? <div><span>Languages</span><b>{languages.join(", ")}</b></div> : null}
+          {replies ? <div><span>Messages</span><b>{replies}</b></div> : null}
           {b.phone ? <div><span>Phone</span><b><a href={`tel:${b.phone.replace(/[^\d+]/g, "")}`}>{b.phone}</a></b></div> : null}
           {handle(b.instagram) ? <div><span>Instagram</span><b><a href={`https://instagram.com/${handle(b.instagram)}`} target="_blank" rel="noreferrer">@{handle(b.instagram)}</a></b></div> : null}
           {handle(b.tiktok) ? <div><span>TikTok</span><b><a href={`https://tiktok.com/@${handle(b.tiktok)}`} target="_blank" rel="noreferrer">@{handle(b.tiktok)}</a></b></div> : null}
@@ -243,7 +256,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
             slug={b.slug} src={src} name={b.name} ownerFirst={firstName(b.owner_name)} currency={b.currency} tz={tz}
             services={services} staff={display.show_staff === false ? [] : staff}
             showDurations={display.show_durations !== false} showFrom={display.show_from !== false} showReviews={display.show_reviews !== false}
-            reviews={reviews} breakdown={breakdown} rating={rating} reviewCount={reviewCount} summary={(b.review_summary ?? "").trim()}
+            reviews={firstReviews} breakdown={breakdown} rating={rating} reviewCount={reviewCount} summary={(b.review_summary ?? "").trim()}
             products={products.map((p) => ({ ...p, img: productPic.get(p.slug) }))} about={(b.about ?? "").trim()} policy={policy} aside={aside}
           />
         </main>

@@ -52,6 +52,7 @@ export function toCard(b: Listing, cover: Map<string, Media>): ResultCard {
     from: b.from_cents ? money(b.from_cents, b.currency) : "",
     team: b.staff_count > 1 ? `${b.staff_count} professionals` : "Independent",
     coverId: img?.id, coverAlt: img?.alt, timezone: b.timezone,
+    lat: b.lat, lng: b.lng, miles: b.market !== "NG",
     services: (b.services ?? []).slice(0, 2).map((s) => ({ name: s.name, length: duration(s.duration_min), price: money(s.price_cents, b.currency) })),
   };
 }
