@@ -1,0 +1,128 @@
+/* Generated from the merchant design (Inbox). Scoped to this screen. */
+.mx .pg-inbox{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-inbox a{color:#7A1F2B;text-decoration:none}
+.mx .pg-inbox a:hover{color:#5A1420}
+.mx .pg-inbox *{box-sizing:border-box}
+.mx .pg-inbox .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-inbox .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:4px}
+.mx .pg-inbox .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-inbox .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-inbox .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-inbox .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-inbox .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-inbox .nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:42px}
+.mx .pg-inbox .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-inbox .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-inbox .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-inbox .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-inbox .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-inbox .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-inbox .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-inbox .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-inbox .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-inbox .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-inbox .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-inbox .btn-gold{background:#D4AF5A;color:#1A1513}
+.mx .pg-inbox .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-inbox .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none;position:relative}
+.mx .pg-inbox .ch{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;border:2px solid #FBF7F2;display:flex;align-items:center;justify-content:center}
+.mx .pg-inbox .ch-wa{background:#25D366}
+.mx .pg-inbox .ch-sms{background:#1A1513}
+.mx .pg-inbox .ch-app{background:#D4AF5A}
+.mx .pg-inbox .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1}
+.mx .pg-inbox .muted{color:#6B5F57}
+.mx .pg-inbox .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-inbox .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-inbox .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-inbox .pill-grey{background:#EFE5DA;color:#6B5F57}
+.mx .pg-inbox .pill-new{background:#E4ECF7;color:#1F4B7A}
+.mx .pg-inbox .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 12px;min-height:36px;font:inherit;font-size:13px;font-weight:600;color:#1A1513;cursor:pointer}
+.mx .pg-inbox .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.mx .pg-inbox .wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:stretch;flex:1}
+.mx .pg-inbox .threads{flex:1 1 300px;max-width:360px;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.mx .pg-inbox .search{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #EDE4DA}
+.mx .pg-inbox .search input{border:0;background:transparent;font:inherit;font-size:14px;flex:1;outline:none;min-width:0;color:#1A1513}
+.mx .pg-inbox .th{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid #EDE4DA;background:transparent;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;font:inherit;cursor:pointer;color:#1A1513;align-items:flex-start}
+.mx .pg-inbox .th:hover{background:#F7F0E7}
+.mx .pg-inbox .th.on{background:#F1E8DD}
+.mx .pg-inbox .th b{display:block;font-size:14px;font-weight:600}
+.mx .pg-inbox .th p{margin:3px 0 0;font-size:12.5px;color:#6B5F57;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mx .pg-inbox .th.unread p{color:#1A1513;font-weight:500}
+.mx .pg-inbox .th time{font-size:11.5px;color:#9A8E85;white-space:nowrap}
+.mx .pg-inbox .dot{width:8px;height:8px;border-radius:50%;background:#7A1F2B;flex:none;margin-top:6px}
+.mx .pg-inbox .conv{flex:999 1 480px;min-width:0;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;display:flex;flex-direction:column;overflow:hidden}
+.mx .pg-inbox .conv .hd{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #EDE4DA}
+.mx .pg-inbox .conv .hd b{display:block;font-size:16px;font-weight:600}
+.mx .pg-inbox .conv .hd span{font-size:12.5px;color:#6B5F57}
+.mx .pg-inbox .msgs{flex:1;padding:18px;display:flex;flex-direction:column;gap:10px;background:#F7F0E7}
+.mx .pg-inbox .day{text-align:center;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:4px 0}
+.mx .pg-inbox .m{max-width:72%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.45}
+.mx .pg-inbox .m.them{background:#FFFFFF;border:1px solid #EDE4DA;border-bottom-left-radius:6px;align-self:flex-start}
+.mx .pg-inbox .m.me{background:#1A1513;color:#FBF7F2;border-bottom-right-radius:6px;align-self:flex-end}
+.mx .pg-inbox .m time{display:block;font-size:10.5px;margin-top:4px;opacity:.6}
+.mx .pg-inbox .sys{align-self:center;background:#F6EBD2;color:#7A5A12;border-radius:14px;padding:8px 14px;font-size:12px}
+.mx .pg-inbox .draft{margin:0 18px;background:#FFF9E8;border:1px solid #F0E2B8;border-radius:14px;padding:12px 14px}
+.mx .pg-inbox .draft small{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7A5A12}
+.mx .pg-inbox .draft p{margin:6px 0 10px;font-size:14px;line-height:1.5}
+.mx .pg-inbox .compose{display:flex;align-items:flex-end;gap:10px;padding:12px 18px 16px;border-top:1px solid #EDE4DA}
+.mx .pg-inbox .compose label{flex:1;display:flex;align-items:center;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:14px;padding:0 14px;min-height:46px}
+.mx .pg-inbox .compose input{border:0;background:transparent;font:inherit;font-size:14px;flex:1;outline:none;min-width:0;color:#1A1513}
+.mx .pg-inbox .iconb{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E6DCD2;color:#1A1513}
+.mx .pg-inbox .ctx{flex:1 1 260px;max-width:300px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.mx .pg-inbox .ctx h3{margin:0;font-size:14px;font-weight:600}
+.mx .pg-inbox .kv{display:flex;flex-direction:column}
+.mx .pg-inbox .kv div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid #EDE4DA}
+.mx .pg-inbox .kv div:last-child{border-bottom:0}
+.mx .pg-inbox .kv b{font-weight:600;text-align:right}
+.mx .pg-inbox .bk{background:#F4ECE2;border-radius:12px;padding:10px 12px;font-size:13px}
+.mx .pg-inbox .bk b{display:block;font-weight:600}
+.mx .pg-inbox .bk span{color:#6B5F57;font-size:12px}
+.mx .pg-inbox .saved{display:flex;flex-wrap:wrap;gap:6px}
+.mx .pg-inbox .saved button{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 10px;min-height:32px;font:inherit;font-size:12px;font-weight:600;color:#1A1513;cursor:pointer}
+.mx .pg-inbox .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+.mx .pg-inbox .topbar,.mx .pg-inbox .content{padding-left:16px;padding-right:16px}
+.mx .pg-inbox .threads,.mx .pg-inbox .ctx{max-width:none}
+}
+
+/* Added for the built screen: links as rows, the email channel, the reply box, delivery states. */
+.mx .pg-inbox a.chip{color:#1A1513}
+.mx .pg-inbox a.chip.on{color:#FBF7F2}
+.mx .pg-inbox .chip small{font-weight:500;color:#9A8E85}
+.mx .pg-inbox .chip.on small{color:#C9BCB0}
+.mx .pg-inbox a.th{color:#1A1513}
+.mx .pg-inbox .th b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mx .pg-inbox .ch-mail{background:#1F4B7A}
+.mx .pg-inbox form.search{margin:0}
+.mx .pg-inbox .threads .list{overflow-y:auto;max-height:calc(100vh - 190px)}
+.mx .pg-inbox .conv{scroll-margin-top:90px}
+.mx .pg-inbox .conv .hd{flex-wrap:wrap}
+.mx .pg-inbox .conv .hd form{display:contents}
+.mx .pg-inbox .msgs.scroll{overflow-y:auto;max-height:calc(100vh - 330px);min-height:260px}
+.mx .pg-inbox .msgs.scroll > :first-child{margin-top:auto}
+.mx .pg-inbox .m{white-space:pre-wrap;overflow-wrap:anywhere}
+.mx .pg-inbox .m time{white-space:normal}
+.mx .pg-inbox .m.failed{box-shadow:inset 0 0 0 2px #9B2C2C}
+.mx .pg-inbox .sys{text-align:center;line-height:1.45;max-width:90%}
+.mx .pg-inbox .compose{flex-wrap:wrap}
+.mx .pg-inbox .compose label{flex:1 1 240px;padding:0}
+.mx .pg-inbox .compose textarea{border:0;background:transparent;font:inherit;font-size:14px;flex:1;outline:none;min-width:0;color:#1A1513;resize:vertical;min-height:46px;max-height:220px;padding:12px 14px;line-height:1.45;border-radius:14px}
+.mx .pg-inbox .compose label:focus-within{border-color:#1A1513;box-shadow:0 0 0 3px rgba(212,175,90,.28)}
+.mx .pg-inbox .blank{flex:1;display:flex;align-items:center;justify-content:center;padding:28px;background:#F7F0E7}
+.mx .pg-inbox a.bk{display:block;color:#1A1513}
+.mx .pg-inbox .bk span{display:block}
+.mx .pg-inbox .pick{display:flex;flex-direction:column;max-height:260px;overflow-y:auto;border:1px solid #E6DCD2;border-radius:12px;background:#FFFFFF}
+.mx .pg-inbox .pick label{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #EDE4DA;font-size:14px;cursor:pointer}
+.mx .pg-inbox .pick label:last-child{border-bottom:0}
+.mx .pg-inbox .pick small{display:block;color:#6B5F57;font-size:12px}
+.mx .pg-inbox .pick input{accent-color:#1A1513}
+.mx .pg-inbox a:focus-visible,.mx .pg-inbox button:focus-visible{outline:2px solid #D4AF5A;outline-offset:2px}
+@media (max-width:720px){
+.mx .pg-inbox .threads .list{max-height:320px}
+.mx .pg-inbox .m{max-width:88%}
+}
+.mx .pg-inbox .threads form.search{flex:none;max-width:none;min-width:0;min-height:44px;border:0;border-bottom:1px solid #EDE4DA;border-radius:0;background:transparent}
+.mx .pg-inbox .threads .list{flex:1}
+.mx .pg-inbox .conv .hd .avatar{color:#F4ECE3;font-size:12px}
+.mx .pg-inbox .draftai{display:flex;flex-direction:column;gap:8px}
+.mx .pg-inbox .draftai .btn{align-self:flex-start}

@@ -1,0 +1,99 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { money } from "@/lib/api";
+import { MAX_QTY, cart, useCart, type Fulfilment } from "@/lib/cart";
+import { perUnit, type Size } from "@/lib/shop";
+
+export type BuyProduct = {
+  slug: string; name: string; seller_name: string; tone: string; description: string; price_cents: number; compare_cents: number | null; stock: number;
+  sizes: Size[]; pickup: boolean; shipping: boolean; shipping_cents: number; business: string | null; business_city: string | null;
+};
+
+// A gift card's sizes are amounts ("$25"), so the price beside them would only repeat the label.
+const isPrice = (label: string, cents: number) => label.replace(/s/g, "") === money(cents);
+
+/** Price, size, how to get it, quantity and the add-to-cart button. The children of the design's `.info` column, in its order. */
+export function ProductBuyBox({ product: p }: { product: BuyProduct }) {
+  const sizes = p.sizes.length ? p.sizes : [{ label: "", price_cents: p.price_cents }];
+  // The size the listed price belongs to is the one shown first.
+  const [size, setSize] = useState((sizes.find((s) => s.price_cents === p.price_cents) ?? sizes[0]).label);
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(0);
+  const { items, how } = useCart();
+  const ways: Fulfilment[] = [...(p.pickup ? ["pickup" as const] : []), ...(p.shipping ? ["ship" as const] : [])];
+  const [way, setWay] = useState<Fulfilment | "">(ways[0] ?? "");
+  // What the customer already chose for this seller in their cart is kept.
+  const saved = how[p.seller_name];
+  useEffect(() => { if (saved && (saved === "pickup" ? p.pickup : p.shipping)) setWay(saved); }, [saved, p.pickup, p.shipping]);
+
+  const unit = sizes.find((s) => s.label === size)?.price_cents ?? p.price_cents;
+  const inCart = items.find((i) => i.slug === p.slug && i.size === size)?.qty ?? 0;
+  const max = Math.max(0, Math.min(p.stock, MAX_QTY));
+  const room = Math.max(0, max - inCart);
+  const n = Math.min(qty, Math.max(1, room));
+  const per = perUnit(size, unit);
+  const was = p.compare_cents && unit === p.price_cents && p.compare_cents > unit ? p.compare_cents : 0;
+  const studio = p.business ?? p.seller_name;
+
+  function add() {
+    if (room < 1) return;
+    cart.add({ slug: p.slug, name: p.name, seller: p.seller_name, size, unit_cents: unit, tone: p.tone }, n, max);
+    if (way) cart.setFulfilment(p.seller_name, way);
+    setAdded(n); setQty(1);
+  }
+
+  return (
+    <>
+      <div className="price">
+        {money(unit)}{was > 0 && <s>{money(was)}</s>}
+        {((size && !isPrice(size, unit)) || per) && <small>{[isPrice(size, unit) ? "" : size, per ? `${money(per.cents)} per ${per.per === 1 ? "" : `${per.per} `}${per.unit}` : ""].filter(Boolean).join(" · ")}</small>}
+      </div>
+      {p.description && <p className="muted lead">{p.description}</p>}
+
+      {sizes.length > 1 && (
+        <div className="opts">
+          <span className="lbl" id="size-lbl">Size</span>
+          <div className="chips" role="group" aria-labelledby="size-lbl">
+            {sizes.map((s) => (
+              <button key={s.label} type="button" className={`chip ${s.label === size ? "on" : ""}`} aria-pressed={s.label === size} onClick={() => { setSize(s.label); setAdded(0); }}>{s.label}{!isPrice(s.label, s.price_cents) && <> <small>{money(s.price_cents)}</small></>}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ways.length > 0 && (
+        <div className="opts">
+          <span className="lbl" id="way-lbl">Get it</span>
+          <div className="deliv" role="group" aria-labelledby="way-lbl">
+            {p.pickup && (
+              <button type="button" className={`opt ${way === "pickup" ? "on" : ""}`} aria-pressed={way === "pickup"} onClick={() => setWay("pickup")}>
+                <span><b>Pick up at {studio}</b><span>{p.business_city ? `Collect it at the studio in ${p.business_city}` : "Collect it at the studio"}</span></span><span className="r">Free</span>
+              </button>
+            )}
+            {p.shipping && (
+              <button type="button" className={`opt ${way === "ship" ? "on" : ""}`} aria-pressed={way === "ship"} onClick={() => setWay("ship")}>
+                <span><b>Ship to me</b><span>{p.shipping_cents > 0 ? `One shipping charge for everything you order from ${p.seller_name}` : "Sent to your address"}</span></span><span className="r">{p.shipping_cents > 0 ? money(p.shipping_cents) : "Free"}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="cta">
+        <div className="qty">
+          <button type="button" onClick={() => setQty(Math.max(1, n - 1))} disabled={n <= 1} aria-label="Fewer">−</button>
+          <b aria-live="polite" aria-label={`Quantity ${n}`}>{n}</b>
+          <button type="button" onClick={() => setQty(Math.min(room, n + 1))} disabled={n >= room} aria-label="More">+</button>
+        </div>
+        <button type="button" className="btn btn-ink buy" onClick={add} disabled={room < 1}>
+          {p.stock < 1 ? "Out of stock" : room < 1 ? "All we have is in your cart" : `Add to cart · ${money(unit * n)}`}
+        </button>
+      </div>
+      <p className="muted stock" role="status">
+        {added > 0 ? <>Added {added} to your cart. <Link href="/cart">Go to cart</Link></> : inCart > 0 ? <>{inCart} in your cart. <Link href="/cart">Go to cart</Link></> : p.stock < 1 ? "This one is sold out for now." : p.stock <= 5 ? `Only ${p.stock} left.` : p.stock <= 50 ? `${p.stock} in stock.` : "In stock."}
+      </p>
+    </>
+  );
+}

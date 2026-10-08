@@ -1,0 +1,146 @@
+/* Generated from the merchant design (Inventory). Scoped to this screen. */
+.mx .pg-inventory{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-inventory a{color:#7A1F2B;text-decoration:none}
+.mx .pg-inventory a:hover{color:#5A1420}
+.mx .pg-inventory *{box-sizing:border-box}
+.mx .pg-inventory .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-inventory .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:4px}
+.mx .pg-inventory .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-inventory .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-inventory .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-inventory .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-inventory .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-inventory .nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:42px}
+.mx .pg-inventory .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-inventory .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-inventory .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-inventory .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-inventory .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-inventory .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-inventory .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-inventory .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-inventory .search{display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:12px;padding:0 12px;min-height:42px;min-width:220px;flex:1;max-width:340px}
+.mx .pg-inventory .search input{border:0;background:transparent;font:inherit;font-size:14px;flex:1;outline:none;min-width:0;color:#1A1513}
+.mx .pg-inventory .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-inventory .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-inventory .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-inventory .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-inventory .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.mx .pg-inventory .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.mx .pg-inventory .muted{color:#6B5F57}
+.mx .pg-inventory .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-inventory .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-inventory .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-inventory .pill-wine{background:#F6E3E6;color:#7A1F2B}
+.mx .pg-inventory .pill-grey{background:#EFE5DA;color:#6B5F57}
+.mx .pg-inventory .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 12px;min-height:36px;font:inherit;font-size:13px;font-weight:600;color:#1A1513;cursor:pointer}
+.mx .pg-inventory .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.mx .pg-inventory .chip small{font-weight:500;color:#9A8E85}
+.mx .pg-inventory .chip.on small{color:#C9BCB0}
+.mx .pg-inventory .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.mx .pg-inventory .kpi{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:16px;padding:14px 16px}
+.mx .pg-inventory .kpi small{display:block;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.mx .pg-inventory .kpi b{display:block;font-size:24px;font-weight:700;margin-top:4px}
+.mx .pg-inventory .kpi span{font-size:12px;color:#6B5F57}
+.mx .pg-inventory .wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.mx .pg-inventory .tablebox{flex:999 1 560px;min-width:0;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;overflow-x:auto}
+.mx .pg-inventory table{width:100%;border-collapse:collapse;min-width:860px;font-size:13.5px}
+.mx .pg-inventory th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;font-weight:600;padding:12px 14px;border-bottom:1px solid #E6DCD2;white-space:nowrap}
+.mx .pg-inventory td{padding:10px 14px;border-bottom:1px solid #EDE4DA;white-space:nowrap;vertical-align:middle}
+.mx .pg-inventory tr.row{cursor:pointer}
+.mx .pg-inventory tr.row:hover td{background:#F7F0E7}
+.mx .pg-inventory tr.row.on td{background:#F1E8DD}
+.mx .pg-inventory td .name{display:flex;align-items:center;gap:10px;font-weight:600}
+.mx .pg-inventory td .name .ph{width:36px;height:36px;border-radius:10px;background:#3B1D22;flex:none}
+.mx .pg-inventory td .name small{display:block;font-weight:400;color:#6B5F57;font-size:12px}
+.mx .pg-inventory .stock{display:flex;align-items:center;gap:8px}
+.mx .pg-inventory .stock .m{width:70px;height:6px;border-radius:3px;background:#EFE5DA;overflow:hidden}
+.mx .pg-inventory .stock .m i{display:block;height:100%;background:#1A1513}
+.mx .pg-inventory .stock .m i.low{background:#B8475A}
+.mx .pg-inventory .panel{flex:1 1 300px;max-width:360px;display:flex;flex-direction:column;gap:14px}
+.mx .pg-inventory .card{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.mx .pg-inventory .card h3{margin:0;font-size:15px;font-weight:600}
+.mx .pg-inventory .ph-big{height:140px;border-radius:14px;background:#3B1D22;display:flex;align-items:flex-end;padding:10px;color:rgba(255,255,255,.65);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.mx .pg-inventory .field{display:flex;flex-direction:column;gap:6px}
+.mx .pg-inventory .field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57}
+.mx .pg-inventory .field input,.mx .pg-inventory .field select{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:42px;font:inherit;font-size:14px;padding:0 12px;color:#1A1513;outline:none;width:100%}
+.mx .pg-inventory .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mx .pg-inventory .kv{display:flex;flex-direction:column}
+.mx .pg-inventory .kv div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid #EDE4DA}
+.mx .pg-inventory .kv div:last-child{border-bottom:0}
+.mx .pg-inventory .kv b{font-weight:600;text-align:right}
+.mx .pg-inventory .order{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #EDE4DA;font-size:13px}
+.mx .pg-inventory .order:last-child{border-bottom:0}
+.mx .pg-inventory .order b{display:block;font-weight:600}
+.mx .pg-inventory .order span{color:#6B5F57;font-size:12px}
+.mx .pg-inventory .ai{background:#1A1513;color:#F4ECE3;border-radius:16px;padding:14px 18px;display:flex;gap:14px;align-items:center}
+.mx .pg-inventory .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+.mx .pg-inventory .topbar,.mx .pg-inventory .content{padding-left:16px;padding-right:16px}
+.mx .pg-inventory .panel{max-width:none}
+}
+
+/* Added for the working screen: links in place of buttons, the form in the panel, order lines, tables inside sheets. */
+.mx .pg-inventory a.chip,.mx .pg-inventory a.chip:hover{color:#1A1513}
+.mx .pg-inventory a.chip.on,.mx .pg-inventory a.chip.on:hover{color:#FBF7F2}
+.mx .pg-inventory a.chip:hover{border-color:#1A1513}
+.mx .pg-inventory td a.name,.mx .pg-inventory td a.name:hover{color:#1A1513}
+.mx .pg-inventory td a.name:hover > div{color:#7A1F2B}
+.mx .pg-inventory tbody tr:last-child td{border-bottom:0}
+.mx .pg-inventory a:focus-visible{outline:2px solid #D4AF5A;outline-offset:2px}
+.mx .pg-inventory .ai{flex-wrap:wrap}
+.mx .pg-inventory .pform{display:flex;flex-direction:column;gap:12px}
+.mx .pg-inventory .field textarea{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:70px;font:inherit;font-size:14px;padding:10px 12px;color:#1A1513;outline:none;width:100%;resize:vertical}
+.mx .pg-inventory .field input:focus,.mx .pg-inventory .field select:focus,.mx .pg-inventory .field textarea:focus{border-color:#1A1513;box-shadow:0 0 0 3px rgba(212,175,90,.28)}
+.mx .pg-inventory .field input:disabled{background:#F4ECE2;color:#6B5F57}
+.mx .pg-inventory .hint{font-size:12px;color:#6B5F57;line-height:1.4}
+.mx .pg-inventory .ph-big{height:96px}
+.mx .pg-inventory .tbl{min-width:0}
+.mx .pg-inventory .tbl td{white-space:normal}
+.mx .pg-inventory .tbl th{padding:8px 10px}
+.mx .pg-inventory .order > div > b{overflow-wrap:anywhere}
+.mx .pg-inventory .po{border-bottom:1px solid #EDE4DA;padding-bottom:10px}
+.mx .pg-inventory .po .order{border-bottom:0;padding-bottom:4px}
+.mx .pg-inventory .po summary{font-size:12.5px;font-weight:600;color:#7A1F2B;cursor:pointer}
+.mx .pg-inventory .po ul{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.mx .pg-inventory .po li{display:flex;justify-content:space-between;gap:10px}
+.mx .pg-inventory .po li b{font-weight:600;white-space:nowrap}
+
+/* Added for the product photo and what a product is used in. */
+.mx .pg-inventory td .name img.ph{object-fit:cover;display:block}
+.mx .pg-inventory img.ph-big.photo{width:100%;height:140px;object-fit:cover;padding:0;display:block}
+.mx .pg-inventory .photo-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mx .pg-inventory .photo-row input[type=file]{font:inherit;font-size:12.5px;flex:1;min-width:0;max-width:100%}
+.mx .pg-inventory .photo-row .hint{flex-basis:100%}
+.mx .pg-inventory .uses{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.mx .pg-inventory .uses label{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.mx .pg-inventory .uses label > span{flex:1;min-width:0}
+.mx .pg-inventory .uses small{display:block;font-size:11.5px;color:#6B5F57}
+.mx .pg-inventory .uses input{width:84px;min-height:36px;border:1px solid #E6DCD2;border-radius:10px;padding:0 10px;font:inherit;font-size:13.5px;text-align:right;background:#FFFFFF;color:#1A1513;outline:none;flex:none}
+.mx .pg-inventory .uses input:focus{border-color:#1A1513;box-shadow:0 0 0 3px rgba(212,175,90,.28)}
+
+/* Added for stock per location. Only drawn when there is more than one location. */
+.mx .pg-inventory .locs{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.mx .pg-inventory .locs .seg{flex-wrap:wrap;border-radius:18px}
+.mx .pg-inventory .locs .seg a,.mx .pg-inventory .locs .seg a:hover{color:#6B5F57}
+.mx .pg-inventory .locs .seg a.on{color:#1A1513}
+.mx .pg-inventory .locsum{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:12.5px;color:#6B5F57}
+.mx .pg-inventory .locsum b{color:#1A1513;font-weight:600}
+.mx .pg-inventory .stock small{font-size:11.5px}
+.mx .pg-inventory .cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;margin-bottom:2px}
+
+/* Added for online orders (the Orders tab): a line of explanation and a table whose item and address cells may wrap. */
+.mx .pg-inventory .oo-note{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:14px;padding:11px 14px;font-size:13.5px;line-height:1.45;color:#1A1513}
+.mx .pg-inventory .oo table{min-width:980px}
+.mx .pg-inventory .oo td{vertical-align:top}
+.mx .pg-inventory .oo td.wrapc{white-space:normal;min-width:170px;max-width:260px}
+.mx .pg-inventory .oo td b{font-weight:600}
+.mx .pg-inventory .oo .sub{display:block;font-size:12px;color:#6B5F57;font-weight:400;overflow-wrap:anywhere}
+.mx .pg-inventory .oo .acts{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.mx .pg-inventory .oo .shipf{display:flex;gap:6px;align-items:center}
+.mx .pg-inventory .oo .shipf .inp{width:150px;min-height:36px;font-size:13px}
+.mx .pg-inventory a.btn-out,.mx .pg-inventory a.btn-out:hover{color:#1A1513}
+.mx .pg-inventory a.btn-out:hover{border-color:#1A1513}
+.mx .pg-inventory .tablebox.oo{flex:none}
+/* The next step stays in view while the rest of a wide orders table scrolls. */
+.mx .pg-inventory .oo th:last-child,.mx .pg-inventory .oo td:last-child{position:sticky;right:0;background:#FFFFFF;box-shadow:-1px 0 0 #E6DCD2}

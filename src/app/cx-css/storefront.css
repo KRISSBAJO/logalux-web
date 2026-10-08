@@ -1,0 +1,161 @@
+/* Generated from the customer web design (Storefront). Scoped to this screen. */
+.cx.pg-storefront{margin:0;background:#FBF7F2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.cx.pg-storefront a{color:#7A1F2B;text-decoration:none}
+.cx.pg-storefront a:hover{color:#5A1420}
+.cx.pg-storefront *{box-sizing:border-box}
+.cx.pg-storefront .wrap{width:100%;max-width:1320px;margin:0 auto;padding:0 32px}
+.cx.pg-storefront .nav{background:#120E0D;color:#F4ECE3}
+.cx.pg-storefront .nav .wrap{display:flex;align-items:center;gap:20px;height:72px;flex-wrap:wrap}
+.cx.pg-storefront .logo{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:26px;font-weight:600}
+.cx.pg-storefront .logo i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.cx.pg-storefront .navlinks{display:flex;gap:18px;align-items:center;margin-left:auto}
+.cx.pg-storefront .navlinks a{color:#E9DED3;font-size:14px;font-weight:500}
+.cx.pg-storefront .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.cx.pg-storefront .btn-ink{background:#1A1513;color:#FBF7F2}
+.cx.pg-storefront .btn-gold{background:#D4AF5A;color:#1A1513}
+.cx.pg-storefront .btn-ghost{background:transparent;color:#F4ECE3;border-color:rgba(244,236,227,.35)}
+.cx.pg-storefront .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.cx.pg-storefront .btn-sm{min-height:38px;padding:0 14px;font-size:13px}
+.cx.pg-storefront .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.cx.pg-storefront .muted{color:#6B5F57}
+.cx.pg-storefront .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.cx.pg-storefront .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.cx.pg-storefront .pill-gold{background:#F6EBD2;color:#7A5A12}
+.cx.pg-storefront .pill-grey{background:#EFE5DA;color:#6B5F57}
+.cx.pg-storefront .gallery{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:220px 220px;gap:10px;margin-top:20px}
+.cx.pg-storefront .g{border-radius:18px;background:#3B1D22;position:relative;display:flex;align-items:flex-end;padding:12px;color:rgba(255,255,255,.65);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.cx.pg-storefront .g.big{grid-row:span 2}
+.cx.pg-storefront .g .all{position:absolute;right:12px;bottom:12px}
+.cx.pg-storefront .head{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-top:24px}
+.cx.pg-storefront .head h1{margin:0;font-size:44px;font-weight:500;line-height:1}
+.cx.pg-storefront .facts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:14px}
+.cx.pg-storefront .stars{color:#D4AF5A}
+.cx.pg-storefront .layout{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;margin-top:24px;padding-bottom:56px}
+.cx.pg-storefront .left{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:28px}
+.cx.pg-storefront .tabs{display:flex;gap:4px;border-bottom:1px solid #E6DCD2}
+.cx.pg-storefront .tabs button{border:0;background:transparent;font:inherit;font-size:15px;font-weight:600;color:#7A6E66;min-height:46px;padding:0 16px;cursor:pointer;border-bottom:2px solid transparent}
+.cx.pg-storefront .tabs button.on{color:#1A1513;border-bottom-color:#1A1513}
+.cx.pg-storefront .sec h2{margin:0 0 12px;font-size:26px;font-weight:500}
+.cx.pg-storefront .svc{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #EDE4DA}
+.cx.pg-storefront .svc:last-child{border-bottom:0}
+.cx.pg-storefront .svc b{display:block;font-size:16px;font-weight:600}
+.cx.pg-storefront .svc span{font-size:13px;color:#6B5F57;line-height:1.4}
+.cx.pg-storefront .svc .p{font-weight:700;font-size:16px;white-space:nowrap}
+.cx.pg-storefront .sel{width:44px;height:44px;border-radius:50%;border:1.5px solid #1A1513;background:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#1A1513;flex:none}
+.cx.pg-storefront .sel.on{background:#1A1513;color:#FBF7F2}
+.cx.pg-storefront .team{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.cx.pg-storefront .tm{background:#FFFFFF;border:1px solid #EDE4DA;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.cx.pg-storefront .tm b{font-size:14px;font-weight:600}
+.cx.pg-storefront .tm span{font-size:12px;color:#6B5F57}
+.cx.pg-storefront .rev{padding:14px 0;border-bottom:1px solid #EDE4DA;display:flex;gap:12px}
+.cx.pg-storefront .rev:last-child{border-bottom:0}
+.cx.pg-storefront .rev b{font-size:14px;font-weight:600}
+.cx.pg-storefront .rev p{margin:6px 0 0;font-size:14px;line-height:1.55}
+.cx.pg-storefront .rev .ph{display:flex;gap:6px;margin-top:8px}
+.cx.pg-storefront .rev .ph span{width:56px;height:56px;border-radius:10px;background:#3B1D22;display:block}
+.cx.pg-storefront .reply{margin:8px 0 0 0;background:#F4ECE2;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5}
+.cx.pg-storefront .about{font-size:15px;line-height:1.65}
+.cx.pg-storefront .chips{display:flex;flex-wrap:wrap;gap:6px}
+.cx.pg-storefront .chip{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 12px;min-height:34px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600}
+.cx.pg-storefront .side{flex:1 1 340px;max-width:400px;display:flex;flex-direction:column;gap:14px}
+.cx.pg-storefront .book{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.cx.pg-storefront .book .tot{display:flex;justify-content:space-between;align-items:center}
+.cx.pg-storefront .book .tot small{display:block;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cx.pg-storefront .book .tot b{font-size:22px;font-weight:700}
+.cx.pg-storefront .slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cx.pg-storefront .slot{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:48px;font:inherit;cursor:pointer;color:#1A1513;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.cx.pg-storefront .slot b{font-size:14px;font-weight:600}
+.cx.pg-storefront .slot span{font-size:11px;color:#6B5F57}
+.cx.pg-storefront .slot.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.cx.pg-storefront .slot.on span{color:#C9BCB0}
+.cx.pg-storefront .pol{font-size:12.5px;color:#6B5F57;line-height:1.5}
+.cx.pg-storefront .card{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.cx.pg-storefront .card h3{margin:0;font-size:14px;font-weight:600}
+.cx.pg-storefront .kv{display:flex;flex-direction:column}
+.cx.pg-storefront .kv div{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #EDE4DA}
+.cx.pg-storefront .kv div:last-child{border-bottom:0}
+.cx.pg-storefront .map{height:150px;border-radius:12px;background:#E8DFD3;position:relative;overflow:hidden}
+.cx.pg-storefront .map .pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);background:#1A1513;color:#FBF7F2;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700}
+.cx.pg-storefront .prod{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.cx.pg-storefront .pr{background:#FFFFFF;border:1px solid #EDE4DA;border-radius:16px;overflow:hidden;color:#1A1513}
+.cx.pg-storefront .pr .ph{height:110px;background:#3B1D22}
+.cx.pg-storefront .pr div{padding:10px 12px}
+.cx.pg-storefront .pr b{display:block;font-size:13.5px;font-weight:600}
+.cx.pg-storefront .pr span{font-size:12.5px;color:#6B5F57}
+.cx.pg-storefront .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:900px){
+.cx.pg-storefront .gallery{grid-template-columns:1fr 1fr;grid-template-rows:200px 120px}
+.cx.pg-storefront .g.big{grid-column:span 2;grid-row:span 1}
+.cx.pg-storefront .side{max-width:none}
+.cx.pg-storefront .head h1{font-size:34px}
+}
+@media (max-width:720px){
+.cx.pg-storefront .wrap{padding:0 16px}
+.cx.pg-storefront .navlinks{display:none}
+}
+
+/* ---------- Added for the live page (not in the design file) ---------- */
+/* Links drawn as buttons, tiles or cards keep their own colour on hover. */
+.cx.pg-storefront a.btn-ink:hover{color:#FBF7F2}
+.cx.pg-storefront a.btn-out:hover,.cx.pg-storefront a.pr:hover,.cx.pg-storefront a.slot:hover{color:#1A1513}
+.cx.pg-storefront a.slot:hover,.cx.pg-storefront a.pr:hover{border-color:#1A1513}
+.cx.pg-storefront a.muted:hover{color:#1A1513}
+.cx.pg-storefront .btn:disabled,.cx.pg-storefront .btn[disabled]{opacity:.45;cursor:default;transform:none}
+.cx.pg-storefront .btn.saved svg{color:#7A1F2B}
+.cx.pg-storefront :is(a,button):focus-visible{outline:2px solid #7A1F2B;outline-offset:2px}
+/* A message the business chose to show at the top of its page. */
+.cx.pg-storefront .notice{margin-top:20px;border:1px solid rgba(212,175,90,.5);background:#F6EBD2;color:#7A5A12;border-radius:16px;padding:12px 16px;font-size:14.5px;font-weight:500;line-height:1.5}
+/* Photos fill their tile; the "All photos" button sits in the bottom right corner of the grid. */
+.cx.pg-storefront .gallery{position:relative}
+.cx.pg-storefront .g{overflow:hidden}
+.cx.pg-storefront .gallery>.all{position:absolute;right:12px;bottom:12px;z-index:1}
+.cx.pg-storefront .title{display:flex;align-items:center;gap:16px}
+.cx.pg-storefront .logoimg{width:64px;height:64px;flex:none;border-radius:16px;border:1px solid #E6DCD2;background:#FFFFFF;object-fit:cover}
+.cx.pg-storefront .acts{display:flex;gap:8px;flex-wrap:wrap}
+.cx.pg-storefront .sec{scroll-margin-top:16px;display:flex;flex-direction:column}
+.cx.pg-storefront .tabs{overflow-x:auto;scrollbar-width:none}
+.cx.pg-storefront .tabs button{flex:none}
+.cx.pg-storefront .sel{padding:0}
+/* Star breakdown: each row filters the reviews by that rating. */
+.cx.pg-storefront .bd{display:flex;flex-direction:column;gap:2px;max-width:360px;margin:0 0 12px}
+.cx.pg-storefront .bd button{display:flex;align-items:center;gap:10px;border:0;background:transparent;font:inherit;font-size:12.5px;color:#1A1513;min-height:26px;padding:0 6px;border-radius:8px;cursor:pointer;text-align:left}
+.cx.pg-storefront .bd button:disabled{cursor:default;color:#9A8E85}
+.cx.pg-storefront .bd button:not(:disabled):hover,.cx.pg-storefront .bd button.on{background:#F4ECE2}
+.cx.pg-storefront .bd span:first-child{width:28px;flex:none;font-weight:600}
+.cx.pg-storefront .bd span:last-child{width:24px;flex:none;text-align:right;color:#6B5F57}
+.cx.pg-storefront .bd i{flex:1;height:6px;border-radius:999px;background:#EDE4DA;display:block;overflow:hidden}
+.cx.pg-storefront .bd em{display:block;height:100%;background:#D4AF5A;border-radius:999px}
+.cx.pg-storefront button.chip{font:inherit;font-size:12.5px;font-weight:600;color:#1A1513;cursor:pointer}
+.cx.pg-storefront button.chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+/* Product pictures fill the top of the card. */
+.cx.pg-storefront .pr{display:block}
+.cx.pg-storefront .pr .ph{position:relative;padding:0;overflow:hidden}
+/* The map fills its box; Leaflet's own layers stay under the page's sticky parts. */
+.cx.pg-storefront .map{isolation:isolate}
+.cx.pg-storefront .kv div{gap:12px}
+.cx.pg-storefront .kv b{text-align:right;font-weight:600}
+/* Every photo on its own view. */
+.cx.pg-storefront .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:24px}
+.cx.pg-storefront .shots figure{margin:0;scroll-margin-top:16px}
+.cx.pg-storefront .shots img{width:100%;height:auto;border-radius:18px;display:block;background:#3B1D22}
+.cx.pg-storefront .shots figcaption{font-size:13px;margin-top:6px}
+/* The summary card stays in view while the menu and reviews scroll; the cards under it pass behind. */
+.cx.pg-storefront .bar{display:none}
+@media (min-width:1041px){
+.cx.pg-storefront .side{align-self:stretch}
+.cx.pg-storefront .stick{position:sticky;top:0;z-index:2;background:#FBF7F2;padding-top:16px;margin-top:-16px}
+}
+@media (max-width:1040px){
+.cx.pg-storefront .bar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -32px;padding:10px 32px calc(10px + env(safe-area-inset-bottom));background:#FFFFFF;border-top:1px solid #E6DCD2}
+.cx.pg-storefront .bar small{display:block;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.cx.pg-storefront .bar b{font-size:18px;font-weight:700}
+.cx.pg-storefront .side{max-width:none}
+}
+@media (max-width:900px){
+.cx.pg-storefront .g.extra{display:none}
+}
+@media (max-width:720px){
+.cx.pg-storefront .bar{margin:0 -16px;padding-left:16px;padding-right:16px}
+.cx.pg-storefront .head{gap:16px}
+.cx.pg-storefront .svc{gap:10px}
+}

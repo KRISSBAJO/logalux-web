@@ -1,0 +1,113 @@
+/* Generated from the customer web design (Book). Scoped to this screen. */
+.cx.pg-book{margin:0;background:#FBF7F2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.cx.pg-book a{color:#7A1F2B;text-decoration:none}
+.cx.pg-book a:hover{color:#5A1420}
+.cx.pg-book *{box-sizing:border-box}
+.cx.pg-book .wrap{width:100%;max-width:1200px;margin:0 auto;padding:0 32px}
+.cx.pg-book .nav{background:#120E0D;color:#F4ECE3}
+.cx.pg-book .nav .wrap{display:flex;align-items:center;gap:20px;height:72px;flex-wrap:wrap}
+.cx.pg-book .logo{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:26px;font-weight:600}
+.cx.pg-book .logo i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.cx.pg-book .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.cx.pg-book .btn-ink{background:#1A1513;color:#FBF7F2}
+.cx.pg-book .btn-ghost{background:transparent;color:#F4ECE3;border-color:rgba(244,236,227,.35)}
+.cx.pg-book .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.cx.pg-book .btn-sm{min-height:38px;padding:0 14px;font-size:13px}
+.cx.pg-book .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.cx.pg-book .muted{color:#6B5F57}
+.cx.pg-book .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.cx.pg-book .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.cx.pg-book .pill-gold{background:#F6EBD2;color:#7A5A12}
+.cx.pg-book .steps{display:flex;gap:8px;align-items:center;margin:28px 0 20px;flex-wrap:wrap}
+.cx.pg-book .step{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#9A8E85}
+.cx.pg-book .step .n{width:28px;height:28px;border-radius:50%;border:1.5px solid #D9CFC4;display:flex;align-items:center;justify-content:center;font-size:12px}
+.cx.pg-book .step.on{color:#1A1513}
+.cx.pg-book .step.on .n{background:#1A1513;border-color:#1A1513;color:#FBF7F2}
+.cx.pg-book .step.done .n{background:#1F6B3A;border-color:#1F6B3A;color:#FFFFFF}
+.cx.pg-book .step.done{color:#1A1513}
+.cx.pg-book .steps i{width:28px;height:1px;background:#D9CFC4;display:block}
+.cx.pg-book .layout{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;padding-bottom:56px}
+.cx.pg-book .left{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:20px}
+.cx.pg-book .card{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.cx.pg-book .card h2{margin:0;font-size:26px;font-weight:500;line-height:1.05}
+.cx.pg-book .who{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.cx.pg-book .who button{display:flex;align-items:center;gap:10px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:16px;padding:10px 12px;font:inherit;text-align:left;cursor:pointer;color:#1A1513;min-height:60px}
+.cx.pg-book .who button.on{border-color:#1A1513;box-shadow:inset 0 0 0 1px #1A1513}
+.cx.pg-book .who b{font-size:14px;font-weight:600;display:block}
+.cx.pg-book .who span{font-size:12px;color:#6B5F57}
+.cx.pg-book .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cx.pg-book .cal .h{text-align:center;font-size:11px;color:#6B5F57;font-weight:600;padding:4px 0}
+.cx.pg-book .day{border:0;background:transparent;border-radius:12px;min-height:46px;font:inherit;font-size:14px;color:#1A1513;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.cx.pg-book .day i{width:4px;height:4px;border-radius:50%;background:#D4AF5A;display:block}
+.cx.pg-book .day.off{color:#C9BCB4;cursor:default}
+.cx.pg-book .day.on{background:#1A1513;color:#FBF7F2}
+.cx.pg-book .grp{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B5F57;margin-top:4px}
+.cx.pg-book .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.cx.pg-book .slot{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:46px;font:inherit;font-size:14px;font-weight:600;color:#1A1513;cursor:pointer}
+.cx.pg-book .slot.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.cx.pg-book .slot.gone{color:#B5A99E;text-decoration:line-through;background:transparent;border-style:dashed;cursor:default}
+.cx.pg-book .field{display:flex;flex-direction:column;gap:6px}
+.cx.pg-book .field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57}
+.cx.pg-book .field input,.cx.pg-book .field textarea{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:46px;font:inherit;font-size:15px;padding:0 12px;color:#1A1513;outline:none;width:100%}
+.cx.pg-book .field textarea{padding:10px 12px;min-height:70px;resize:none}
+.cx.pg-book .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cx.pg-book .opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #E6DCD2;border-radius:14px;background:#FFFFFF;font:inherit;text-align:left;cursor:pointer;color:#1A1513;width:100%;min-height:54px}
+.cx.pg-book .opt.on{border-color:#1A1513;box-shadow:inset 0 0 0 1px #1A1513}
+.cx.pg-book .opt b{display:block;font-size:14px;font-weight:600}
+.cx.pg-book .opt span{font-size:12.5px;color:#6B5F57}
+.cx.pg-book .radio{width:20px;height:20px;border-radius:50%;border:1.5px solid #1A1513;display:flex;align-items:center;justify-content:center;flex:none}
+.cx.pg-book .radio i{width:10px;height:10px;border-radius:50%;background:#1A1513;display:block}
+.cx.pg-book .chips{display:flex;gap:8px;flex-wrap:wrap}
+.cx.pg-book .chip{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 14px;min-height:40px;font:inherit;font-size:13px;font-weight:600;color:#1A1513;cursor:pointer}
+.cx.pg-book .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.cx.pg-book .side{flex:1 1 320px;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.cx.pg-book .sum{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.cx.pg-book .line{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 0}
+.cx.pg-book .line.total{border-top:1px solid #EDE4DA;margin-top:4px;padding-top:12px;font-weight:700;font-size:17px}
+.cx.pg-book .ok{background:#E3F2E7;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#1F6B3A;line-height:1.5}
+.cx.pg-book .done{text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0}
+.cx.pg-book .done .ck{width:72px;height:72px;border-radius:50%;background:#D4AF5A;display:flex;align-items:center;justify-content:center}
+.cx.pg-book .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+.cx.pg-book .wrap{padding:0 16px}
+.cx.pg-book .side{max-width:none}
+.cx.pg-book .two{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ---------- Added for the live page (not in the design file) ---------- */
+/* The design's ".done" (the confirmation block) must not restyle a finished step. */
+.cx.pg-book .step.done{flex-direction:row;padding:0;gap:8px;text-align:left}
+/* Links drawn as buttons keep their own colour on hover. */
+.cx.pg-book a.btn-ink:hover{color:#FBF7F2}
+.cx.pg-book a.btn-out:hover{color:#1A1513}
+.cx.pg-book .btn:disabled,.cx.pg-book .btn[disabled]{opacity:.45;cursor:default;transform:none}
+.cx.pg-book :is(a,button,input,textarea):focus-visible{outline:2px solid #7A1F2B;outline-offset:2px}
+.cx.pg-book .field input:focus,.cx.pg-book .field textarea:focus{border-color:#1A1513}
+/* Back to the business, and the note that card details stay with the payment provider. */
+.cx.pg-book .crumb{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px}
+.cx.pg-book .crumb .secure{display:flex;align-items:center;gap:8px;font-size:13px}
+.cx.pg-book .steps{margin-top:20px}
+/* Something went wrong, or a time was taken. */
+.cx.pg-book .err{background:#F6E3E6;color:#9B2335;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.5}
+.cx.pg-book .linkbtn{border:0;background:transparent;padding:0;font:inherit;font-weight:600;color:#7A1F2B;cursor:pointer}
+.cx.pg-book .linkbtn:hover{color:#5A1420}
+/* A time that costs more or less than the others says so. */
+.cx.pg-book .slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 6px}
+.cx.pg-book .slot small{font-size:11px;font-weight:500;color:#6B5F57}
+.cx.pg-book .slot.on small{color:#C9BCB0}
+.cx.pg-book .day{padding:0}
+.cx.pg-book .day:not(.off):not(.on):hover{background:#F4ECE2}
+.cx.pg-book .who button>span:last-child{min-width:0}
+.cx.pg-book .who span span{display:block}
+.cx.pg-book .opt>span:last-child>span{display:block}
+.cx.pg-book .wl{display:flex;flex-direction:column;gap:12px;border-top:1px solid #EDE4DA;padding-top:14px}
+.cx.pg-book .logoimg{width:44px;height:44px;flex:none;border-radius:12px;border:1px solid #E6DCD2;background:#FFFFFF;object-fit:cover}
+.cx.pg-book .line span:first-child{min-width:0}
+.cx.pg-book .line span:last-child{white-space:nowrap}
+.cx.pg-book .done h2{line-height:1.1}
+@media (max-width:720px){
+.cx.pg-book .cal{gap:2px}
+.cx.pg-book .card{padding:16px}
+.cx.pg-book .steps i{width:12px}
+.cx.pg-book .step{font-size:13px}
+}

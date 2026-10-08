@@ -1,0 +1,101 @@
+import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, Topbar, ago, inputCls, statusPill, inputSm } from "@/components/admin-ui";
+import { can, getAdmin, load, type Row } from "@/lib/admin-api";
+import { inviteAdmin, updateAdmin } from "../actions";
+import { resetTwoStepFor } from "../actions-account";
+
+const roles: [string, string, string][] = [
+  ["support", "Support", "Reads everything. Adds notes. Cancels, completes and moves bookings."],
+  ["ops", "Operations", "Everything support can do, plus verification, moderation, disputes, payouts, credits, orders and blocking."],
+  ["super_admin", "Super admin", "Everything, plus fees, feature flags and this team page."],
+];
+
+export default async function Team({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
+  const sp = await searchParams;
+  const admin = await getAdmin();
+  const back = "/admin/team";
+
+  if (!can(admin, "super_admin")) {
+    return (
+      <>
+        <Topbar title="Team" />
+        <Content><Panel><Empty>Only a super admin can see and manage the team.</Empty></Panel></Content>
+      </>
+    );
+  }
+  const res = await load("/team");
+  const team: Row[] = res.data.team ?? [];
+
+  return (
+    <>
+      <Topbar title="Team" sub="Who can sign in to this console, and what each person may do" />
+      <Content>
+        <Flash sp={sp} error={res.error} />
+        <Panel flush>
+          <table className="data min-w-[1040px]">
+            <thead><tr><th>Person</th><th>Status</th><th>Two-step</th><th>Last sign-in</th><th>Role</th><th>Access</th><th>New password</th></tr></thead>
+            <tbody>
+              {team.map((t) => {
+                const me = t.id === admin?.id;
+                return (
+                  <tr key={t.id}>
+                    <td><b className="block font-semibold">{t.name}{me && <span className="ml-2 text-[12px] font-normal text-muted">you</span>}</b><span className="text-[12px] text-muted">{t.email}</span></td>
+                    <td><div className="flex flex-wrap gap-1">{statusPill(t.active ? "active" : "disabled")}{t.locked && <Pill kind="wine">locked</Pill>}</div></td>
+                    <td>
+                      <div className="flex items-center gap-1.5">
+                        {t.two_step ? <Pill kind="ok">on</Pill> : <Pill kind="grey">off</Pill>}
+                        {t.two_step && !me && <form action={resetTwoStepFor}><Hidden values={{ id: t.id, back }} /><Btn small title="For someone who lost their phone. Signs them out and turns two-step off.">Reset</Btn></form>}
+                      </div>
+                    </td>
+                    <td>{ago(t.last_login_at)}</td>
+                    <td>
+                      <form action={updateAdmin} className="flex items-center gap-1.5">
+                        <Hidden values={{ id: t.id, back }} />
+                        <select name="role" defaultValue={t.role} disabled={me} aria-label={`Role for ${t.name}`} className={`${inputSm} w-[140px] disabled:opacity-60`}>{roles.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                        {!me && <Btn small>Save</Btn>}
+                      </form>
+                    </td>
+                    <td>
+                      {me ? <span className="text-[12.5px] text-muted">—</span> : (
+                        <form action={updateAdmin}>
+                          <Hidden values={{ id: t.id, active: t.active ? "0" : "1", back }} />
+                          {t.active ? <Btn small kind="danger">Disable</Btn> : <Btn small kind="ok">Enable</Btn>}
+                        </form>
+                      )}
+                    </td>
+                    <td>
+                      <form action={updateAdmin} className="flex items-center gap-1.5">
+                        <Hidden values={{ id: t.id, back }} />
+                        <input type="password" name="password" required minLength={10} autoComplete="new-password" placeholder="10 characters or more" aria-label={`New password for ${t.name}`} className={`${inputSm} w-[170px]`} />
+                        <Btn small>Reset</Btn>
+                      </form>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Panel>
+
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <Panel title="Add an admin" sub="Give them the password yourself. They cannot reset it on their own yet.">
+            <form action={inviteAdmin} className="flex flex-col gap-3">
+              <Hidden values={{ back }} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Name"><input name="name" required className={inputCls} /></Field>
+                <Field label="Work email"><input type="email" name="email" required autoComplete="off" className={inputCls} /></Field>
+                <Field label="Role"><select name="role" defaultValue="support" className={inputCls}>{roles.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
+                <Field label="First password"><input type="password" name="password" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
+              </div>
+              <div><Btn kind="ink">Add admin</Btn></div>
+            </form>
+          </Panel>
+          <Panel title="What each role can do">
+            <div className="flex flex-col gap-3">
+              {roles.map(([v, l, d]) => <div key={v}><b className="text-[14px] font-semibold">{l}</b><p className="text-[13.5px] text-muted">{d}</p></div>)}
+            </div>
+          </Panel>
+        </div>
+      </Content>
+    </>
+  );
+}

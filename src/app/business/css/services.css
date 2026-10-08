@@ -1,0 +1,124 @@
+/* Generated from the merchant design (Services). Scoped to this screen. */
+.mx .pg-services{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-services a{color:#7A1F2B;text-decoration:none}
+.mx .pg-services a:hover{color:#5A1420}
+.mx .pg-services *{box-sizing:border-box}
+.mx .pg-services .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-services .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:6px}
+.mx .pg-services .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-services .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-services .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-services .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-services .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-services .nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:44px}
+.mx .pg-services .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-services .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-services .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-services .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-services .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-services .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-services .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-services .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-services .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-services .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-services .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-services .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-services .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.mx .pg-services .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.mx .pg-services .muted{color:#6B5F57}
+.mx .pg-services .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-services .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-services .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-services .pill-grey{background:#EFE5DA;color:#6B5F57}
+.mx .pg-services .wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.mx .pg-services .cats{flex:1 1 200px;max-width:230px;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:2px}
+.mx .pg-services .cat{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;border:0;background:transparent;font:inherit;font-size:14px;font-weight:500;color:#1A1513;cursor:pointer;text-align:left;min-height:42px}
+.mx .pg-services .cat:hover{background:#F1E8DD}
+.mx .pg-services .cat.on{background:#1A1513;color:#FBF7F2;font-weight:600}
+.mx .pg-services .cat small{color:#9A8E85;font-weight:500}
+.mx .pg-services .cat.on small{color:#C9BCB0}
+.mx .pg-services .list{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.mx .pg-services .tablebox{background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;overflow-x:auto}
+.mx .pg-services table{width:100%;border-collapse:collapse;min-width:720px;font-size:13.5px}
+.mx .pg-services th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;font-weight:600;padding:12px 14px;border-bottom:1px solid #E6DCD2;white-space:nowrap}
+.mx .pg-services td{padding:10px 14px;border-bottom:1px solid #EDE4DA;vertical-align:middle}
+.mx .pg-services tr.row:hover td{background:#F7F0E7}
+.mx .pg-services tr.row.on td{background:#F1E8DD}
+.mx .pg-services td .grab{color:#C9BCB0;cursor:grab}
+.mx .pg-services td b{font-weight:600}
+.mx .pg-services td small{display:block;color:#6B5F57;font-size:12px}
+.mx .pg-services .sw{width:40px;height:24px;border-radius:999px;background:#1A1513;position:relative;flex:none;border:0;cursor:pointer;display:inline-block;vertical-align:middle}
+.mx .pg-services .sw::after{content:"";position:absolute;top:3px;left:19px;width:18px;height:18px;border-radius:50%;background:#FBF7F2}
+.mx .pg-services .sw.off{background:#D9CFC4}
+.mx .pg-services .sw.off::after{left:3px}
+.mx .pg-services .ai{background:#1A1513;color:#F4ECE3;border-radius:16px;padding:14px 18px;display:flex;gap:14px;align-items:center}
+.mx .pg-services .panel{flex:1 1 300px;max-width:360px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.mx .pg-services .field{display:flex;flex-direction:column;gap:6px}
+.mx .pg-services .field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57}
+.mx .pg-services .field input,.mx .pg-services .field select,.mx .pg-services .field textarea{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:42px;font:inherit;font-size:14px;padding:0 12px;color:#1A1513;outline:none;width:100%}
+.mx .pg-services .field textarea{padding:10px 12px;min-height:70px;resize:none}
+.mx .pg-services .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mx .pg-services .levels{display:flex;flex-direction:column;gap:6px}
+.mx .pg-services .lvl{display:flex;align-items:center;gap:10px;font-size:13px;padding:8px 10px;background:#F4ECE2;border-radius:10px}
+.mx .pg-services .lvl b{margin-left:auto;font-weight:600}
+.mx .pg-services .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+.mx .pg-services .topbar,.mx .pg-services .content{padding-left:16px;padding-right:16px}
+.mx .pg-services .panel,.mx .pg-services .cats{max-width:none}
+}
+
+/* Added for the working screen: group rows, the order arrows, the form in the panel. */
+.mx .pg-services a.cat{color:#1A1513}
+.mx .pg-services a.cat.on,.mx .pg-services a.cat.on:hover{color:#FBF7F2}
+.mx .pg-services a.cat.on:hover{background:#1A1513}
+.mx .pg-services a.nm,.mx .pg-services a.nm:hover{color:#1A1513}
+.mx .pg-services a.nm:hover b{color:#7A1F2B}
+.mx .pg-services tbody tr:last-child td{border-bottom:0}
+.mx .pg-services tr.grp td{background:#F4ECE2;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;padding:8px 14px}
+.mx .pg-services tr.grp td span{color:#9A8E85;font-weight:500;margin-left:4px}
+.mx .pg-services .mv{display:flex;flex-direction:column;gap:2px}
+.mx .pg-services .mv button{width:22px;height:18px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#6B5F57;padding:0}
+.mx .pg-services .mv button:hover{color:#1A1513;border-color:#1A1513}
+.mx .pg-services .mv button:disabled{opacity:.35;cursor:default;border-color:#E6DCD2;color:#6B5F57}
+.mx .pg-services .sw{padding:0}
+.mx .pg-services .sw:focus-visible,.mx .pg-services .mv button:focus-visible{outline:2px solid #D4AF5A;outline-offset:2px}
+.mx .pg-services .pform{display:flex;flex-direction:column;gap:14px}
+.mx .pg-services .field small,.mx .pg-services .hint{font-size:12px;color:#6B5F57;line-height:1.4}
+.mx .pg-services .hint{display:block;margin-top:6px}
+.mx .pg-services .field input:focus,.mx .pg-services .field textarea:focus,.mx .pg-services .lvl .lp:focus{border-color:#1A1513;box-shadow:0 0 0 3px rgba(212,175,90,.28)}
+.mx .pg-services .cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.mx .pg-services .lvl label{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer}
+.mx .pg-services .lvl input[type=checkbox]{width:16px;height:16px;accent-color:#1A1513;flex:none}
+.mx .pg-services .lvl .lp{margin-left:auto;width:104px;min-height:34px;border:1px solid #E6DCD2;border-radius:10px;padding:0 10px;font:inherit;font-size:13px;background:#FFFFFF;color:#1A1513;outline:none;flex:none}
+.mx .pg-services .ai{flex-wrap:wrap}
+.mx .pg-services .ai > div{min-width:200px}
+
+/* Added for pricing rules, packages, memberships and rooms. */
+.mx .pg-services .list > .card{min-width:0}
+.mx .pg-services .boxed{border:1px solid #E6DCD2;border-radius:14px;overflow:hidden;background:#FBF7F2}
+.mx .pg-services .tbl{min-width:640px}
+.mx .pg-services .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mx .pg-services td .acts{justify-content:flex-end;flex-wrap:nowrap}
+.mx .pg-services .days{display:flex;flex-wrap:wrap;gap:6px}
+.mx .pg-services .days label{position:relative;cursor:pointer}
+.mx .pg-services .days input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.mx .pg-services .days span{display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid #E6DCD2;background:#FFFFFF;font-size:13px;font-weight:600;color:#6B5F57}
+.mx .pg-services .days input:checked + span{background:#1A1513;border-color:#1A1513;color:#FBF7F2}
+.mx .pg-services .days input:focus-visible + span{box-shadow:0 0 0 3px rgba(212,175,90,.5)}
+.mx .pg-services .plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.mx .pg-services .plan{border:1px solid #E6DCD2;border-radius:16px;padding:16px;background:#FBF7F2;display:flex;flex-direction:column;gap:10px;min-width:0}
+.mx .pg-services .plan.offsale{opacity:.75}
+.mx .pg-services .plan > div > b{font-size:20px;font-weight:600;line-height:1.15}
+.mx .pg-services .plan .price{font-size:24px;font-weight:700}
+.mx .pg-services .plan .price small{font-size:12.5px;font-weight:500;color:#6B5F57;margin-left:8px}
+.mx .pg-services .plan p{font-size:13px;line-height:1.45;color:#6B5F57}
+.mx .pg-services .plan ul{margin:0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:3px}
+.mx .pg-services .plan .stat{font-size:12.5px;color:#6B5F57;margin-top:auto}
+.mx .pg-services .incl{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;border:1px solid #E6DCD2;border-radius:12px;padding:10px 12px;background:#FFFFFF}
+.mx .pg-services .incl label{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.mx .pg-services .incl label > span{flex:1;min-width:0}
+.mx .pg-services .incl small{display:block;font-size:11.5px;color:#6B5F57}
+.mx .pg-services .incl .inp{width:76px;min-height:36px;text-align:right;flex:none}
+.mx .pg-services .res{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid #EDE4DA}
+.mx .pg-services .res small{flex-basis:100%;font-size:12px;color:#6B5F57}
+.mx .pg-services .pc{display:flex;flex-direction:column;gap:12px}

@@ -1,0 +1,106 @@
+/* Generated from the merchant design (Clients). Scoped to this screen. */
+.mx .pg-clients{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-clients a{color:#7A1F2B;text-decoration:none}
+.mx .pg-clients a:hover{color:#5A1420}
+.mx .pg-clients *{box-sizing:border-box}
+.mx .pg-clients .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-clients .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:6px}
+.mx .pg-clients .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-clients .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-clients .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-clients .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-clients .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-clients .nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:44px}
+.mx .pg-clients .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-clients .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-clients .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-clients .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-clients .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-clients .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-clients .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-clients .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-clients .search{display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:12px;padding:0 12px;min-height:42px;min-width:220px;flex:1;max-width:360px}
+.mx .pg-clients .search input{border:0;background:transparent;font:inherit;font-size:14px;flex:1;outline:none;min-width:0;color:#1A1513}
+.mx .pg-clients .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-clients .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-clients .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-clients .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-clients .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.mx .pg-clients .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.mx .pg-clients .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mx .pg-clients .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 12px;min-height:36px;font:inherit;font-size:13px;font-weight:600;color:#1A1513;cursor:pointer}
+.mx .pg-clients .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.mx .pg-clients .chip small{font-weight:500;color:#9A8E85}
+.mx .pg-clients .chip.on small{color:#C9BCB0}
+.mx .pg-clients .muted{color:#6B5F57}
+.mx .pg-clients .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-clients .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-clients .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-clients .pill-new{background:#E4ECF7;color:#1F4B7A}
+.mx .pg-clients .pill-wine{background:#F6E3E6;color:#7A1F2B}
+.mx .pg-clients .pill-grey{background:#EFE5DA;color:#6B5F57}
+.mx .pg-clients .wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.mx .pg-clients .tablebox{flex:999 1 560px;min-width:0;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;overflow-x:auto}
+.mx .pg-clients table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px}
+.mx .pg-clients th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;font-weight:600;padding:12px 14px;border-bottom:1px solid #E6DCD2;white-space:nowrap}
+.mx .pg-clients td{padding:10px 14px;border-bottom:1px solid #EDE4DA;vertical-align:middle;white-space:nowrap}
+.mx .pg-clients tr.row{cursor:pointer}
+.mx .pg-clients tr.row:hover td{background:#F7F0E7}
+.mx .pg-clients tr.row.on td{background:#F1E8DD}
+.mx .pg-clients td .name{display:flex;align-items:center;gap:10px;font-weight:600}
+.mx .pg-clients td .name small{display:block;font-weight:400;color:#6B5F57;font-size:12px}
+.mx .pg-clients .insight{background:#1A1513;color:#F4ECE3;border-radius:16px;padding:14px 18px;display:flex;gap:14px;align-items:center}
+.mx .pg-clients .panel{flex:1 1 300px;max-width:360px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.mx .pg-clients .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.mx .pg-clients .stats div{background:#F4ECE2;border-radius:12px;padding:10px 8px;text-align:center}
+.mx .pg-clients .stats b{display:block;font-size:16px;font-weight:700}
+.mx .pg-clients .stats small{font-size:10px;color:#6B5F57;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.mx .pg-clients .note{background:#FFF9E8;border:1px solid #F0E2B8;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+.mx .pg-clients .visit{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EDE4DA;font-size:13px}
+.mx .pg-clients .visit:last-child{border-bottom:0}
+.mx .pg-clients .visit .ph{width:36px;height:36px;border-radius:10px;background:#3B1D22;flex:none}
+.mx .pg-clients .visit b{display:block;font-weight:600}
+.mx .pg-clients .visit span{color:#6B5F57;font-size:12px}
+.mx .pg-clients .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mx .pg-clients .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+.mx .pg-clients .topbar,.mx .pg-clients .content{padding-left:16px;padding-right:16px}
+.mx .pg-clients .panel{max-width:none}
+}
+
+/* Added for the built screen: rows open the side panel through a link, plus the sort picker. */
+.mx .pg-clients tr.row{position:relative}
+.mx .pg-clients a.rowlink{color:#1A1513;display:block}
+.mx .pg-clients a.rowlink::after{content:"";position:absolute;inset:0}
+.mx .pg-clients a.rowlink:focus-visible{outline:2px solid #D4AF5A;outline-offset:2px;border-radius:4px}
+.mx .pg-clients a.chip{color:#1A1513}
+.mx .pg-clients a.chip.on{color:#FBF7F2}
+.mx .pg-clients .sortsel{appearance:auto;padding-right:8px}
+.mx .pg-clients .panel{scroll-margin-top:90px}
+.mx .pg-clients a.visit{color:#1A1513}
+.mx .pg-clients a.visit:hover b{color:#7A1F2B}
+.mx .pg-clients .visit span{display:block}
+.mx .pg-clients .acts .btn{width:100%}
+.mx .pg-clients .insight a.btn{flex:none}
+@media (max-width:720px){
+.mx .pg-clients .insight{flex-wrap:wrap}
+}
+.mx .pg-clients tr.row{display:table-row;padding:0;border-bottom:0;font-size:inherit;gap:0}
+.mx .pg-clients tr.row td b{font-weight:700}
+.mx .pg-clients th a{color:inherit;display:inline-flex;align-items:center;gap:2px}
+.mx .pg-clients th a span{font-size:10px;opacity:.4}
+.mx .pg-clients th a:hover,.mx .pg-clients th.sorted a{color:#1A1513}
+.mx .pg-clients th.sorted a span{opacity:1}
+.mx .pg-clients .dt-foot{border-top:0}
+.mx .pg-clients .dt-pages a{color:#1A1513}
+.mx .pg-clients .dt-pages a.on{color:#FBF7F2}
+.mx .pg-clients .plan{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #EDE4DA;font-size:13px}
+.mx .pg-clients .plan b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:600}
+.mx .pg-clients .plan span{display:block;color:#6B5F57;font-size:12px;line-height:1.45}
+.mx .pg-clients .plan .pill{display:inline-flex;color:inherit}
+.mx .pg-clients .plan .pill-ok{color:#1F6B3A}
+.mx .pg-clients .plan .pill-gold{color:#7A5A12}
+.mx .pg-clients .plan .pill-wine{color:#7A1F2B}
+.mx .pg-clients .loyal{display:flex;gap:10px;align-items:center;background:#F6EBD2;border-radius:12px;padding:10px 12px;font-size:13px}
+.mx .pg-clients .loyal b{display:block;font-weight:600}
+.mx .pg-clients .loyal span{display:block;color:#6B5F57;font-size:12px;line-height:1.45}

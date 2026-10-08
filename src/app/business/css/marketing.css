@@ -1,0 +1,147 @@
+/* Generated from the merchant design (Marketing). Scoped to this screen. */
+.mx .pg-marketing{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-marketing a{color:#7A1F2B;text-decoration:none}
+.mx .pg-marketing a:hover{color:#5A1420}
+.mx .pg-marketing *{box-sizing:border-box}
+.mx .pg-marketing .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-marketing .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:6px}
+.mx .pg-marketing .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-marketing .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-marketing .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-marketing .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-marketing .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-marketing .nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:44px}
+.mx .pg-marketing .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-marketing .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-marketing .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-marketing .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-marketing .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-marketing .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-marketing .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-marketing .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-marketing .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-marketing .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-marketing .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-marketing .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-marketing .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.mx .pg-marketing .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.mx .pg-marketing .muted{color:#6B5F57}
+.mx .pg-marketing .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-marketing .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-marketing .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-marketing .pill-grey{background:#EFE5DA;color:#6B5F57}
+.mx .pg-marketing .seg{display:inline-flex;background:#EFE5DA;border-radius:999px;padding:3px;gap:2px}
+.mx .pg-marketing .seg button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;cursor:pointer;color:#6B5F57}
+.mx .pg-marketing .seg button.on{background:#1A1513;color:#FBF7F2}
+.mx .pg-marketing .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.mx .pg-marketing .kpi{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:16px;padding:14px 16px}
+.mx .pg-marketing .kpi small{display:block;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.mx .pg-marketing .kpi b{display:block;font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.01em}
+.mx .pg-marketing .kpi span{font-size:12px;color:#6B5F57}
+.mx .pg-marketing .wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.mx .pg-marketing .left{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.mx .pg-marketing .auto{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:16px;display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;text-align:left;font:inherit;color:#1A1513;width:100%}
+.mx .pg-marketing .auto.on{border-color:#1A1513;box-shadow:inset 0 0 0 1px #1A1513}
+.mx .pg-marketing .auto .ic{width:40px;height:40px;border-radius:12px;background:#F4ECE2;display:flex;align-items:center;justify-content:center;flex:none}
+.mx .pg-marketing .auto b{display:block;font-size:15px;font-weight:600}
+.mx .pg-marketing .auto span{font-size:12.5px;color:#6B5F57}
+.mx .pg-marketing .auto .st{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;font-size:12px;color:#6B5F57}
+.mx .pg-marketing .sw{width:40px;height:24px;border-radius:999px;background:#1A1513;position:relative;flex:none;border:0;cursor:pointer}
+.mx .pg-marketing .sw::after{content:"";position:absolute;top:3px;left:19px;width:18px;height:18px;border-radius:50%;background:#FBF7F2}
+.mx .pg-marketing .sw.off{background:#D9CFC4}
+.mx .pg-marketing .sw.off::after{left:3px}
+.mx .pg-marketing .panel{flex:1 1 320px;max-width:400px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.mx .pg-marketing .field{display:flex;flex-direction:column;gap:6px}
+.mx .pg-marketing .field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57}
+.mx .pg-marketing .field select,.mx .pg-marketing .field input,.mx .pg-marketing .field textarea{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:12px;min-height:42px;font:inherit;font-size:14px;padding:0 12px;color:#1A1513;outline:none;width:100%}
+.mx .pg-marketing .field textarea{padding:10px 12px;min-height:110px;resize:none;line-height:1.5}
+.mx .pg-marketing .chips{display:flex;flex-wrap:wrap;gap:6px}
+.mx .pg-marketing .chip{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 12px;min-height:34px;font:inherit;font-size:12.5px;font-weight:600;color:#1A1513;cursor:pointer}
+.mx .pg-marketing .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.mx .pg-marketing .preview{background:#E7F6E9;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.mx .pg-marketing .bubble{background:#FFFFFF;border-radius:14px;border-bottom-left-radius:4px;padding:10px 12px;font-size:13px;line-height:1.5;max-width:92%;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.mx .pg-marketing .bubble time{display:block;font-size:10px;color:#6B5F57;text-align:right;margin-top:4px}
+.mx .pg-marketing .ai{background:#1A1513;color:#F4ECE3;border-radius:16px;padding:14px 18px;display:flex;gap:14px;align-items:center}
+.mx .pg-marketing .tablebox{background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;overflow-x:auto}
+.mx .pg-marketing table{width:100%;border-collapse:collapse;min-width:640px;font-size:13.5px}
+.mx .pg-marketing th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;font-weight:600;padding:12px 14px;border-bottom:1px solid #E6DCD2;white-space:nowrap}
+.mx .pg-marketing td{padding:10px 14px;border-bottom:1px solid #EDE4DA;white-space:nowrap}
+.mx .pg-marketing td b{font-weight:600}
+@media (max-width:720px){
+.mx .pg-marketing .topbar,.mx .pg-marketing .content{padding-left:16px;padding-right:16px}
+.mx .pg-marketing .panel{max-width:none}
+}
+
+/* Added for the working screen: tab links, the on/off controls, notes and focus. */
+.mx .pg-marketing .seg a{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;color:#6B5F57}
+.mx .pg-marketing .seg a.on{background:#1A1513;color:#FBF7F2;box-shadow:none}
+.mx .pg-marketing .auto{cursor:default}
+.mx .pg-marketing .auto-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;color:#1A1513}
+.mx .pg-marketing .auto-l:hover b{color:#7A1F2B}
+.mx .pg-marketing .auto .st{text-align:right;max-width:44%}
+.mx .pg-marketing .sw{display:block;padding:0}
+.mx .pg-marketing .sw:focus-visible,.mx .pg-marketing .chip:focus-visible,.mx .pg-marketing .auto-l:focus-visible{outline:2px solid #D4AF5A;outline-offset:2px}
+.mx .pg-marketing .tog{position:relative;display:inline-flex;flex:none}
+.mx .pg-marketing .tog input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1}
+.mx .pg-marketing .tog input:not(:checked) + .sw{background:#D9CFC4}
+.mx .pg-marketing .tog input:not(:checked) + .sw::after{left:3px}
+.mx .pg-marketing .tog input:focus-visible + .sw{box-shadow:0 0 0 3px rgba(212,175,90,.5)}
+.mx .pg-marketing .togrow{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:13.5px}
+.mx .pg-marketing .togrow b{display:block;font-weight:600}
+.mx .pg-marketing .togrow small{font-size:12.5px;color:#6B5F57}
+.mx .pg-marketing .note{background:#F4ECE2;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+.mx .pg-marketing .field input[readonly]{background:#FBF7F2;color:#6B5F57}
+.mx .pg-marketing .field input:focus,.mx .pg-marketing .field select:focus,.mx .pg-marketing .field textarea:focus{border-color:#1A1513;box-shadow:0 0 0 3px rgba(212,175,90,.28)}
+.mx .pg-marketing .field textarea{resize:vertical}
+.mx .pg-marketing .chip.stat{display:inline-flex;align-items:center;cursor:default;color:#6B5F57}
+.mx .pg-marketing .bubble{white-space:pre-wrap;overflow-wrap:anywhere}
+.mx .pg-marketing td a{color:#1A1513}
+.mx .pg-marketing td a:hover b{color:#7A1F2B}
+.mx .pg-marketing td:last-child a{color:#7A1F2B;font-weight:600}
+.mx .pg-marketing .ai a.btn{background:#D4AF5A;color:#1A1513}
+.mx .pg-marketing .panel .kv dd{font-weight:600}
+@media (max-width:720px){
+.mx .pg-marketing .ai{flex-wrap:wrap}
+.mx .pg-marketing .auto{flex-wrap:wrap}
+.mx .pg-marketing .auto .st{flex-direction:row;align-items:center;max-width:none;width:100%;justify-content:space-between}
+}
+.mx .pg-marketing .btn-danger{border-color:#EBCFCF}
+
+/* New clients, loyalty and promo codes. */
+.mx .pg-marketing .seg{flex-wrap:wrap;border-radius:22px}
+.mx .pg-marketing .cardx{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mx .pg-marketing .cardx h3{font-size:15px;font-weight:600}
+.mx .pg-marketing .hdx{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mx .pg-marketing .hero{flex-direction:row;flex-wrap:wrap;gap:20px;background:#FBF7F2}
+.mx .pg-marketing .hero > div{display:flex;flex-direction:column;gap:8px}
+.mx .pg-marketing .lead{font-size:16px;line-height:1.5;color:#1A1513}
+.mx .pg-marketing .own{flex:1 1 300px;max-width:440px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:14px;padding:14px;min-width:0}
+.mx .pg-marketing .linkrow{display:flex;align-items:center;gap:8px;background:#F4ECE2;border-radius:12px;padding:8px 8px 8px 12px;font-size:14px;font-weight:600}
+.mx .pg-marketing .linkrow span{flex:1;min-width:0;overflow-wrap:anywhere}
+.mx .pg-marketing .funnel{display:flex;flex-direction:column;gap:12px}
+.mx .pg-marketing .fstep{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mx .pg-marketing .fbar{flex:1 1 180px;height:34px;background:#F4ECE2;border-radius:10px;overflow:hidden}
+.mx .pg-marketing .fbar i{display:block;height:100%;background:#1A1513;border-radius:10px}
+.mx .pg-marketing .ftxt{flex:0 0 190px;display:flex;flex-direction:column;line-height:1.3}
+.mx .pg-marketing .ftxt b{font-size:20px;font-weight:700}
+.mx .pg-marketing .ftxt span{font-size:13px;font-weight:600}
+.mx .pg-marketing .ftxt small{font-size:12px;color:#6B5F57}
+.mx .pg-marketing .meter{height:10px;background:#EFE5DA;border-radius:999px;overflow:hidden}
+.mx .pg-marketing .meter i{display:block;height:100%;background:#D4AF5A;border-radius:999px}
+.mx .pg-marketing .rng{display:flex;align-items:center;gap:12px}
+.mx .pg-marketing .field .rng input[type=range]{flex:1;min-height:32px;padding:0;border:0;accent-color:#1A1513;box-shadow:none}
+.mx .pg-marketing .rng output{min-width:64px;text-align:right;font-size:18px;font-weight:700}
+.mx .pg-marketing .field small{font-size:12px}
+.mx .pg-marketing .rowline{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #EDE4DA;font-size:13.5px}
+.mx .pg-marketing .rowline:last-child{border-bottom:0}
+.mx .pg-marketing .rowline b{display:block;font-weight:600}
+.mx .pg-marketing .rowline span{font-size:12.5px;color:#6B5F57}
+.mx .pg-marketing td .pill-gold + div{margin-top:3px}
+@media (max-width:720px){
+.mx .pg-marketing .ftxt{flex:1 1 100%}
+.mx .pg-marketing .own{max-width:none}
+}
+.mx .pg-marketing .aibox{background:#FBF7F2;border:1px solid #E6DCD2;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.mx .pg-marketing .airow{display:flex;gap:8px;flex-wrap:wrap}
+.mx .pg-marketing .airow input{flex:1 1 220px;width:auto}
+.mx .pg-marketing .aierr{background:#F9E1E1;color:#9B2C2C;border:1px solid #EBCFCF;border-radius:10px;padding:8px 10px;font-size:12.5px}

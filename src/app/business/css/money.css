@@ -1,0 +1,159 @@
+/* Generated from the merchant design (Money). Scoped to this screen. */
+.mx .pg-money{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-money a{color:#7A1F2B;text-decoration:none}
+.mx .pg-money a:hover{color:#5A1420}
+.mx .pg-money *{box-sizing:border-box}
+.mx .pg-money .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-money .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:4px}
+.mx .pg-money .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-money .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-money .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-money .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-money .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-money .nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:42px}
+.mx .pg-money .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-money .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-money .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-money .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-money .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-money .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-money .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-money .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-money .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-money .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-money .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-money .btn-gold{background:#D4AF5A;color:#1A1513}
+.mx .pg-money .btn-ghost{background:transparent;color:#F4ECE3;border-color:rgba(244,236,227,.3)}
+.mx .pg-money .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-money .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.mx .pg-money .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.mx .pg-money .muted{color:#6B5F57}
+.mx .pg-money .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-money .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-money .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-money .pill-wine{background:#F6E3E6;color:#7A1F2B}
+.mx .pg-money .pill-grey{background:#EFE5DA;color:#6B5F57}
+.mx .pg-money .seg{display:inline-flex;background:#EFE5DA;border-radius:999px;padding:3px;gap:2px}
+.mx .pg-money .seg button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;cursor:pointer;color:#6B5F57}
+.mx .pg-money .seg button.on{background:#1A1513;color:#FBF7F2}
+.mx .pg-money .grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+.mx .pg-money .card{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mx .pg-money .card h3{margin:0;font-size:15px;font-weight:600}
+.mx .pg-money .card .sub{font-size:12.5px;color:#6B5F57}
+.mx .pg-money .bal{background:#120E0D;color:#F4ECE3;border-radius:18px;padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+.mx .pg-money .bal small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#C9BCB0;font-weight:600}
+.mx .pg-money .bal .big{font-size:48px;line-height:1;font-weight:500}
+.mx .pg-money .bal .big span{font-size:24px;color:#C9BCB0}
+.mx .pg-money .bal .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mx .pg-money .bal .row div{background:rgba(255,255,255,.07);border-radius:12px;padding:10px 12px}
+.mx .pg-money .bal .row b{display:block;font-size:16px;font-weight:600;margin-top:2px}
+.mx .pg-money .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.mx .pg-money .kpi{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:16px;padding:14px 16px}
+.mx .pg-money .kpi small{display:block;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.mx .pg-money .kpi b{display:block;font-size:24px;font-weight:700;margin-top:4px}
+.mx .pg-money .kpi span{font-size:12px;color:#6B5F57}
+.mx .pg-money .tablebox{overflow-x:auto}
+.mx .pg-money table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:720px}
+.mx .pg-money th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;font-weight:600;padding:10px 12px;border-bottom:1px solid #E6DCD2;white-space:nowrap}
+.mx .pg-money td{padding:10px 12px;border-bottom:1px solid #EDE4DA;white-space:nowrap;vertical-align:middle}
+.mx .pg-money td b{font-weight:600}
+.mx .pg-money td small{display:block;color:#6B5F57;font-size:12px}
+.mx .pg-money td.r{text-align:right}
+.mx .pg-money .pos{color:#1F6B3A;font-weight:600}
+.mx .pg-money .neg{color:#9B2335;font-weight:600}
+.mx .pg-money .split{display:flex;flex-direction:column;gap:8px}
+.mx .pg-money .srow{display:grid;grid-template-columns:150px minmax(0,1fr) 90px;gap:10px;align-items:center;font-size:13px}
+.mx .pg-money .srow .t{height:10px;border-radius:5px;background:#EFE5DA;overflow:hidden}
+.mx .pg-money .srow .t i{display:block;height:100%;background:#1A1513;border-radius:5px}
+.mx .pg-money .srow b{text-align:right;font-weight:600}
+.mx .pg-money .methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mx .pg-money .pm{display:flex;justify-content:space-between;align-items:center;background:#F4ECE2;border-radius:12px;padding:10px 12px;font-size:13px}
+.mx .pg-money .pm b{font-weight:600}
+.mx .pg-money .payout{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #EDE4DA;font-size:13.5px}
+.mx .pg-money .payout:last-child{border-bottom:0}
+.mx .pg-money .payout b{display:block;font-weight:600}
+.mx .pg-money .payout span{color:#6B5F57;font-size:12px}
+.mx .pg-money .payout .amt{margin-left:auto;font-weight:700}
+.mx .pg-money .tax{display:flex;gap:10px;align-items:center;background:#FFF9E8;border:1px solid #F0E2B8;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.45}
+@media (max-width:1000px){
+.mx .pg-money .grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+.mx .pg-money .topbar,.mx .pg-money .content{padding-left:16px;padding-right:16px}
+.mx .pg-money .methods{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Added for the working screen: tabs and buttons as links, filters, panels inside the dark balance card. */
+.mx .pg-money .seg a{display:inline-flex;align-items:center;border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;cursor:pointer;color:#6B5F57;white-space:nowrap}
+.mx .pg-money .seg a.on{background:#1A1513;color:#FBF7F2;box-shadow:none}
+.mx .pg-money a.btn-out,.mx .pg-money a.btn-gold{color:#1A1513}
+.mx .pg-money a.btn-ink{color:#FBF7F2}
+.mx .pg-money .bal a.pill{color:#F4ECE3}
+.mx .pg-money .bal .simline{font-size:12px;color:#C9BCB0;line-height:1.5}
+.mx .pg-money .bal .row div span{display:block}
+.mx .pg-money dialog.sheet .btn-ghost{color:#7A1F2B;border-color:transparent}
+.mx .pg-money dialog.sheet p{font-size:13.5px;line-height:1.5;color:#6B5F57}
+.mx .pg-money dialog.sheet p b{color:#1A1513}
+.mx .pg-money .opt{border:1px solid #E6DCD2;border-radius:14px;background:#FFFFFF;padding:14px;display:flex;flex-direction:column;gap:10px}
+.mx .pg-money .opt h4{margin:0;font-size:14.5px;font-weight:600;color:#1A1513}
+.mx .pg-money .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mx .pg-money .filters select,.mx .pg-money .filters input[type=date]{min-height:36px;border:1px solid #E6DCD2;border-radius:999px;background:#FFFFFF;padding:0 12px;font:inherit;font-size:13px;font-weight:600;color:#1A1513}
+.mx .pg-money .quick{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:600}
+.mx .pg-money .quick a.on{color:#1A1513;text-decoration:underline;text-underline-offset:4px}
+.mx .pg-money table.fit{min-width:560px}
+.mx .pg-money .srow b{white-space:nowrap}
+@media (max-width:720px){
+.mx .pg-money .bal{padding:18px 16px}
+.mx .pg-money .bal .big{font-size:40px}
+.mx .pg-money .bal .row{grid-template-columns:minmax(0,1fr)}
+.mx .pg-money .srow{grid-template-columns:110px minmax(0,1fr) 84px}
+.mx .pg-money .seg{max-width:100%;overflow-x:auto}
+}
+/* The shell styles a generic .row (a list line). The three balance tiles are not one. */
+.mx .pg-money .bal .row{color:inherit;padding:0;border-bottom:0;font-size:inherit;align-items:stretch}
+
+/* Live payments: the call to action, problems on a payment, and small notes under a pill. */
+.mx .pg-money .bal .cta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(212,175,90,.14);border:1px solid rgba(212,175,90,.45);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:#F4ECE3}
+.mx .pg-money .bal .cta span{flex:1 1 260px}
+.mx .pg-money .bal .cta a.btn-gold{color:#1A1513}
+.mx .pg-money .warn{display:block;margin-top:4px;background:#FFF9E8;border:1px solid #F0E2B8;border-radius:8px;padding:5px 8px;font-size:12px;line-height:1.4;color:#7A5A12;white-space:normal}
+.mx .pg-money td small.why{white-space:normal;max-width:260px;margin-top:3px}
+.mx .pg-money td small a{font-weight:600}
+.mx .pg-money th.r{text-align:right}
+
+/* The monthly statement: one clean sheet that prints well. */
+.mx .pg-money .sheetdoc{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:28px 32px;display:flex;flex-direction:column;gap:20px;max-width:980px;width:100%;margin:0 auto}
+.mx .pg-money .sheetdoc .head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start;border-bottom:2px solid #1A1513;padding-bottom:16px}
+.mx .pg-money .sheetdoc .head h2{font-size:30px;font-weight:500;line-height:1.1}
+.mx .pg-money .sheetdoc .head p{font-size:13px;color:#6B5F57;line-height:1.5}
+.mx .pg-money .sheetdoc .head .who{text-align:right}
+.mx .pg-money .sheetdoc .head .who b{display:block;font-size:16px;color:#1A1513}
+.mx .pg-money .sheetdoc h3{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;margin:0 0 6px}
+.mx .pg-money .sums{display:flex;flex-direction:column}
+.mx .pg-money .sums > div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #EDE4DA;font-size:14px}
+.mx .pg-money .sums > div span small{display:block;font-size:12px;color:#6B5F57}
+.mx .pg-money .sums > div b{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mx .pg-money .sums > div.total{border-top:2px solid #1A1513;border-bottom:2px solid #1A1513;font-weight:600;font-size:15px}
+.mx .pg-money .sums > div.sub2{background:#FBF7F2;padding-left:10px;padding-right:10px;font-weight:600}
+.mx .pg-money .sums > div.in{padding-left:14px}
+.mx .pg-money .checkline{font-size:12.5px;color:#1F6B3A}
+.mx .pg-money .checkline.bad{color:#9B2335}
+.mx .pg-money .sheetdoc table{min-width:620px}
+@media (max-width:720px){
+.mx .pg-money .sheetdoc{padding:18px 16px;border-radius:14px}
+.mx .pg-money .sheetdoc .head .who{text-align:left}
+}
+@media print{
+  html,body,.mx,.mx .shell,.mx .pg-money.pg-statement{background:#FFFFFF !important}
+  .mx .side,.mx .pg-statement .topbar,.mx .pg-statement .noprint,.mx .pg-statement .dt-bar,.mx .pg-statement .dt-foot,nextjs-portal{display:none !important}
+  .mx .pg-statement .content{padding:0}
+  .mx .pg-statement .sheetdoc{border:0;border-radius:0;padding:0;max-width:none}
+  .mx .pg-statement .dt-scroll{overflow:visible}
+  .mx .pg-statement .dt tr[hidden]{display:table-row !important}
+  .mx .pg-statement th.dt-sort::after{content:none}
+  .mx .pg-statement table{min-width:0;font-size:11px}
+  .mx .pg-statement td,.mx .pg-statement th{padding:5px 6px;white-space:normal}
+  .mx .pg-statement .sums > div,.mx .pg-statement tr{break-inside:avoid}
+  .mx .pg-statement .lines{break-before:page}
+  .mx .pg-statement a{color:#1A1513}
+}

@@ -1,0 +1,195 @@
+/* Generated from the merchant design (Main). Scoped to this screen. */
+.mx .pg-calendar{margin:0;background:#F4ECE2;color:#1A1513;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mx .pg-calendar a{color:#7A1F2B;text-decoration:none}
+.mx .pg-calendar a:hover{color:#5A1420}
+.mx .pg-calendar *{box-sizing:border-box}
+.mx .pg-calendar .shell{display:flex;flex-wrap:wrap;min-height:1000px;background:#F4ECE2}
+.mx .pg-calendar .side{flex:1 1 220px;max-width:240px;background:#120E0D;color:#C9BCB0;display:flex;flex-direction:column;padding:20px 14px 24px;gap:6px}
+.mx .pg-calendar .brand{display:flex;align-items:center;gap:10px;color:#F4ECE3;font-size:24px;font-weight:600;padding:6px 10px 18px}
+.mx .pg-calendar .brand i{width:9px;height:9px;border-radius:50%;background:#D4AF5A;display:block}
+.mx .pg-calendar .loc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-bottom:12px;color:#F4ECE3;font:inherit;cursor:pointer;text-align:left;width:100%}
+.mx .pg-calendar .loc b{display:block;font-size:13px;font-weight:600}
+.mx .pg-calendar .loc span{display:block;font-size:11px;color:#9A8E85}
+.mx .pg-calendar .nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;color:#C9BCB0;font-size:14px;font-weight:500;min-height:44px}
+.mx .pg-calendar .nav:hover{color:#F4ECE3;background:rgba(255,255,255,.05)}
+.mx .pg-calendar .nav.on{background:rgba(255,255,255,.09);color:#F4ECE3;font-weight:600;box-shadow:inset 3px 0 0 #D4AF5A}
+.mx .pg-calendar .nav svg{width:18px;height:18px;flex:none}
+.mx .pg-calendar .nav .cnt{margin-left:auto;background:#D4AF5A;color:#1A1513;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+.mx .pg-calendar .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.mx .pg-calendar .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.mx .pg-calendar .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid #E6DCD2;background:#FBF7F2;flex-wrap:wrap}
+.mx .pg-calendar .topbar h1{margin:0;font-size:28px;font-weight:500;line-height:1}
+.mx .pg-calendar .search{display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:12px;padding:0 12px;min-height:42px;min-width:220px;flex:1;max-width:360px}
+.mx .pg-calendar .search input{border:0;background:transparent;font:inherit;font-size:14px;flex:1;outline:none;min-width:0;color:#1A1513}
+.mx .pg-calendar .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.mx .pg-calendar .btn-ink{background:#1A1513;color:#FBF7F2}
+.mx .pg-calendar .btn-out{background:#FFFFFF;color:#1A1513;border-color:#E6DCD2}
+.mx .pg-calendar .btn-sm{min-height:36px;padding:0 12px;font-size:13px}
+.mx .pg-calendar .iconb{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E6DCD2;color:#1A1513;position:relative}
+.mx .pg-calendar .avatar{width:36px;height:36px;border-radius:50%;background:#7A1F2B;color:#F4ECE3;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.mx .pg-calendar .content{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.mx .pg-calendar .tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mx .pg-calendar .seg{display:inline-flex;background:#EFE5DA;border-radius:999px;padding:3px;gap:2px}
+.mx .pg-calendar .seg button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;cursor:pointer;color:#6B5F57}
+.mx .pg-calendar .seg button.on{background:#1A1513;color:#FBF7F2}
+.mx .pg-calendar .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 12px 0 6px;min-height:36px;font:inherit;font-size:13px;font-weight:600;color:#1A1513;cursor:pointer}
+.mx .pg-calendar .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
+.mx .pg-calendar .chip .dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#F4ECE3}
+.mx .pg-calendar .chip.all{padding-left:12px}
+.mx .pg-calendar .muted{color:#6B5F57}
+.mx .pg-calendar .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:600;line-height:1}
+.mx .pg-calendar .pill-ok{background:#E3F2E7;color:#1F6B3A}
+.mx .pg-calendar .pill-gold{background:#F6EBD2;color:#7A5A12}
+.mx .pg-calendar .pill-new{background:#E4ECF7;color:#1F4B7A}
+.mx .pg-calendar .pill-wine{background:#F6E3E6;color:#7A1F2B}
+.mx .pg-calendar .calwrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.mx .pg-calendar .calbox{flex:999 1 560px;min-width:0;background:#FBF7F2;border:1px solid #E6DCD2;border-radius:18px;overflow-x:auto}
+.mx .pg-calendar .cal{min-width:760px}
+.mx .pg-calendar .chead{display:grid;grid-template-columns:56px repeat(var(--n),minmax(0,1fr));border-bottom:1px solid #E6DCD2}
+.mx .pg-calendar .chead .st{display:flex;align-items:center;gap:10px;padding:12px 12px;border-left:1px solid #EDE4DA}
+.mx .pg-calendar .chead .st b{display:block;font-size:14px;font-weight:600}
+.mx .pg-calendar .chead .st span{display:block;font-size:12px;color:#6B5F57}
+.mx .pg-calendar .cbody{display:grid;grid-template-columns:56px repeat(var(--n),minmax(0,1fr));position:relative}
+.mx .pg-calendar .taxis{position:relative;height:704px}
+.mx .pg-calendar .taxis span{position:absolute;right:8px;font-size:11px;color:#9A8E85;font-weight:600;transform:translateY(-6px)}
+.mx .pg-calendar .col{position:relative;height:704px;border-left:1px solid #EDE4DA;background:repeating-linear-gradient(to bottom,transparent 0 63px,#EDE4DA 63px 64px)}
+.mx .pg-calendar .col.off{background:repeating-linear-gradient(135deg,#F1E8DD 0 6px,#F7F0E7 6px 12px)}
+.mx .pg-calendar .ev{position:absolute;left:4px;right:4px;border-radius:10px;background:#FFFFFF;border:1px solid #E6DCD2;padding:6px 10px;overflow:hidden;cursor:pointer;text-align:left;font:inherit;color:#1A1513;display:flex;flex-direction:column;gap:2px}
+.mx .pg-calendar .ev.gold{background:#FFF9E8;border-color:#F0E2B8}
+.mx .pg-calendar .ev.on{border-color:#1A1513;box-shadow:inset 0 0 0 1px #1A1513}
+.mx .pg-calendar .ev.block{background:#EFE5DA;border-color:#EFE5DA;color:#6B5F57}
+.mx .pg-calendar .ev b{font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx .pg-calendar .ev span{font-size:11.5px;color:#6B5F57;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx .pg-calendar .now{position:absolute;left:56px;right:0;height:1.5px;background:#9B2335;z-index:2;pointer-events:none}
+.mx .pg-calendar .now::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#9B2335}
+.mx .pg-calendar .panel{flex:1 1 300px;max-width:340px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.mx .pg-calendar .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mx .pg-calendar .kv div{background:#F4ECE2;border-radius:12px;padding:10px 12px}
+.mx .pg-calendar .kv small{display:block;font-size:11px;color:#6B5F57;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.mx .pg-calendar .kv b{display:block;font-size:14px;font-weight:600;margin-top:2px}
+.mx .pg-calendar .line{display:flex;justify-content:space-between;font-size:13px;padding:5px 0}
+.mx .pg-calendar .line.total{border-top:1px solid #EDE4DA;margin-top:4px;padding-top:10px;font-weight:700;font-size:15px}
+.mx .pg-calendar .note{background:#FFF9E8;border:1px solid #F0E2B8;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+.mx .pg-calendar .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mx .pg-calendar .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+.mx .pg-calendar .topbar,.mx .pg-calendar .content{padding-left:16px;padding-right:16px}
+.mx .pg-calendar .panel{max-width:none}
+}
+
+/* ----- Beyond the canvas: links as controls, booking states, the other views, the booking forms ----- */
+.mx .pg-calendar .seg a{border:0;background:transparent;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;color:#6B5F57;display:inline-flex;align-items:center;box-shadow:none}
+.mx .pg-calendar .seg a.on{background:#1A1513;color:#FBF7F2}
+.mx .pg-calendar a.iconb,.mx .pg-calendar a.chip{color:#1A1513}
+.mx .pg-calendar a.chip.on{color:#FBF7F2}
+.mx .pg-calendar a.pill-gold{color:#7A5A12}
+.mx .pg-calendar a.ev{color:#1A1513;text-decoration:none;z-index:1}
+.mx .pg-calendar a.ev:hover{border-color:#1A1513}
+.mx .pg-calendar .ev.live{border-left:3px solid #D4AF5A}
+.mx .pg-calendar .ev.done{background:#F4ECE2;border-color:#E6DCD2}
+.mx .pg-calendar .ev.done b{color:#6B5F57}
+.mx .pg-calendar .ev.req{border-style:dashed;border-color:#1F4B7A;background:#F2F6FC}
+.mx .pg-calendar .ev.miss{background:#F6E3E6;border-color:#EBCFD4}
+.mx .pg-calendar .ev.miss b{text-decoration:line-through;color:#7A1F2B}
+.mx .pg-calendar a.ev.block{color:#6B5F57}
+.mx .pg-calendar .shut{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,rgba(230,220,210,.55) 0 6px,rgba(247,240,231,.55) 6px 12px);pointer-events:none}
+.mx .pg-calendar .panel{position:sticky;top:86px}
+.mx .pg-calendar .panel .hd,.mx .pg-calendar .card-lite .hd{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mx .pg-calendar .acts form{display:contents}
+.mx .pg-calendar .acts .btn{width:100%}
+.mx .pg-calendar .legend{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:#6B5F57}
+.mx .pg-calendar .legend span{display:flex;align-items:center;gap:8px}
+.mx .pg-calendar .lg{width:18px;height:12px;border-radius:4px;border:1px solid #E6DCD2;background:#FFFFFF;display:block}
+.mx .pg-calendar .lg.gold{background:#FFF9E8;border-color:#F0E2B8}
+.mx .pg-calendar .lg.live{border-left:3px solid #D4AF5A}
+.mx .pg-calendar .lg.done{background:#F4ECE2}
+.mx .pg-calendar .lg.req{border-style:dashed;border-color:#1F4B7A;background:#F2F6FC}
+.mx .pg-calendar .lg.block{background:#EFE5DA;border-color:#EFE5DA}
+.mx .pg-calendar .card-lite{background:#FFFFFF;border:1px solid #E6DCD2;border-radius:18px;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.mx .pg-calendar .card-lite .hd a{font-size:13px;font-weight:600}
+.mx .pg-calendar .found{display:flex;flex-direction:column}
+.mx .pg-calendar .found a{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #EDE4DA;font-size:13.5px;color:#1A1513}
+.mx .pg-calendar .found a:last-child{border-bottom:0}
+.mx .pg-calendar .found time{min-width:128px;font-size:12.5px;font-weight:600;color:#6B5F57}
+.mx .pg-calendar .found span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Day view: one table in time order */
+.mx .pg-calendar table.agenda{width:100%;border-collapse:collapse;font-size:13.5px;min-width:720px}
+.mx .pg-calendar .agenda th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;font-weight:600;padding:11px 14px;border-bottom:1px solid #E6DCD2;white-space:nowrap}
+.mx .pg-calendar .agenda td{padding:9px 14px;border-bottom:1px solid #EDE4DA;vertical-align:middle;white-space:nowrap}
+.mx .pg-calendar .agenda tbody tr:last-child td{border-bottom:0}
+.mx .pg-calendar .agenda tbody tr:hover td{background:#FFFFFF}
+.mx .pg-calendar .agenda tr.on td{background:#FFFFFF;box-shadow:inset 0 1.5px 0 #1A1513,inset 0 -1.5px 0 #1A1513}
+.mx .pg-calendar .agenda .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.mx .pg-calendar .agenda a{color:#1A1513}
+.mx .pg-calendar .agenda .agt{font-weight:700}
+.mx .pg-calendar .agenda .agc{display:flex;align-items:center;gap:10px}
+.mx .pg-calendar .agenda .agc b{font-weight:600}
+.mx .pg-calendar .agenda a:hover b,.mx .pg-calendar .agenda a.agt:hover{color:#7A1F2B}
+
+/* Week view: seven columns of compact bookings */
+.mx .pg-calendar .wk{display:grid;grid-template-columns:repeat(7,minmax(128px,1fr));min-width:900px}
+.mx .pg-calendar .wkd{border-left:1px solid #EDE4DA;padding:0 6px 10px;display:flex;flex-direction:column;gap:5px;min-height:420px}
+.mx .pg-calendar .wkd:first-child{border-left:0}
+.mx .pg-calendar .wkd.closed{background:repeating-linear-gradient(135deg,#F1E8DD 0 6px,#F7F0E7 6px 12px)}
+.mx .pg-calendar .wkh{display:block;padding:12px 6px 10px;border-bottom:1px solid #E6DCD2;margin:0 -6px 4px;color:#1A1513}
+.mx .pg-calendar .wkh b{display:block;font-size:14px;font-weight:600}
+.mx .pg-calendar .wkh span{display:block;font-size:12px;color:#6B5F57}
+.mx .pg-calendar .wkd.today .wkh{box-shadow:inset 0 3px 0 #D4AF5A}
+.mx .pg-calendar .we{display:flex;flex-direction:column;gap:1px;border:1px solid #E6DCD2;border-left:3px solid #7A1F2B;border-radius:8px;background:#FFFFFF;padding:5px 8px;color:#1A1513}
+.mx .pg-calendar .we b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx .pg-calendar .we span{font-size:11.5px;color:#6B5F57;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx .pg-calendar .we.gold{background:#FFF9E8}
+.mx .pg-calendar .we.done{background:#F4ECE2}
+.mx .pg-calendar .we.done b{color:#6B5F57}
+.mx .pg-calendar .we.req{border-style:dashed;background:#F2F6FC}
+.mx .pg-calendar .we.miss b{text-decoration:line-through;color:#7A1F2B}
+.mx .pg-calendar .we.on{box-shadow:0 0 0 1.5px #1A1513}
+
+/* Month view */
+.mx .pg-calendar .mo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:640px}
+.mx .pg-calendar .moh{padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;border-bottom:1px solid #E6DCD2}
+.mx .pg-calendar .mod{min-height:92px;padding:10px 12px;border-bottom:1px solid #EDE4DA;border-left:1px solid #EDE4DA;display:flex;flex-direction:column;gap:2px;color:#1A1513}
+.mx .pg-calendar .mod:nth-child(7n+1){border-left:0}
+.mx .pg-calendar .mod:hover{background:#FFFFFF}
+.mx .pg-calendar .mod b{font-size:14px;font-weight:600;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin-left:-5px}
+.mx .pg-calendar .mod.today b{background:#D4AF5A}
+.mx .pg-calendar .mod span{font-size:12.5px;font-weight:600}
+.mx .pg-calendar .mod small{font-size:12px;color:#6B5F57}
+.mx .pg-calendar .mod .none{font-weight:400;color:#9A8E85;font-size:12px}
+.mx .pg-calendar .mod.other{background:#F7F0E7}
+.mx .pg-calendar .mod.other b,.mx .pg-calendar .mod.other span{color:#9A8E85}
+
+/* Waitlist in the side panel */
+.mx .pg-calendar .wl{display:flex;flex-direction:column;gap:8px;padding:10px 0;border-bottom:1px solid #EDE4DA;font-size:13.5px}
+.mx .pg-calendar .wl:last-child{border-bottom:0}
+.mx .pg-calendar .wl b{display:block;font-weight:600}
+.mx .pg-calendar .wl small{display:block;font-size:12px;color:#6B5F57;text-transform:capitalize}
+
+/* Booking forms */
+.mx .pg-calendar .slot-hd{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5F57;margin-bottom:8px}
+.mx .pg-calendar .slot-note{font-size:13px;color:#6B5F57;background:#F4ECE2;border-radius:12px;padding:10px 12px;line-height:1.5}
+.mx .pg-calendar .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;max-height:210px;overflow-y:auto;padding:2px}
+.mx .pg-calendar .slot{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:10px;min-height:44px;font:inherit;font-size:13.5px;font-weight:600;color:#1A1513;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15}
+.mx .pg-calendar .slot small{font-size:10.5px;font-weight:500;color:#6B5F57}
+.mx .pg-calendar .slot:hover{border-color:#1A1513}
+.mx .pg-calendar .slot.on{background:#1A1513;border-color:#1A1513;color:#FBF7F2}
+.mx .pg-calendar .slot.on small{color:#D9CEC2}
+.mx .pg-calendar .svc-pick{display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto;border:1px solid #E6DCD2;border-radius:12px;background:#FFFFFF;padding:10px}
+.mx .pg-calendar .svc-pick small{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#9A8E85;margin-bottom:2px}
+.mx .pg-calendar .svc{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;font-size:13.5px;cursor:pointer}
+.mx .pg-calendar .svc:hover{background:#F4ECE2}
+.mx .pg-calendar .svc.on{background:#FFF9E8}
+.mx .pg-calendar .svc input{width:16px;height:16px;accent-color:#1A1513;flex:none}
+.mx .pg-calendar .svc .muted{font-size:12.5px}
+.mx .pg-calendar .suggest{position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:4px;background:#FFFFFF;border:1px solid #E6DCD2;border-radius:12px;box-shadow:0 14px 30px rgba(18,14,13,.14);padding:4px;display:flex;flex-direction:column}
+.mx .pg-calendar .suggest button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:transparent;border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;text-align:left;cursor:pointer;color:#1A1513}
+.mx .pg-calendar .suggest button:hover{background:#F4ECE2}
+.mx .pg-calendar .suggest small{font-size:12px;color:#6B5F57}
+.mx .pg-calendar .linkb{border:0;background:transparent;color:#7A1F2B;font:inherit;font-weight:600;cursor:pointer;padding:0}
+@media (max-width:1100px){.mx .pg-calendar .panel{position:static;max-width:none}}
+
+/* A person's break: shown in their column, never offered to clients */
+.mx .pg-calendar .brk{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,rgba(212,175,90,.16) 0 6px,rgba(212,175,90,.05) 6px 12px);border-top:1px dashed #E0CFA0;border-bottom:1px dashed #E0CFA0;pointer-events:none;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
+.mx .pg-calendar .brk span{font-size:10.5px;font-weight:600;color:#7A5A12;letter-spacing:.04em;text-transform:uppercase}
+.mx .pg-calendar .lg.brk{position:static;background:repeating-linear-gradient(135deg,rgba(212,175,90,.3) 0 4px,rgba(212,175,90,.08) 4px 8px);border:1px dashed #E0CFA0;padding:0}
