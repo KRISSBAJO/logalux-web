@@ -55,6 +55,11 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
   const audiences = d.audiences as Record<string, { total: number; email: number; phone: number }>;
   const link = String(d.booking_link ?? "");
   const emailLive = modes.email !== "log";
+  // Which channels really deliver for this business right now, in the order they are offered.
+  const onChannels = CHANNELS.filter(([key]) => modes[key] !== "log").map(([, name]) => name);
+  const offChannels = CHANNELS.filter(([key]) => modes[key] === "log").map(([, name]) => name);
+  const inWords = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1] === "Email" ? "email" : names[names.length - 1]}` : names[0] ?? "");
+  const whatsappLive = modes.whatsapp === "live";
 
   const tab = sp.tab === "leads" || sp.tab === "loyalty" || sp.tab === "promos" ? sp.tab : sp.tab === "camp" || sp.camp ? "camp" : "auto";
   const tabsNav = (
@@ -147,10 +152,11 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
 
       <div className="content">
         <Flash sp={sp} />
-        {!emailLive ? (
-          <div><span className="sim">WhatsApp, SMS and email are not connected yet. Messages are logged, not delivered.</span></div>
+        {/* Each channel says for itself whether it is connected: the API reports it per channel. */}
+        {offChannels.length === 0 ? null : onChannels.length === 0 ? (
+          <div><span className="sim">{inWords(offChannels)} are not connected yet. Messages are logged, not delivered.</span></div>
         ) : (
-          <div><span className="sim">Email is delivered. WhatsApp and SMS are not connected yet: those messages are logged, not delivered.</span></div>
+          <div><span className="sim">{inWords(onChannels)} {onChannels.length > 1 ? "are" : "is"} delivered. {inWords(offChannels)} {offChannels.length > 1 ? "are" : "is"} not connected yet: {offChannels.length > 1 ? "those messages are" : "messages there are"} logged, not delivered.</span></div>
         )}
 
         <div className="kpis">
@@ -234,9 +240,9 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                   <label>Sent on</label>
                   <div className="chips">
                     <span className="chip stat">Email{emailLive ? "" : " · logged only"}</span>
-                    <span className="chip stat">WhatsApp · logged only</span>
+                    <span className="chip stat">WhatsApp{whatsappLive ? "" : " · logged only"}</span>
                   </div>
-                  <small className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>You do not choose the channel here. A client with an email address gets an email; a client with only a phone number gets WhatsApp, which is not connected yet.</small>
+                  <small className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>You do not choose the channel here. A client with an email address gets an email; a client with only a phone number gets WhatsApp{whatsappLive ? "." : ", which is not connected yet."}</small>
                 </div>
                 <MessageField id="msg" value={sel.message} max={600} tokens={tokensFor(BOOKING_KEYS.has(sel.key))} sample={BOOKING_KEYS.has(sel.key) ? sample : { ...sample, staff: "the team", time: "" }} previewLabel="Preview · sample values" />
                 <label className="togrow">

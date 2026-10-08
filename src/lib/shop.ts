@@ -3,11 +3,12 @@
 
 export type Size = { label: string; price_cents: number };
 
-/** The shop sells in two currencies: dollars in Nashville, naira in Lagos. A product is priced in its seller's. */
+/** The shop sells in two currencies: dollars in the United States, naira in Nigeria. A product is priced in its seller's. */
 export type Currency = "USD" | "NGN";
 export const currencyOf = (c: unknown): Currency => (String(c ?? "").toUpperCase() === "NGN" ? "NGN" : "USD");
 /** The shop a currency belongs to. The dollar shop is the plain address. */
-export const shopHref = (currency: unknown) => (currencyOf(currency) === "NGN" ? "/shop?market=ng" : "/shop");
+/** The shop a product belongs to. The country is named outright, so the link opens that shop wherever the visitor is looking. */
+export const shopHref = (currency: unknown) => (currencyOf(currency) === "NGN" ? "/shop?country=ng" : "/shop?country=us");
 /** Who takes the payment: Paystack for naira, Stripe for dollars. */
 export const payProvider = (currency: unknown) => (currencyOf(currency) === "NGN" ? "Paystack" : "Stripe");
 

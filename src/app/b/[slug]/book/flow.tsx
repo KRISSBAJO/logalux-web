@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { duration, money, type Service } from "@/lib/api";
+import { CardChoice, NO_PAY, WalletNote, cardsFor, walletsFor, type PayFeatures } from "@/components/pay-bits";
 import { clock, dayLabel, firstName, initialsOf, inZone, lateRule, MONTHS, whenLabel, type DayCell, type Policy, type Question, type Slot } from "../shared";
 import { useUrlState } from "../url-state";
 
@@ -18,6 +19,10 @@ type Props = {
   intake: Question[];
   /** Shown inside a frame on the business's own website: links stay in the frame, payment opens at the top level, and the booking counts as the business's own link. */
   embed?: boolean;
+  /** Kept cards and wallets, each only while LogaLuxe staff have it switched on. */
+  pay?: PayFeatures;
+  /** The channel a confirmation also goes to the phone on, when one is switched on for this person. */
+  tell?: "" | "whatsapp" | "sms";
 };
 
 type Details = { first: string; last: string; phone: string; email: string; note: string; who: "me" | "other"; guest: string; answers: Record<string, string> };
@@ -194,8 +199,16 @@ export function BookFlow(p: Props) {
     : freeUntil.getTime() > Date.now() ? `Free cancellation until ${whenLabel(freeUntil, tz)}.${late ? ` After that ${late}.` : ""}`
     : `This time is less than ${cancelHours} h away, so the free cancellation window has passed.${late ? ` If you cancel, ${late}.` : ""}`;
   const online = policy.payments_live !== false;
+  // ----- paying: a card the client kept, or a different one. Offered only to a signed-in client while saved cards are switched on. -----
+  const pay = p.pay ?? NO_PAY;
+  const wallets = walletsFor(pay, provider);
+  const kept = useMemo(() => cardsFor(pay.cards, currency), [pay.cards, currency]);
+  const offerCards = pay.saved && !!p.me && online && deposit > 0;
+  const [cardId, setCardId] = useState(kept[0]?.id ?? "");
+  const [keepCard, setKeepCard] = useState(false);
+  const useCard = offerCards ? kept.find((c) => c.id === cardId) : undefined;
   const firstPct = deposit === 0 ? policy.new_client_deposit_pct ?? 0 : 0;
-  const firstNote = firstPct > 0 ? ` If this is your first visit here, a ${firstPct}% deposit (${money(Math.round(total * firstPct / 100), currency)}) is asked for when you confirm${online ? `, paid on ${provider}'s secure page` : ""}.` : "";
+  const firstNote = firstPct > 0 ? ` If this is your first visit here, a ${firstPct}% deposit (${money(Math.round(total * firstPct / 100), currency)}) is asked for when you confirm${online ? `, paid on ${provider}'s secure page` : ""}.${online && wallets ? " Apple Pay and Google Pay can be used there." : ""}` : "";
   const payText = deposit > 0
     ? atVisit > 0 ? ` The remaining ${money(atVisit, currency)} is paid at the visit.` : " Nothing more is due at the visit."
     : ` Nothing is due now. You pay ${money(total, currency)} at the visit.`;
@@ -230,6 +243,8 @@ export function BookFlow(p: Props) {
         body: JSON.stringify({
           business_slug: slug, staff_id: slot.staff_id, starts_at: slot.starts_at, service_ids: services.map((s) => s.id), client_name: `${d.first} ${d.last}`.trim(), client_phone: d.phone.trim(), client_email: d.email.trim(), notes: d.note.trim(), promo_code: promo.trim(), source: src || "link",
           guest_name: guest, answers: intake.filter(answered).map((q) => ({ question_id: q.id, answer: answerOf(q) })),
+          // A kept card is charged at once; a new card is kept only when the box is ticked.
+          ...(useCard ? { card_id: useCard.id } : offerCards && keepCard ? { save_card: true } : {}),
         }),
       });
       j = await res.json().catch(() => ({}));
@@ -264,6 +279,7 @@ export function BookFlow(p: Props) {
     }
     try { window.sessionStorage.removeItem(KEEP); if (guest) window.sessionStorage.setItem(GUEST + j.booking.id, guest); } catch {}
     // A deposit paid online: on to the provider's secure page. The booking is confirmed when the payment arrives.
+    // With a kept card the money may already be taken: then there is no payment page, and the booking is shown as paid.
     const payUrl = j.booking.payment?.url;
     if (payUrl) {
       if (!embed) { window.location.href = payUrl; return; }
@@ -484,13 +500,17 @@ export function BookFlow(p: Props) {
                     ? <>For <b style={{ color: "#1A1513" }}>{guest}</b> · booked by {`${d.first} ${d.last}`.trim()}</>
                     : <>Booking for <b style={{ color: "#1A1513" }}>{`${d.first} ${d.last}`.trim()}</b></>} · {d.phone}{d.email ? ` · ${d.email}` : ""}. <button type="button" className="linkbtn" onClick={() => goStep(2)}>Edit</button>
                 </div>
+                {p.tell && d.phone.trim() ? <div className="muted" style={{ fontSize: 13.5 }}>We will also send the confirmation to {d.phone.trim()} {p.tell === "whatsapp" ? "on WhatsApp" : "by text"}.</div> : null}
                 {deposit > 0 ? (
                   <>
                     <div className="grp">{online ? "Pay the deposit with" : "Deposit"}</div>
-                    <div className="opt on" style={{ cursor: "default" }}>
-                      <span className="radio"><i /></span>
-                      <span style={{ flex: 1 }}><b>{online ? provider : "Not charged online"}</b><span>{online ? <>You will pay on {provider}&apos;s secure page. LogaLuxe never sees your card.</> : "Online payment is not switched on for this business yet, so no card is asked for. The deposit is noted on your booking."}</span></span>
-                    </div>
+                    {offerCards && kept.length > 0 ? null : (
+                      <div className="opt on" style={{ cursor: "default" }}>
+                        <span className="radio"><i /></span>
+                        <span style={{ flex: 1 }}><b>{online ? provider : "Not charged online"}</b><span>{online ? <>You will pay on {provider}&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</> : "Online payment is not switched on for this business yet, so no card is asked for. The deposit is noted on your booking."}</span></span>
+                      </div>
+                    )}
+                    {offerCards ? <CardChoice cards={kept} provider={provider} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name="pay-card" wallets={wallets} /> : null}
                   </>
                 ) : null}
                 <div className="field" style={{ maxWidth: 280 }}>
@@ -507,7 +527,7 @@ export function BookFlow(p: Props) {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <button type="button" className="btn btn-out" disabled={busy} onClick={() => goStep(2)}>Back</button>
-                <button type="button" className="btn btn-ink" style={{ minHeight: 52 }} disabled={busy || !!payLink} onClick={confirm}>{busy ? (deposit > 0 && online ? "Opening the payment page…" : "Booking…") : deposit > 0 && online ? `Pay ${money(deposit, currency)} deposit and confirm` : policy.instant === false ? "Send booking request" : "Confirm booking"}</button>
+                <button type="button" className="btn btn-ink" style={{ minHeight: 52 }} disabled={busy || !!payLink} onClick={confirm}>{busy ? (deposit > 0 && online ? (useCard ? "Paying…" : "Opening the payment page…") : "Booking…") : deposit > 0 && online ? `Pay ${money(deposit, currency)} deposit and confirm` : policy.instant === false ? "Send booking request" : "Confirm booking"}</button>
               </div>
               <div className="muted" style={{ fontSize: 12, textAlign: "right" }}>By confirming you agree to {p.name}&apos;s <Link href="/legal/cancellation" {...out}>cancellation policy</Link> and LogaLuxe&apos;s <Link href="/legal/terms" {...out}>terms</Link>.</div>
             </>

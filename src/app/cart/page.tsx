@@ -3,6 +3,7 @@ import { KeepShopping } from "@/components/cart-ui";
 import { CartView } from "@/components/cart-view";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { customerApi, getCustomer } from "@/lib/customer";
+import { payFeatures } from "@/lib/cards";
 
 export const metadata = { title: "Your cart" };
 
@@ -10,6 +11,8 @@ export default async function CartPage() {
   const me = await getCustomer();
   // Store credit is in US dollars and is spent on dollar orders by the API itself. The cart shows the same sum before paying. A guest has none.
   const credit = me ? await customerApi<{ credit_cents?: number }>("/auth/wallet").then((w) => Math.max(0, Math.floor(Number(w.credit_cents) || 0))).catch(() => 0) : 0;
+  // Kept cards for a signed-in customer, and wallets: each only while LogaLuxe staff have it switched on.
+  const pay = await payFeatures(!!me);
   return (
     <>
       <SiteHeader active="shop" />
@@ -22,7 +25,7 @@ export default async function CartPage() {
               Secure checkout · card details never touch LogaLuxe
             </span>
           </div>
-          <CartView me={me ? { name: `${me.first_name} ${me.last_name}`.trim(), phone: me.phone ?? "", email: me.email ?? "" } : undefined} creditCents={credit} />
+          <CartView me={me ? { name: `${me.first_name} ${me.last_name}`.trim(), phone: me.phone ?? "", email: me.email ?? "" } : undefined} creditCents={credit} pay={pay} />
         </main>
       </div>
       <SiteFooter />

@@ -40,8 +40,12 @@ export function Motion() {
       },
       { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
     );
-    document.querySelectorAll("[data-reveal], [data-stagger]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const watch = () => document.querySelectorAll("[data-reveal]:not(.in), [data-stagger]:not(.in)").forEach((el) => io.observe(el));
+    watch();
+    // Elements that arrive after the first paint (a new place chosen, a list reloaded) are watched too.
+    const mo = new MutationObserver(() => watch());
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => { io.disconnect(); mo.disconnect(); };
   }, []);
   return null;
 }

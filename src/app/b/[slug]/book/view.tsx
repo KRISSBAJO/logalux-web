@@ -4,6 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { api, duration, money } from "@/lib/api";
 import { customerApi, getCustomer } from "@/lib/customer";
+import { payFeatures } from "@/lib/cards";
+import { getFeatures } from "@/lib/features";
+import { WalletNote } from "@/components/pay-bits";
 import { BookFlow, GuestLine, type Pro } from "./flow";
 import { RepeatCard } from "./repeat";
 import { EmbedBridge } from "@/app/embed/[slug]/bridge";
@@ -91,7 +94,8 @@ export async function BookView({ slug, sp, embed = false }: { slug: string; sp: 
         if (own?.guest_name) bk.guest_name = own.guest_name;
       } catch {}
     }
-    return <Confirmation bk={bk} name={b.name} slug={b.slug} src={src} signedIn={!!me} mine={mine} embed={embed} logoId={b.logo_id ?? null} verified={b.verification_status === "verified"} place={loc?.name ?? ""} tone={b.tone} cancelHours={policy.cancel_hours ?? 24} />;
+    const wallets = (await getFeatures()).wallets && b.market !== "NG";
+    return <Confirmation wallets={wallets} bk={bk} name={b.name} slug={b.slug} src={src} signedIn={!!me} mine={mine} embed={embed} logoId={b.logo_id ?? null} verified={b.verification_status === "verified"} place={loc?.name ?? ""} tone={b.tone} cancelHours={policy.cancel_hours ?? 24} />;
   }
 
   // ---------- the services being booked ----------
@@ -130,6 +134,13 @@ export async function BookView({ slug, sp, embed = false }: { slug: string; sp: 
   // The business's own questions: those for every booking, and those for a service being booked.
   const intake = (data.intake ?? []).filter((q) => !q.service_id || chosen.some((c) => c.id === q.service_id)).sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0));
 
+  // What staff have switched on: kept cards for a signed-in client, wallets, and a confirmation to the phone.
+  const [features, pay] = await Promise.all([getFeatures(), payFeatures(!!me)]);
+  // The API sends the confirmation to the phone on WhatsApp when that is on, or else by text when that is on.
+  // Someone who chose email only is promised nothing more than the email.
+  const prefer = me?.preferred_channel ?? "";
+  const tell = prefer === "email" ? "" : features.whatsapp && prefer !== "sms" ? "whatsapp" : features.sms_messages ? "sms" : "";
+
   return (
     <>
       {embed ? null : <SiteHeader active="book" />}
@@ -137,7 +148,7 @@ export async function BookView({ slug, sp, embed = false }: { slug: string; sp: 
         <main className="wrap">
           {embed ? <EmbedHead name={b.name} tone={b.tone} logoId={b.logo_id} /> : <Crumb slug={b.slug} name={b.name} src={src} />}
           <BookFlow
-            intake={intake} embed={embed}
+            intake={intake} embed={embed} pay={pay} tell={tell}
             slug={b.slug} src={src} name={b.name} tone={b.tone} logoId={b.logo_id ?? null} currency={b.currency} tz={tz} market={b.market}
             place={loc?.name ?? ""} verified={b.verification_status === "verified"} reviewCount={display.show_reviews === false ? 0 : Number(b.review_count) || 0}
             services={chosen} pros={pros} anyone={anyone || pros.length === 0} policy={policy} today={inZone(new Date(), tz).date}
@@ -151,7 +162,7 @@ export async function BookView({ slug, sp, embed = false }: { slug: string; sp: 
   );
 }
 
-function Confirmation({ bk, name, slug, src, signedIn, mine, embed, logoId, verified, place, tone, cancelHours }: { bk: Booking; name: string; slug: string; src: string; signedIn: boolean; mine: boolean; embed: boolean; logoId: string | null; verified: boolean; place: string; tone: string; cancelHours: number }) {
+function Confirmation({ bk, name, slug, src, signedIn, mine, embed, logoId, verified, place, tone, cancelHours, wallets }: { wallets: boolean; bk: Booking; name: string; slug: string; src: string; signedIn: boolean; mine: boolean; embed: boolean; logoId: string | null; verified: boolean; place: string; tone: string; cancelHours: number }) {
   // Inside a frame on another site, only the booking page itself may be shown: everything else opens in a new tab.
   const out = embed ? { target: "_blank", rel: "noopener" } : {};
   const guest = (bk.guest_name ?? "").trim();
@@ -191,7 +202,7 @@ function Confirmation({ bk, name, slug, src, signedIn, mine, embed, logoId, veri
                   <div className="muted" style={{ fontSize: 15 }}>{what} with {firstName(bk.staff)} · {whenLabel(bk.starts_at, tz, " · ")}.{where ? ` ${where}.` : ""}</div>
                   <GuestLine id={bk.id} name={guest} />
                   {requested && !unpaid ? <div className="muted" style={{ fontSize: 14 }}>{name} confirms each booking itself. The time is held for you until you hear back.</div> : null}
-                  {unpaid ? <div className="muted" style={{ fontSize: 14 }}>Your {money(bk.payment!.amount_cents, bk.payment!.currency || cur)} deposit is not paid yet{bk.payment!.expires_at ? `. The time is held until ${whenLabel(bk.payment!.expires_at, tz)}` : ""}. You pay on the provider&apos;s secure page. LogaLuxe never sees your card.</div> : null}
+                  {unpaid ? <div className="muted" style={{ fontSize: 14 }}>Your {money(bk.payment!.amount_cents, bk.payment!.currency || cur)} deposit is not paid yet{bk.payment!.expires_at ? `. The time is held until ${whenLabel(bk.payment!.expires_at, tz)}` : ""}. You pay on the provider&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</div> : null}
                   {!cancelled && !unpaid && bk.discount_cents > 0 ? <div className="ok">{money(bk.discount_cents, cur)} off with {bk.promo_code}. The total is now {money(bk.total_cents, cur)}.</div> : null}
                   {!cancelled && !unpaid && cancelHours > 0 && freeUntil.getTime() > Date.now() ? <div className="muted" style={{ fontSize: 13.5 }}>Free to cancel until {whenLabel(freeUntil, tz)}.</div> : null}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -206,7 +217,7 @@ function Confirmation({ bk, name, slug, src, signedIn, mine, embed, logoId, veri
               {cancelled || unpaid ? null : mine ? (
                 <div className="card">
                   <h2 className="serif">Make this a regular visit</h2>
-                  <RepeatCard id={bk.id} startsAt={bk.starts_at} tz={tz} currency={cur} business={name} look="book" />
+                  <RepeatCard id={bk.id} startsAt={bk.starts_at} tz={tz} currency={cur} business={name} look="book" wallets={wallets} />
                 </div>
               ) : !signedIn ? (
                 <div className="muted" style={{ fontSize: 13.5, padding: "0 4px" }}>

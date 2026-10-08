@@ -107,6 +107,24 @@ export async function decideFee(fd: FormData) {
 
 // ---- platform ----
 
+/** Switches one feature on or off, and says whether it is now live or still waiting for keys. */
+export async function setFeature(fd: FormData) {
+  const on = str(fd, "on") === "1", title = str(fd, "title") || "The feature";
+  let message = "", error = "";
+  try {
+    const out = await adminFetch<{ on: boolean; live: boolean; missing?: string[] | null }>(`/features/${encodeURIComponent(str(fd, "key"))}`, { method: "PUT", body: { on } });
+    const missing = out.missing ?? [];
+    message = !out.on ? `${title} is switched off. It is hidden everywhere.`
+      : out.live ? `${title} is live.`
+      : `${title} is switched on, but it is waiting for ${missing.length === 1 ? "a key" : "keys"}: ${missing.join(", ")}. Add ${missing.length === 1 ? "it" : "them"} to the API's .env file, then restart the API.`;
+  } catch (e) {
+    const m = (e as Error).message || "Something went wrong.";
+    error = m[0].toUpperCase() + m.slice(1) + (/[.?]$/.test(m) ? "" : ".");
+  }
+  revalidatePath("/", "layout");
+  return error ? backTo(fd, "err", error) : backTo(fd, "ok", message);
+}
+
 export async function createFlag(fd: FormData) {
   await run(fd, "Flag created. It starts switched off.", () => post("/flags", { key: str(fd, "key"), name: str(fd, "name"), description: str(fd, "description"), market: str(fd, "market"), plan: str(fd, "plan") }));
 }

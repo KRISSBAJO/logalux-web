@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { locationBody, pinWords } from "@/lib/location-form";
 import { adminFetch } from "@/lib/admin-api";
 import { backTo, cents, id, int, list, on, post, put, run, str } from "@/lib/action-helpers";
 
@@ -20,7 +21,7 @@ export async function createBusiness(fd: FormData) {
   try {
     const out = await adminFetch<{ id: string }>("/businesses", {
       method: "POST",
-      body: { ...businessBody(fd), slug: str(fd, "slug"), market: str(fd, "market"), address: str(fd, "address"), city: str(fd, "city"), region: str(fd, "region") },
+      body: { ...businessBody(fd), slug: str(fd, "slug"), ...locationBody(fd) },
     });
     newId = out.id;
   } catch (e) {
@@ -37,14 +38,12 @@ export async function saveBusinessProfile(fd: FormData) {
 export async function saveLocation(fd: FormData) {
   const hours: Record<string, string[]> = {};
   for (const d of DAYS) if (on(fd, `${d}_open`)) hours[d] = [str(fd, `${d}_from`), str(fd, `${d}_to`)];
-  const lat = str(fd, "lat"), lng = str(fd, "lng");
-  const body: Record<string, unknown> = { name: str(fd, "name"), address: str(fd, "address"), city: str(fd, "city"), region: str(fd, "region"), arrival_notes: str(fd, "arrival_notes"), hours };
-  // Both empty: the API finds the position from the address.
-  if (lat !== "" || lng !== "") { body.lat = lat === "" ? null : Number(lat); body.lng = lng === "" ? null : Number(lng); }
+  // No pin sent: the API finds the position from the address, or keeps it when the address did not change.
+  const body: Record<string, unknown> = { name: str(fd, "name"), ...locationBody(fd), arrival_notes: str(fd, "arrival_notes"), hours };
   let message = "", error = "";
   try {
     const out = await adminFetch<{ position: string }>(`/locations/${id(fd)}`, { method: "PUT", body });
-    message = "Location and hours saved." + (out.position === "found from the address" ? " The map pin was placed from the address." : out.position === "not found" ? " We could not find that address on the map, so there is no pin yet. Check the address, or enter the position by hand." : "");
+    message = "Location and hours saved." + (out.position === "kept" ? "" : pinWords(out.position));
   } catch (e) {
     error = (e as Error).message;
   }

@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { money } from "@/lib/api";
-import { addReviewPhoto, addTip, askReturn, moveMyBooking, removeReviewPhoto, reportProblem, type CareState, type PhotoState } from "./actions";
+import { CardChoice, WalletNote, type SavedCard } from "@/components/pay-bits";
+import { CodeAlert, CodeField, useWait } from "@/components/code-signin";
+import { addReviewPhoto, addTip, askReturn, moveMyBooking, phoneStep, removeReviewPhoto, reportProblem, type CareState, type PhoneState, type PhotoState } from "./actions";
 
 const MAX_PHOTOS = 3;
 const NO_PHOTO: PhotoState = { error: "", done: 0 };
@@ -259,7 +261,14 @@ export function ReturnForm({ orderId, seller, reasons, until }: { orderId: strin
 }
 
 /** A tip for a finished visit: a share of what the visit cost, or an amount of the client's own. */
-export function TipForm({ id, business, totalCents, currency, tipped }: { id: string; business: string; totalCents: number; currency: string; /** Tipped already, with this in mind another can still be added. */ tipped: number }) {
+export function TipForm({ id, business, totalCents, currency, tipped, saved = false, cards = [], wallets = false }: {
+  id: string; business: string; totalCents: number; currency: string; /** Tipped already, with this in mind another can still be added. */ tipped: number;
+  /** Saved cards are switched on: a kept card in this currency can pay, and a new one can be kept. */
+  saved?: boolean; cards?: SavedCard[]; /** Apple Pay and Google Pay may be named: switched on, and the tip is in dollars. */ wallets?: boolean;
+}) {
+  const [cardId, setCardId] = useState(cards[0]?.id ?? "");
+  const [keepCard, setKeepCard] = useState(false);
+  const useCard = saved ? cards.find((c) => c.id === cardId) : undefined;
   const [state, send, sending] = useActionState(addTip, NO_CARE);
   // The smallest tip the API takes, and what a choice is rounded to: whole dollars, or the nearest 100 naira.
   const ngn = currency === "NGN";
@@ -281,6 +290,7 @@ export function TipForm({ id, business, totalCents, currency, tipped }: { id: st
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="business" value={business} />
         <input type="hidden" name="amount_cents" value={cents > 0 ? cents : ""} />
+        {useCard ? <input type="hidden" name="card_id" value={useCard.id} /> : saved && keepCard ? <input type="hidden" name="save_card" value="1" /> : null}
         <fieldset className="flex flex-wrap gap-2">
           <legend className="mb-2 text-[13.5px] text-muted">A tip for {business}, in {ngn ? "naira" : "US dollars"}. The visit was {money(totalCents, currency)}.</legend>
           {choices.map((c) => (
@@ -297,11 +307,68 @@ export function TipForm({ id, business, totalCents, currency, tipped }: { id: st
             <input type="number" inputMode="decimal" min={floor / 100} max={totalCents > 0 ? totalCents / 100 : undefined} step={ngn ? 1 : 0.01} value={own} onChange={(e) => setOwn(e.target.value)} required />
           </label>
         )}
-        <p className="text-[13px] text-muted">From {money(floor, currency)}{totalCents > 0 ? ` up to ${money(totalCents, currency)}, the price of the visit` : ""}. If a payment page opens, you pay there. LogaLuxe never sees your card.</p>
+        <p className="text-[13px] text-muted">From {money(floor, currency)}{totalCents > 0 ? ` up to ${money(totalCents, currency)}, the price of the visit` : ""}. {useCard ? " It is charged to your kept card at once. If your bank asks you to approve it, a payment page opens." : <> If a payment page opens, you pay there. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</>}</p>
+        {saved ? <CardChoice look="chips" cards={cards} provider={ngn ? "Paystack" : "Stripe"} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name={`tip-card-${id}`} /> : null}
         <CareError text={state.error} />
         <div><button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={sending || !!state.url || cents <= 0}>{sending || state.url ? "Sending…" : cents > 0 ? `Tip ${money(cents, currency)}` : "Choose an amount"}</button></div>
       </form>
     </details>
+  );
+}
+
+/** A submit button that asks first. */
+export function ConfirmSubmit({ message, children, ...props }: { message: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button {...props} onClick={(e) => { if (!window.confirm(message)) e.preventDefault(); }}>{children}</button>;
+}
+
+const NO_PHONE: PhoneState = { stage: "idle", sent: "", error: "", sends: 0 };
+
+/** Confirms the number on the account: a code is sent to it, and typed here. */
+export function PhoneConfirm({ phone, whatsapp }: { phone: string; /** WhatsApp is switched on, so the code can go there. */ whatsapp: boolean }) {
+  const [state, step, pending] = useActionState(phoneStep, NO_PHONE);
+  const [channel, setChannel] = useState<"sms" | "whatsapp">("sms");
+  const [code, setCode] = useState("");
+  const left = useWait(state.sends);
+  // A code that was refused is cleared, ready for the next try.
+  useEffect(() => { if (state.error) setCode(""); }, [state]);
+  const chip = (on: boolean) => `flex min-h-[42px] cursor-pointer items-center rounded-full border px-3.5 text-[14px] font-semibold transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-gold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white hover:border-ink"}`;
+  const link = "text-[13.5px] font-semibold text-wine underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50";
+
+  if (state.stage === "idle") {
+    return (
+      <form action={step} className="flex flex-col gap-3">
+        <input type="hidden" name="intent" value="send" />
+        {whatsapp ? (
+          <fieldset className="flex flex-wrap gap-2">
+            <legend className="mb-2 text-[13.5px] text-muted">Send the code</legend>
+            <label className={chip(channel === "sms")}><input type="radio" name="channel" value="sms" className="sr-only" checked={channel === "sms"} onChange={() => setChannel("sms")} />By text</label>
+            <label className={chip(channel === "whatsapp")}><input type="radio" name="channel" value="whatsapp" className="sr-only" checked={channel === "whatsapp"} onChange={() => setChannel("whatsapp")} />On WhatsApp</label>
+          </fieldset>
+        ) : <input type="hidden" name="channel" value="sms" />}
+        <CodeAlert text={state.error} />
+        <div><button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={pending}>{pending ? "Sending…" : channel === "whatsapp" ? "Send me a code on WhatsApp" : "Text me a code"}</button></div>
+      </form>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <p role="status" className={`rounded-xl px-3.5 py-2.5 text-[13.5px] leading-relaxed ${state.sent === "logged" ? "bg-warn-bg text-gold-ink" : "bg-cream-2 text-muted"}`}>
+        {state.sent === "logged"
+          ? `We could not send a message to ${phone}, so no code is on its way. Check the number in your details.`
+          : `We sent a 6-digit code to ${phone} ${channel === "whatsapp" ? "on WhatsApp" : "by text"}. It works for 10 minutes.`}
+      </p>
+      <form action={step} className="flex max-w-[280px] flex-col gap-3">
+        <input type="hidden" name="intent" value="check" />
+        <CodeField value={code} onChange={setCode} />
+        <CodeAlert text={state.error} />
+        <div><button className="btn btn-ink btn-sm disabled:cursor-not-allowed disabled:opacity-50" disabled={pending || code.length !== 6}>{pending ? "Checking…" : "Confirm number"}</button></div>
+      </form>
+      <form action={step}>
+        <input type="hidden" name="intent" value="send" />
+        <input type="hidden" name="channel" value={channel} />
+        {left > 0 ? <span className="text-[13.5px] text-muted">Send a new code in {left} {left === 1 ? "second" : "seconds"}</span> : <button className={link} disabled={pending}>Send a new code</button>}
+      </form>
+    </div>
   );
 }
 

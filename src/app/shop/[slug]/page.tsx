@@ -8,6 +8,8 @@ import { ProductBuyBox } from "@/components/product-buy-box";
 import { ProductGallery } from "@/components/product-gallery";
 import { money } from "@/lib/api";
 import { CustomerApiError, customerApi, getCustomer } from "@/lib/customer";
+import { getFeatures } from "@/lib/features";
+import { WalletNote } from "@/components/pay-bits";
 import { categoryName, currencyOf, deliveryDays, payProvider, pickupTodayText, returnsText, shopHref, tagName, visitDay, type ProductExtras, type Size } from "@/lib/shop";
 import { JsonLd, breadcrumbs } from "@/components/json-ld";
 import { absoluteUrl, clip, isTestEntry } from "@/lib/site";
@@ -113,6 +115,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const here = `/shop/${p.slug}`;
   // The shop this product belongs to: a naira product leads back to the naira shop.
   const cur = currencyFor(p), shop = shopHref(cur), provider = payProvider(cur);
+  // Apple Pay and Google Pay are named only while they are switched on, and only for payments that go to Stripe.
+  const wallets = provider === "Stripe" && (await getFeatures()).wallets;
   const categoryHref = `${shop}${shop.includes("?") ? "&" : "?"}category=${encodeURIComponent(p.category)}`;
 
   // What the seller states about delivery, returns and pick-up. Anything it does not state is left unsaid.
@@ -143,7 +147,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     ...(p.pickup ? [["Free pickup", visitOn ? `Waiting at your visit on ${visitOn}, no shipping` : today ? `Today, ${pickupTodayText(today)}` : `Collect it at ${studio || p.seller_name}, nothing to pay for shipping`]] : []),
     ...(p.shipping ? [[p.shipping_cents > 0 ? `Ships for ${money(p.shipping_cents, cur)}` : "Ships free", delivery ? `Arrives in ${deliveryDays(delivery)}` : `One charge per order from ${p.seller_name}`]] : []),
     ...(returns ? [[returns.days > 0 ? `Returns within ${returns.days} ${returns.days === 1 ? "day" : "days"}` : "No returns", returnsNote || (returns.days > 0 ? `Stated by ${p.seller_name}` : "This seller does not take returns")]] : []),
-    ["Pay securely", `On ${provider}'s page. LogaLuxe never sees your card`],
+    ["Pay securely", wallets ? `On ${provider}'s page, by card, Apple Pay or Google Pay. LogaLuxe never sees your card` : `On ${provider}'s page. LogaLuxe never sees your card`],
   ] as [string, string][]).slice(0, 3);
 
   return (
@@ -158,7 +162,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       <div className="cx pg-product">
         <main className="wrap">
           <div className="top">
-            <nav className="crumbs" aria-label="Breadcrumb"><Link href={shop}>{cur === "NGN" ? "Shop Lagos" : "Shop"}</Link><span aria-hidden>›</span><Link href={categoryHref}>{categoryName(p.category)}</Link><span aria-hidden>›</span><span aria-current="page">{p.name}</span></nav>
+            <nav className="crumbs" aria-label="Breadcrumb"><Link href={shop}>{cur === "NGN" ? "Shop Nigeria" : "Shop"}</Link><span aria-hidden>›</span><Link href={categoryHref}>{categoryName(p.category)}</Link><span aria-hidden>›</span><span aria-current="page">{p.name}</span></nav>
             <CartLink tone="out" />
           </div>
 
@@ -240,7 +244,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     {!p.shipping && <li>{p.seller_name} does not ship this product{p.pickup ? ", so it is pick up only" : ""}.</li>}
                     {!p.pickup && p.business_slug && <li>It cannot be collected at the studio.</li>}
                     {!p.pickup && !p.shipping && <li>It cannot be ordered online right now.</li>}
-                    <li>You pay on {provider}&apos;s secure page when you place the order. LogaLuxe never sees your card.</li>
+                    <li>You pay on {provider}&apos;s secure page when you place the order. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</li>
                     {p.business_slug && <li>A question about an order goes to the seller. <Link href={`/b/${p.business_slug}`}>See {studio}</Link>.</li>}
                   </ul>
                 </div>

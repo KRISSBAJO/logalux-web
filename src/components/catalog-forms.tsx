@@ -3,7 +3,8 @@ import type { Row } from "@/lib/admin-api";
 
 export const BUSINESS_CATEGORIES: [string, string][] = [["hair", "Hair"], ["braids", "Braids & locs"], ["barber", "Barber"], ["nails", "Nails"], ["lashes", "Lashes & brows"], ["skin", "Skin"], ["makeup", "Makeup"], ["spa", "Spa & massage"]];
 export const PRODUCT_CATEGORIES: [string, string][] = [["hair", "Hair & scalp"], ["styling", "Styling"], ["tools", "Tools & bonnets"], ["skin", "Skin"], ["nails", "Nails"], ["gift", "Gift cards"]];
-export const TIMEZONES = ["America/Chicago", "America/New_York", "America/Denver", "America/Los_Angeles", "Africa/Lagos"];
+/** Every zone a business in the United States or Nigeria can be in. Normally it is set from the address; this list is for a correction by hand. */
+export const TIMEZONES = ["America/New_York", "America/Chicago", "America/Denver", "America/Phoenix", "America/Los_Angeles", "America/Anchorage", "America/Adak", "Pacific/Honolulu", "America/Puerto_Rico", "America/St_Thomas", "Pacific/Guam", "Pacific/Pago_Pago", "Africa/Lagos"];
 
 const area = "w-full rounded-xl border border-line bg-white px-3 py-2.5 text-[14px] text-ink outline-none focus:border-ink";
 
@@ -30,7 +31,7 @@ export function BusinessFields({ b = {} }: { b?: Row }) {
       <Field label="About" className="sm:col-span-2 lg:col-span-3"><textarea name="about" rows={4} maxLength={2000} defaultValue={b.about} className={area} /></Field>
       <Field label="Highlights, one per line (up to 8)" className="sm:col-span-2"><textarea name="highlights" rows={3} defaultValue={(b.highlights ?? []).join("\n")} placeholder={"Hair included\nFree parking"} className={area} /></Field>
       <div className="flex flex-col gap-3">
-        <Field label="Time zone"><select name="timezone" defaultValue={b.timezone ?? ""} className={inputCls}><option value="">From the market</option>{[...new Set([...(b.timezone ? [b.timezone] : []), ...TIMEZONES])].map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
+        <Field label="Time zone"><select name="timezone" defaultValue={b.timezone ?? ""} className={inputCls}><option value="">From the address</option>{[...new Set([...(b.timezone ? [b.timezone] : []), ...TIMEZONES])].map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
         <Field label="Brand colour, shown where there is no photo"><input name="tone" type="color" defaultValue={b.tone ?? "#3B1D22"} className="h-10 w-full cursor-pointer rounded-xl border border-line bg-white p-1" /></Field>
       </div>
     </div>

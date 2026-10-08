@@ -77,6 +77,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/messages", label: "Messages", icon: <Icon.Arrow /> },
         { href: "/admin/site", label: "Site images", icon: <Icon.Camera /> },
         { href: "/admin/pages", label: "Site pages", icon: <Icon.Doc /> },
+        { href: "/admin/features", label: "Features", icon: <Icon.Check /> },
         { href: "/admin/flags", label: "Feature flags", icon: <Icon.Flag /> },
         ...(can(admin, "super_admin") ? [{ href: "/admin/team", label: "Team", icon: <Icon.Users /> }] : []),
         { href: "/admin/audit", label: "Audit log", icon: <Icon.Clock /> },

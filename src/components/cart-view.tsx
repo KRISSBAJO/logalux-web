@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { money } from "@/lib/api";
 import { MAX_QTY, cart, useCart, type CartItem, type Fulfilment, type PickupWhen } from "@/lib/cart";
+import { CardChoice, NO_PAY, WalletNote, cardLabel, cardsFor, walletsFor, type PayFeatures } from "@/components/pay-bits";
 import { US_STATES, currencyOf, deliveryDays, payProvider, pickupTodayText, possessive, shopHref, visitDay, type CartProduct, type Currency, type OrderQuote, type ProductExtras } from "@/lib/shop";
 
 /** What the server said two codes are worth, and which codes and subtotal it was asked about. */
@@ -39,7 +40,7 @@ const WORD: Record<Currency, string> = { USD: "dollars", NGN: "naira" };
  * currency, so the page shows one cart for each: its own items, delivery choices, total and Pay button.
  * Placing one order leaves the other cart's items where they are.
  */
-export function CartView({ me, creditCents = 0 }: { me?: Me; creditCents?: number }) {
+export function CartView({ me, creditCents = 0, pay = NO_PAY }: { me?: Me; creditCents?: number; /** Kept cards and wallets, each only while LogaLuxe staff have it switched on. */ pay?: PayFeatures }) {
   const { items, how, when, ready } = useCart();
   // What each product costs and how it can be delivered today. The saved cart only remembers what was added.
   const [live, setLive] = useState<Record<string, CartProduct | null>>({});
@@ -93,7 +94,7 @@ export function CartView({ me, creditCents = 0 }: { me?: Me; creditCents?: numbe
           {split && <h2 className="serif curh">{PAYING[c]}</h2>}
           <CurrencyCart
             currency={c} items={byCurrency[c]} live={live} extras={extras} loaded={loaded} liveError={liveError} onRefresh={() => setRefresh((n) => n + 1)}
-            how={how} when={when} me={me} creditCents={creditCents}
+            how={how} when={when} me={me} creditCents={creditCents} pay={pay}
             otherLeft={ORDER.filter((o) => o !== c).reduce((a, o) => a + byCurrency[o].reduce((n, i) => n + i.qty, 0), 0)}
             onPlaced={() => setPlaced((p) => (p.includes(c) ? p : [...p, c]))}
           />
@@ -104,7 +105,8 @@ export function CartView({ me, creditCents = 0 }: { me?: Me; creditCents?: numbe
 }
 
 /** One currency's cart: its lines, how each seller's items are delivered, the server's total, and its own Pay button. */
-function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefresh, how, when, me, creditCents, otherLeft, onPlaced }: {
+function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefresh, how, when, me, creditCents, otherLeft, onPlaced, pay: payf }: {
+  pay: PayFeatures;
   currency: Currency; items: CartItem[]; live: Record<string, CartProduct | null>; extras: Record<string, ProductExtras>; loaded: boolean; liveError: string; onRefresh: () => void;
   how: Record<string, Fulfilment>; when: Record<string, PickupWhen>; me?: Me; creditCents: number;
   /** How many items are in the cart for the other currency. */
@@ -135,6 +137,11 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
   const [promo, setPromo] = useState(""), [gift, setGift] = useState("");
   const [check, setCheck] = useState<Check>(NONE);
   const addressRef = useRef<HTMLDivElement>(null), payRef = useRef<HTMLDivElement>(null);
+  // A card the customer kept in this cart's currency, or a different one. Offered only to a signed-in customer while saved cards are switched on.
+  const kept = useMemo(() => cardsFor(payf.cards, currency), [payf.cards, currency]);
+  const [cardId, setCardId] = useState(kept[0]?.id ?? "");
+  const [keepCard, setKeepCard] = useState(false);
+  const wallets = walletsFor(payf, provider);
 
   // Lines as the order endpoint will price them: today's price for the size, and stock shared between sizes of one product.
   const groups = useMemo<Group[]>(() => {
@@ -249,6 +256,9 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
   // What the shopper has in store credit. It is in US dollars: the quote says how much of it a dollar order uses, and a naira order uses none. A guest has none.
   const credit = me ? Math.max(0, creditCents) : 0;
   const covered = [giftUsed > 0 ? "gift card" : "", creditUsed > 0 ? "store credit" : ""].filter(Boolean);
+  // Nothing to pay means no card is asked for, kept or new.
+  const offerCards = payf.saved && !!me && !free;
+  const useCard = offerCards ? kept.find((c) => c.id === cardId) : undefined;
   // Brand products are taxed by the US state they ship to, so until one is chosen their tax is not in the total.
   const taxWaits = !naira && !region && groups.some((g) => g.how === "ship" && !!g.live && !g.live.business_slug);
   // A quote that fails says why in the API's own sentence, shown where the cart shows order errors.
@@ -281,6 +291,8 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
         body: JSON.stringify({
           customer_name: name.trim(), customer_phone: phone.trim(), customer_email: email.trim(),
           ...orderBody,
+          // A kept card is charged at once; a new card is kept only when the box is ticked.
+          ...(useCard ? { card_id: useCard.id } : offerCards && keepCard ? { save_card: true } : {}),
           address: anyShip ? { line1: line1.trim(), city: city.trim(), region: region.trim(), postal: naira ? "" : zip.trim() } : null,
         }),
       });
@@ -303,6 +315,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
     }
     // The order holds this cart's lines only. They leave the cart; the other currency's lines stay.
     // Paid online: hand over to the secure payment page. The order is confirmed when the payment arrives.
+    // With a kept card the money may already be taken: then there is no payment page and the order comes back paid.
     if (j.order.payment?.url) { cart.removeLines(sent); window.location.href = j.order.payment.url; return; }
     setShippedTo(anyShip ? [line1.trim(), city.trim(), region.trim()].filter(Boolean).join(", ") : "");
     setTold(Object.fromEntries(groups.filter((g) => g.how).map((g) => [g.seller, g.how === "pickup" ? collectText(g) : g.delivery ? `Arrives in ${deliveryDays(g.delivery)}.` : ""])));
@@ -452,7 +465,13 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
             <div className="field"><label htmlFor={id("ph")}>Mobile · so the seller can reach you</label><input id={id("ph")} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" placeholder={naira ? "0803 123 4567" : undefined} /></div>
             <div className="field wide"><label htmlFor={id("em")}>Email · for your receipt</label><input id={id("em")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" aria-invalid={!!errors.email} />{errors.email && <p role="alert" className="msg bad">{errors.email}</p>}</div>
           </div>
-          <div className="tip"><Shield /><span>{free ? `Your ${covered.join(" and ") || "discount"} ${covered.length > 1 ? "cover" : "covers"} this order, so nothing will be charged and there is no payment page.` : <>You will pay on {provider}&apos;s secure page. LogaLuxe never sees your card. It is one payment for {otherLeft > 0 ? `the items priced in ${WORD[currency]}` : "the whole order"}, and each seller is paid their share.</>}</span></div>
+          {offerCards ? (
+            <div className="choose">
+              {kept.length > 0 ? <span className="lbl">Pay with</span> : null}
+              <CardChoice cards={kept} provider={provider} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name={id("pay-card")} wallets={wallets} otherSub={false} />
+            </div>
+          ) : null}
+          <div className="tip"><Shield /><span>{free ? `Your ${covered.join(" and ") || "discount"} ${covered.length > 1 ? "cover" : "covers"} this order, so nothing will be charged and there is no payment page.` : useCard ? <>{cardLabel(useCard)} is charged when you press Pay. LogaLuxe never sees your card. It is one payment for {otherLeft > 0 ? `the items priced in ${WORD[currency]}` : "the whole order"}, and each seller is paid their share.</> : <>You will pay on {provider}&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null} It is one payment for {otherLeft > 0 ? `the items priced in ${WORD[currency]}` : "the whole order"}, and each seller is paid their share.</>}</span></div>
           {!me && <div className="muted fixed"><Link href="/signin?next=%2Fcart">Sign in</Link> before you pay to keep this order in your account.</div>}
         </div>
       </div>
@@ -478,7 +497,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
           {!naira && codeRow("Gift card code", giftInput, setGiftInput, () => { setGift(giftInput.trim()); setErrors((e) => ({ ...e, gift: undefined })); }, gift, () => { setGift(""); setGiftInput(""); setErrors((e) => ({ ...e, gift: undefined })); }, "Gift card code", giftOk ? `${cash(check.gift_balance_cents)} on this card${current && giftUsed < check.gift_balance_cents ? `, ${cash(giftUsed)} used here` : ""}` : "", errors.gift ?? (quoteAbout === "gift" ? quoteProblem : gift && checked ? check.gift_error : ""))}
           {errors.pay && <p role="alert" className="msg bad">{errors.pay}</p>}
           {!errors.pay && quoteAbout === "pay" && <p role="alert" className="msg bad">{quoteProblem} <button type="button" className="link" onClick={() => setQuoteRetry((n) => n + 1)}>Try again</button></p>}
-          <button type="button" className="btn btn-ink pay" disabled={busy || blocked || !current} onClick={pay}>{busy ? (due === 0 ? "Placing your order…" : "Opening the payment page…") : !quote ? "Working out the total…" : due === 0 ? "Place order" : `Pay ${cash(due)}`}</button>
+          <button type="button" className="btn btn-ink pay" disabled={busy || blocked || !current} onClick={pay}>{busy ? (due === 0 ? "Placing your order…" : useCard ? "Paying…" : "Opening the payment page…") : !quote ? "Working out the total…" : due === 0 ? "Place order" : `Pay ${cash(due)}`}</button>
           {free && !blocked && <p className="msg">Nothing will be charged.{covered.length ? ` Your ${covered.join(" and ")} ${covered.length > 1 ? "cover" : "covers"} this order.` : ""}</p>}
           {blocked && loaded && <p className="msg bad">Sort out the items marked in your cart first.</p>}
           {(collecting.length > 0 || sending.length > 0) && (

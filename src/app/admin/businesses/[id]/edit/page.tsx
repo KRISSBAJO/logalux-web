@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Btn, Content, Field, Flash, Hidden, Panel, Pill, ReadOnly, Topbar, fmtMoney, inputCls, statusPill } from "@/components/admin-ui";
 import { BusinessFields, Check, ServiceFields, StaffFields } from "@/components/catalog-forms";
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
+import { LocationFields } from "@/components/location-fields";
+import { LOOKS } from "@/lib/location-form";
+import { zoneName } from "@/lib/place";
+import { allStates } from "@/lib/places";
 import { createService, createStaff, removeService, removeStaff, saveBusinessProfile, saveLocation, saveService, saveStaff } from "../../../actions-catalog";
 
 const DAYS: [string, string][] = [["mon", "Monday"], ["tue", "Tuesday"], ["wed", "Wednesday"], ["thu", "Thursday"], ["fri", "Friday"], ["sat", "Saturday"], ["sun", "Sunday"]];
@@ -24,6 +28,7 @@ export default async function EditBusiness({ params, searchParams }: { params: P
   const staff: Row[] = res.data.staff ?? [];
   const services: Row[] = res.data.services ?? [];
   const locations: Row[] = res.data.locations ?? [];
+  const states = await allStates();
   const cur = b.currency;
   const nameOf = (sid: string) => staff.find((p) => p.id === sid)?.name;
 
@@ -46,17 +51,15 @@ export default async function EditBusiness({ params, searchParams }: { params: P
             </Panel>
 
             {locations.map((l) => (
-              <Panel key={l.id} title={`Location and hours · ${l.name}`} sub={`Times are in ${l.timezone}. Clients can only book inside these hours.`}>
+              <Panel key={l.id} title={`Location and hours · ${l.name}`} sub={`Times are in ${zoneName(String(l.timezone))} (${l.timezone}), from where it is. Clients can only book inside these hours.`}>
                 <form action={saveLocation} className="flex flex-col gap-4">
                   <Hidden values={{ id: l.id, back }} />
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <Field label="Location name"><input name="name" required defaultValue={l.name} className={inputCls} /></Field>
-                    <Field label="Street address"><input name="address" defaultValue={l.address} className={inputCls} /></Field>
-                    <Field label="City"><input name="city" defaultValue={l.city} className={inputCls} /></Field>
-                    <Field label="State or region"><input name="region" defaultValue={l.region} className={inputCls} /></Field>
-                    <Field label="Map latitude"><input name="lat" type="number" step="any" min="-90" max="90" defaultValue={l.lat ?? ""} placeholder="Found from the address" className={inputCls} /></Field>
-                    <Field label="Map longitude"><input name="lng" type="number" step="any" min="-180" max="180" defaultValue={l.lng ?? ""} placeholder="Found from the address" className={inputCls} /></Field>
-                    <p className="self-end pb-2.5 text-[12.5px] text-muted sm:col-span-2">{l.lat != null ? "This is where the pin sits on the search map. It moves by itself when you change the address, or you can type a position here." : "No pin on the search map yet. Save with an address and city to place one."}</p>
+                    <div className="sm:col-span-2 lg:col-span-4">
+                      <LocationFields states={states} look={LOOKS.admin} idp={l.id} country={String(l.country || b.market)} fixedCountry
+                        value={{ address: l.address, city: l.city, region: l.region, lat: l.lat ?? null, lng: l.lng ?? null, travels: !!l.travels, travel_radius_km: l.travel_radius_km ?? null, timezone: l.timezone }} />
+                    </div>
                     <Field label="Arrival notes, shown after booking" className="sm:col-span-2 lg:col-span-4"><input name="arrival_notes" defaultValue={l.arrival_notes} placeholder="Free parking behind the building. Ring the bell." className={inputCls} /></Field>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">

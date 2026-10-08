@@ -8,6 +8,7 @@ import { CHANNEL_LABEL, clock, dayShort, firstName, money, STATUS_LABEL, when, y
 import { careCounts } from "../care-counts";
 import { messageClient } from "../clients/actions";
 import { assignThread, replyThread, saveReplies, setThreadStatus } from "./actions";
+import { channelModes, liveNames, loggedNames, loggedOnly, phoneChannelsHint } from "@/lib/merchant-channels";
 import { deliveryLabel } from "./delivery";
 import { Problems } from "./problems";
 import { DraftReply, InsertText, Messages } from "./reply-tools";
@@ -67,10 +68,13 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   const dayName = (v: string) => { const day = ymd(v, tz); return day === today ? "Today" : day === yesterday ? "Yesterday" : dayShort(v, tz); };
   const dayIn = (v: string) => { const day = ymd(v, tz); return day === today ? "today" : day === yesterday ? "yesterday" : dayShort(v, tz); };
 
-  // What this install can really do on the channel of the open conversation.
+  // What this install can really do on the channel of the open conversation. WhatsApp and SMS are
+  // switched on by LogaLuxe staff, so whether they are connected is asked, not assumed.
+  const modes = await channelModes();
+  const phoneLogged = loggedNames(modes), phoneLive = liveNames(modes);
   let notice = "";
   if (t) {
-    if (t.channel === "whatsapp" || t.channel === "sms") notice = `${label(t.channel)} is not connected on this install. Replies are logged here, not sent to the client.`;
+    if ((t.channel === "whatsapp" || t.channel === "sms") && modes[t.channel as "whatsapp" | "sms"] === "log") notice = `${label(t.channel)} is not connected on this install. Replies are logged here, not sent to the client.`;
     else if (t.channel === "email" && one?.data.mail_mode !== "live" && one?.data.mail_mode !== "resend" && one?.data.mail_mode !== "smtp") notice = "No mail provider is set on this install. Email replies are logged here, not sent.";
     else if (t.channel === "in_app" && !t.has_account) notice = "This client has no LogaLuxe account, so in-app replies are logged here and not delivered.";
   }
@@ -143,13 +147,13 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
                 ))}
               </div>
               {Number(pickClients?.data.total ?? 0) > people.length ? <div className="muted" style={{ fontSize: 12.5 }}>Showing the first {people.length} of {pickClients?.data.total}. Search to narrow it down.</div> : null}
-              <Fld label="Send by" hint="In-app reaches clients who have a LogaLuxe account. Email goes out when a mail provider is set. WhatsApp and SMS are not connected on this install, so those messages are logged, not sent.">
+              <Fld label="Send by" hint={`In-app reaches clients who have a LogaLuxe account. Email goes out when a mail provider is set. ${phoneChannelsHint(modes)}`}>
                 <select name="channel" defaultValue="">
                   <option value="">Best way to reach them</option>
                   <option value="in_app">In-app</option>
                   <option value="email">Email</option>
-                  <option value="whatsapp">WhatsApp, logged only</option>
-                  <option value="sms">SMS, logged only</option>
+                  <option value="whatsapp">WhatsApp{loggedOnly(modes, "whatsapp")}</option>
+                  <option value="sms">SMS{loggedOnly(modes, "sms")}</option>
                 </select>
               </Fld>
               <Fld label="Message"><textarea name="body" required maxLength={4000} rows={5} /></Fld>
@@ -289,7 +293,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
                     </form>
                   </Sheet>
                 )}
-                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>In-app messages reach a client&rsquo;s LogaLuxe account. Email goes out when a mail provider is set. WhatsApp and SMS are logged here, not sent. Each message shows what happened to it.</div>
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>In-app messages reach a client&rsquo;s LogaLuxe account. Email goes out when a mail provider is set.{phoneLive ? ` ${phoneLive} messages go to the client's phone.` : ""}{phoneLogged ? ` ${phoneLogged} ${phoneLogged.includes(" and ") ? "are" : "is"} logged here, not sent.` : ""} Each message shows what happened to it.</div>
               </>
             ) : (
               <>

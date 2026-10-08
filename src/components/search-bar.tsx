@@ -3,11 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "./icons";
+import { PlacePicker, type PickerWhere } from "./place-picker";
 
-export function SearchBar({ initial = {}, market }: { initial?: { q?: string; where?: string; when?: string }; market?: string }) {
+/**
+ * What, where and when. "Where" is the place the visitor is looking in: the
+ * one they chose, or our first guess. Choosing another here changes it for
+ * the whole site. The search itself goes to /search, which reads the place
+ * from the same cookie, so nothing about where a person is goes in the address.
+ */
+export function SearchBar({ initial = {}, where, keep = {} }: {
+  initial?: { q?: string; when?: string };
+  /** The place being looked in and how we came by it. */
+  where: PickerWhere;
+  /** Filters to carry into the search, such as the category being browsed. */
+  keep?: Record<string, string>;
+}) {
   const router = useRouter();
   const [q, setQ] = useState(initial.q ?? "");
-  const [where, setWhere] = useState(initial.where ?? "");
   const [when, setWhen] = useState(initial.when ?? "anytime");
   return (
     <form
@@ -16,21 +28,18 @@ export function SearchBar({ initial = {}, market }: { initial?: { q?: string; wh
       onSubmit={(e) => {
         e.preventDefault();
         const p = new URLSearchParams();
-        if (q) p.set("q", q);
-        if (where) p.set("where", where);
+        if (q.trim()) p.set("q", q.trim());
+        for (const [k, v] of Object.entries(keep)) if (v) p.set(k, v);
         if (when !== "anytime") p.set("when", when);
-        if (market && market !== "US") p.set("market", market); // stay in the city being browsed
-        router.push(`/search?${p.toString()}`);
+        const s = p.toString();
+        router.push(s ? `/search?${s}` : "/search");
       }}
     >
       <label className="flex min-w-0 flex-col border-line px-3.5 py-1.5 md:border-r">
         <span className="text-[10px] font-semibold uppercase tracking-[.12em] text-muted">Service or business</span>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Braids, fade, nails…" className="w-full min-w-0 bg-transparent text-[15px] leading-tight text-ink outline-none placeholder:text-muted-2" />
       </label>
-      <label className="flex min-w-0 flex-col border-line px-3.5 py-1.5 md:border-r">
-        <span className="text-[10px] font-semibold uppercase tracking-[.12em] text-muted">Where</span>
-        <input value={where} onChange={(e) => setWhere(e.target.value)} placeholder="City or area" className="w-full min-w-0 bg-transparent text-[15px] leading-tight text-ink outline-none placeholder:text-muted-2" />
-      </label>
+      <PlacePicker look="field" where={where} />
       <label className="flex min-w-0 flex-col px-3.5 py-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[.12em] text-muted">When</span>
         <select value={when} onChange={(e) => setWhen(e.target.value)} className="w-full bg-transparent text-[15px] leading-tight text-ink outline-none">

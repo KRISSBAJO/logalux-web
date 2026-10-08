@@ -2,6 +2,7 @@
 
 import { fid, mBackTo, mPost, mPut, mRun, str } from "@/lib/merchant-actions";
 import type { Row } from "@/lib/merchant-api";
+import { channelModes } from "@/lib/merchant-channels";
 import { deliveryResult } from "./delivery";
 
 /** Adds a reply to a conversation and says what really happened to it. */
@@ -13,7 +14,7 @@ export async function replyThread(fd: FormData) {
     error = (e as Error).message || "Something went wrong.";
   }
   if (error) mBackTo(fd, "err", error[0].toUpperCase() + error.slice(1) + ".");
-  const r = deliveryResult(String(out.delivery ?? ""), str(fd, "channel"));
+  const r = deliveryResult(String(out.delivery ?? ""), str(fd, "channel"), await channelModes());
   mBackTo(fd, r.kind, r.message);
 }
 

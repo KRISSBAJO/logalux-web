@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { fid, int, list, mBackTo, mPost, mPut, mRun, on, str } from "@/lib/merchant-actions";
 import { qs, type Row } from "@/lib/merchant-api";
+import { channelModes } from "@/lib/merchant-channels";
 import { deliveryResult } from "../inbox/delivery";
 
 /** API messages come as "that phone number…": show them as a sentence. */
@@ -100,7 +101,7 @@ export async function messageClient(fd: FormData) {
   }
   if (error) mBackTo(fd, "err", error);
   // The API picks the channel when none is chosen, so say only what is known.
-  const r = deliveryResult(String(out.delivery ?? ""), str(fd, "channel"));
+  const r = deliveryResult(String(out.delivery ?? ""), str(fd, "channel"), await channelModes());
   const message = str(fd, "channel") || out.delivery !== "logged" ? r.message : "Message logged, not sent. Open the conversation to see the channel it was logged on.";
   redirect("/business/inbox" + qs({ thread: out.id, [r.kind]: message }));
 }

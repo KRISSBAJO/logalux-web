@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { money } from "@/lib/api";
-import { USER_COOKIE, cookieOptions, customerApi, customerUpload, safeNext } from "@/lib/customer";
+import { cardFields } from "@/lib/cards";
+import { USER_COOKIE, CustomerApiError, cookieOptions, customerApi, customerUpload, safeNext } from "@/lib/customer";
 
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const enc = encodeURIComponent;
@@ -313,14 +314,15 @@ export async function askReturn(_prev: CareState, fd: FormData): Promise<CareSta
   redirect(`/account?tab=orders&ok=${enc(`Return requested. ${seller} will answer by email.`)}#o-${id}`);
 }
 
-/** Adds a tip to a finished visit. With payments live the answer is a payment page; otherwise the tip is already recorded. */
+/** Adds a tip to a finished visit. With payments live the answer is a payment page, unless a kept card paid it at once; otherwise the tip is already recorded. */
 export async function addTip(_prev: CareState, fd: FormData): Promise<CareState> {
   const id = v(fd, "id"), cents = Math.round(Number(v(fd, "amount_cents")));
   if (!UUID.test(id)) return { error: "We could not find that visit." };
   if (!Number.isFinite(cents) || cents <= 0) return { error: "Choose an amount for the tip." };
   let out: { amount_cents?: number; currency?: string; payment?: { url?: string } };
   try {
-    out = await customerApi(`/auth/bookings/${enc(id)}/tip`, { method: "POST", body: { amount_cents: cents } });
+    // A kept card pays at once; a new card is kept only when the box was ticked. Both are dropped unless saved cards are switched on.
+    out = await customerApi(`/auth/bookings/${enc(id)}/tip`, { method: "POST", body: await cardFields({ amount_cents: cents, card_id: v(fd, "card_id"), save_card: v(fd, "save_card") === "1" }) });
   } catch (e) {
     return { error: sentence((e as Error).message) };
   }
@@ -342,4 +344,109 @@ export async function reportProblem(_prev: CareState, fd: FormData): Promise<Car
     return { error: sentence((e as Error).message) };
   }
   redirect(`/account?tab=bookings&ok=${enc(`Your report is in${ref ? `, reference ${ref}` : ""}. ${v(fd, "business") || "The business"} has 48 hours to give its side. Then LogaLuxe decides and emails you.`)}#b-${id}`);
+}
+
+// ---------- signing in with a texted code, and confirming a number ----------
+
+/** Where the "Text me a code" form stands. The server moves it on; the browser only shows it. */
+export type CodeState = {
+  stage: "phone" | "code" | "name" | "password";
+  phone: string; channel: "sms" | "whatsapp"; code: string;
+  /** "delivered", or "logged" when the number is one that cannot be texted. */
+  sent: string; error: string;
+  /** Goes up each time a code is sent, so the wait before "Send a new code" starts again. */
+  sends: number;
+};
+
+const digits = (s: string) => s.replace(/\D/g, "").slice(0, 6);
+
+/** One step of signing in or signing up with a code: send it, check it, or finish with a name. */
+export async function codeStep(prev: CodeState, fd: FormData): Promise<CodeState> {
+  const intent = v(fd, "intent");
+  const next = safeNext(fd.get("next"));
+  if (intent === "restart") return { stage: "phone", phone: prev.phone, channel: prev.channel, code: "", sent: "", error: "", sends: prev.sends };
+
+  if (intent === "send") {
+    const phone = v(fd, "phone") || prev.phone;
+    const channel = v(fd, "channel") === "whatsapp" ? "whatsapp" : "sms";
+    if (!phone) return { ...prev, error: "Enter your mobile number with the country code, like +1 615 555 0100." };
+    try {
+      const out = await customerApi<{ sent?: string }>("/auth/code/send", { method: "POST", auth: false, body: { phone, channel } });
+      return { stage: "code", phone, channel, code: "", sent: out.sent ?? "", error: "", sends: prev.sends + 1 };
+    } catch (e) {
+      // A refusal to send again leaves the person where they are: the code they have may still work.
+      return { ...prev, phone, channel, error: sentence((e as Error).message) };
+    }
+  }
+
+  const phone = prev.phone, code = digits(v(fd, "code") || prev.code);
+  if (!phone) return { ...prev, stage: "phone", error: "Enter your mobile number first." };
+  if (code.length !== 6) return { ...prev, error: "Enter the 6 digits of the code." };
+  const first = v(fd, "first_name"), ref = refCode(fd.get("ref"));
+  if (intent === "finish" && !first) return { ...prev, code, error: "Enter your first name." };
+  let session: Session | null = null, state: CodeState = { ...prev, code, error: "" };
+  try {
+    session = await customerApi<Session>("/auth/code/verify", {
+      method: "POST", auth: false,
+      body: { phone, code, ...(intent === "finish" ? { first_name: first, last_name: v(fd, "last_name"), email: v(fd, "email"), ...(ref ? { ref } : {}) } : {}) },
+    });
+  } catch (e) {
+    const err = e as CustomerApiError;
+    const said = sentence(err.message);
+    if (err.status === 409 && err.data?.need === "name") state = { ...state, stage: "name" };
+    else if (err.status === 409 && err.data?.need === "password") state = { ...state, stage: "password", error: said };
+    // The code ran out or was used up while the name was being typed: back to the code.
+    else if (err.status === 401) state = { ...state, stage: "code", code: "", error: said };
+    else state = { ...state, error: said };
+  }
+  if (!session) return state;
+  await startSession(session);
+  redirect(next);
+}
+
+/** What the "confirm your number" form in the account is told. */
+export type PhoneState = { stage: "idle" | "code"; sent: string; error: string; sends: number };
+
+/** Sends a code to the number on the account, or checks the code that was typed. */
+export async function phoneStep(prev: PhoneState, fd: FormData): Promise<PhoneState> {
+  if (v(fd, "intent") === "send") {
+    try {
+      const out = await customerApi<{ sent?: string }>("/auth/phone/send", { method: "POST", body: { channel: v(fd, "channel") === "whatsapp" ? "whatsapp" : "sms" } });
+      return { stage: "code", sent: out.sent ?? "", error: "", sends: prev.sends + 1 };
+    } catch (e) {
+      return { ...prev, error: sentence((e as Error).message) };
+    }
+  }
+  const code = digits(v(fd, "code"));
+  if (code.length !== 6) return { ...prev, error: "Enter the 6 digits of the code." };
+  try {
+    await customerApi("/auth/phone/verify", { method: "POST", body: { code } });
+  } catch (e) {
+    return { ...prev, error: sentence((e as Error).message) };
+  }
+  redirect(`/account?tab=details&ok=${enc("Your number is confirmed. You can sign in with a code sent to it.")}`);
+}
+
+/** How the person wants to hear about bookings. Only a channel that is switched on is accepted here; the API checks the word itself. */
+export async function saveChannel(fd: FormData) {
+  const channel = v(fd, "channel");
+  let error = "";
+  try {
+    await customerApi("/auth/channel", { method: "PUT", body: { channel } });
+  } catch (e) {
+    error = sentence((e as Error).message);
+  }
+  const how = channel === "whatsapp" ? "on WhatsApp, and by email" : channel === "sms" ? "by text, and by email" : "by email";
+  await (error ? back("err", error, "details") : back("ok", `Saved. You will hear about bookings ${how}.`, "details"));
+}
+
+/** Takes a kept card off the account. The provider forgets it too. */
+export async function removeCard(fd: FormData) {
+  let error = "";
+  try {
+    await customerApi(`/auth/cards/${enc(v(fd, "card"))}`, { method: "DELETE" });
+  } catch (e) {
+    error = sentence((e as Error).message);
+  }
+  await (error ? back("err", error, "details") : back("ok", `${v(fd, "label") || "The card"} is removed.`, "details"));
 }

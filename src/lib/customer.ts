@@ -7,12 +7,19 @@ import { visitorHeaders } from "./visitor";
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
 export const USER_COOKIE = "lx_user";
 
-export type Customer = { id: string; email: string; first_name: string; last_name: string; phone: string; email_verified?: boolean };
+export type Customer = {
+  id: string; email: string; first_name: string; last_name: string; phone: string; email_verified?: boolean;
+  /** True once they typed a code sent to their number. */
+  phone_verified?: boolean;
+  /** How they want to hear about bookings. */
+  preferred_channel?: "whatsapp" | "sms" | "email" | "";
+};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
 export class CustomerApiError extends Error {
-  constructor(public status: number, message: string) {
+  /** `data` is the whole answer: some refusals say what is needed next. */
+  constructor(public status: number, message: string, public data: Row = {}) {
     super(message);
   }
 }
@@ -35,7 +42,7 @@ export async function customerApi<T = Row>(path: string, init: { method?: string
     throw new CustomerApiError(503, "We could not reach the service. Try again in a moment.");
   }
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new CustomerApiError(res.status, body.error ?? "Something went wrong.");
+  if (!res.ok) throw new CustomerApiError(res.status, body.error ?? "Something went wrong.", body);
   return body as T;
 }
 

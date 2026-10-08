@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { WalletNote } from "@/components/pay-bits";
 import { useState, type FormEvent } from "react";
 import { money } from "@/lib/api";
 import { clock, dayLabel, inZone, whenLabel } from "../shared";
@@ -19,7 +20,7 @@ const sentence = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) + (/
  * what was booked and what was not are both listed, with the API's reason.
  * `look` is where it is drawn: on the booking pages (their own stylesheet) or in the account (the site's).
  */
-export function RepeatCard({ id, startsAt, tz, currency, business, look }: { id: string; startsAt: string; tz: string; currency: string; business: string; look: "book" | "account" }) {
+export function RepeatCard({ id, startsAt, tz, currency, business, look, wallets = false }: { id: string; startsAt: string; tz: string; currency: string; business: string; look: "book" | "account"; /** Apple Pay and Google Pay may be named: switched on, and the deposits go to Stripe. */ wallets?: boolean }) {
   const router = useRouter();
   const [every, setEvery] = useState(2);
   const [times, setTimes] = useState(3);
@@ -71,7 +72,7 @@ export function RepeatCard({ id, startsAt, tz, currency, business, look }: { id:
             </ul>
           </div>
         ) : <div style={box(false)}>None of those dates could be booked.</div>}
-        {owing.length > 0 ? <div className={muted} style={{ fontSize: 13 }}>Each visit with a deposit is held for a while. If its deposit is not paid, that visit is released. You pay on the payment provider&apos;s secure page. LogaLuxe never sees your card.</div> : null}
+        {owing.length > 0 ? <div className={muted} style={{ fontSize: 13 }}>Each visit with a deposit is held for a while. If its deposit is not paid, that visit is released. You pay on the payment provider&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</div> : null}
         {done.skipped.length > 0 ? (
           <div style={box(false)}>
             <b>{done.skipped.length === 1 ? "1 date could not be booked" : `${done.skipped.length} dates could not be booked`}</b>

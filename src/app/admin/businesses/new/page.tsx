@@ -3,10 +3,13 @@ import { Btn, Content, Field, Flash, Hidden, Panel, ReadOnly, Topbar, inputCls }
 import { BusinessFields } from "@/components/catalog-forms";
 import { can, getAdmin } from "@/lib/admin-api";
 import { createBusiness } from "../../actions-catalog";
+import { LocationFields } from "@/components/location-fields";
+import { LOOKS } from "@/lib/location-form";
+import { allStates } from "@/lib/places";
 
 export default async function NewBusiness({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
   const sp = await searchParams;
-  const ops = can(await getAdmin(), "ops");
+  const [ops, states] = await Promise.all([getAdmin().then((a) => can(a, "ops")), allStates()]);
   return (
     <>
       <Topbar title="Add a business" sub="For a professional you are signing up yourself">
@@ -17,13 +20,10 @@ export default async function NewBusiness({ searchParams }: { searchParams: Prom
         {!ops ? <ReadOnly need="ops" /> : (
           <form action={createBusiness} className="flex flex-col gap-5">
             <Hidden values={{ back: "/admin/businesses/new" }} />
-            <Panel title="Where it trades" sub="The market sets the currency and cannot be changed later.">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Market"><select name="market" required defaultValue="US" className={inputCls}><option value="US">United States · USD</option><option value="NG">Nigeria · NGN</option></select></Field>
-                <Field label="City"><input name="city" placeholder="Nashville" className={inputCls} /></Field>
-                <Field label="State or region"><input name="region" placeholder="TN" className={inputCls} /></Field>
-                <Field label="Street address"><input name="address" className={inputCls} /></Field>
-                <Field label="Booking link, optional" className="sm:col-span-2"><input name="slug" pattern="[a-z0-9][a-z0-9-]{1,59}" placeholder="logaluxe.com/@… made from the name if left empty" className={inputCls} /></Field>
+            <Panel title="Where it trades" sub="The country sets the currency and cannot be changed later. The address sets the time zone.">
+              <div className="flex flex-col gap-3">
+                <LocationFields states={states} look={LOOKS.admin} />
+                <Field label="Booking link, optional" className="max-w-[520px]"><input name="slug" pattern="[a-z0-9][a-z0-9-]{1,59}" placeholder="logaluxe.com/@… made from the name if left empty" className={inputCls} /></Field>
               </div>
             </Panel>
             <Panel title="Profile"><BusinessFields /></Panel>

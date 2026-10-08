@@ -3,7 +3,8 @@
 // as the API gives it. Nothing is filled in when it is missing.
 import { breadcrumbs } from "@/components/json-ld";
 import { money } from "@/lib/api";
-import { CATEGORY_PAGES, CITIES, categoryLabel } from "@/lib/categories";
+import { CATEGORY_PAGES, categoryLabel } from "@/lib/categories";
+import { placeSlug } from "@/lib/place";
 import { absoluteUrl, clip } from "@/lib/site";
 import type { Loc, Payload } from "./shared";
 
@@ -22,7 +23,7 @@ function menu(data: Payload) {
   return main.length ? main : all;
 }
 
-/** "East Nashville", or "Lekki Phase 1, Lagos" when the area does not already name the city. */
+/** The area, with the city after it when the area does not already name the city: "Lekki Phase 1, Lagos". */
 function placeOf(loc: Loc | undefined) {
   if (!loc) return "";
   return [loc.name, loc.city && !(loc.name ?? "").includes(loc.city) ? loc.city : ""].filter(Boolean).join(", ");
@@ -110,7 +111,10 @@ export function businessJsonLd(data: Payload, shown: { rating: number; reviewCou
   };
 
   // Home, then the city and the kind of service when LogaLuxe has a page for them, then the business.
-  const city = CITIES.find((c) => c.market === b.market);
+  // The city is where the business's main location is; its page address is made the way the API makes it.
+  const main = primary(data.locations ?? []);
+  const slug = main ? placeSlug(main.city ?? "", main.region ?? "", main.country ?? b.market) : "";
+  const city = slug && main ? { name: main.country === "NG" && (main.city ?? "").toLowerCase() === (main.region ?? "").toLowerCase() ? main.city ?? "" : `${main.city}, ${main.region}`, slug } : null;
   const kind = CATEGORY_PAGES.find((c) => c.id === b.category);
   const trail: [string, string][] = [["Home", absoluteUrl("/")]];
   if (city) trail.push([city.name, absoluteUrl(`/${city.slug}`)]);

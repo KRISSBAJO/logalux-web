@@ -2,11 +2,13 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { distanceTo, kmBetween, nearProblem, usePosition } from "@/lib/near";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { findMe } from "@/lib/near-me";
+import { forgetChosen } from "@/lib/place";
 import { Icon } from "./icons";
 import { LogoMark } from "./logo-mark";
-import type { Pin } from "./results-map";
+import type { Area, Pin } from "./results-map";
 
 // The map only exists in the browser.
 const ResultsMap = dynamic(() => import("./results-map").then((m) => m.ResultsMap), {
@@ -19,8 +21,10 @@ export type ResultCard = {
   area: string; open: boolean | null; openText: string; from: string; team: string; coverId?: string; coverAlt?: string;
   services: { name: string; length: string; price: string }[];
   timezone?: string;
-  /** Where the business is, for the distance from a visitor who has shared their position. Miles in the US, kilometres in Nigeria. */
-  lat?: number | null; lng?: number | null; miles?: boolean;
+  /** How far it is, ready to show: "2.3 mi away", or "77 mi from Jackson". Empty when the search had no point. */
+  distance?: string;
+  /** Goes to its clients rather than having a shop front. */
+  travels?: boolean;
 };
 
 type Opening = { service: string; service_id: string; slots: { time: string; starts_at: string; staff_id: string; staff: string }[] };
@@ -43,17 +47,39 @@ function dayLabel(date: string, today: string): string {
   return new Date(noon(date)).toLocaleDateString("en-GB", away < 7 ? { timeZone: "UTC", weekday: "short" } : { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
 }
 
-export function SearchResults({ cards: listed, pins, q = "", header }: { cards: ResultCard[]; pins: Pin[]; q?: string; /** The line above the list: how many there are. The "Near me" control sits beside it. */ header?: ReactNode }) {
-  // Distance is worked out here, in the browser, and only once the visitor has shared where they are.
-  const { point, status, ask, forget } = usePosition();
-  const [nearest, setNearest] = useState(false);
-  const placed = listed.some((c) => typeof c.lat === "number" && typeof c.lng === "number");
-  const cards = useMemo(() => {
-    if (!point || !nearest) return listed;
-    const km = (c: ResultCard) => (typeof c.lat === "number" && typeof c.lng === "number" ? kmBetween(point, { lat: c.lat, lng: c.lng }) : Infinity);
-    return [...listed].sort((a, b) => km(a) - km(b));
-  }, [listed, point, nearest]);
-  const problem = point ? "" : nearProblem(status);
+export function SearchResults({ cards, pins, q = "", header, near, home = "", centre, area, areaBase }: {
+  cards: ResultCard[]; pins: Pin[]; q?: string;
+  /** The line above the list: how many there are. The location control sits beside it. */
+  header?: ReactNode;
+  /** `on`: results are ordered from the device's position. `off`: offer "Near me". Leave out to offer neither. */
+  near?: "on" | "off";
+  /** The country we think the visitor is in, noted with their position when they share it. */
+  home?: string;
+  /** Where the map looks when there is nothing to pin. */
+  centre?: { lat: number; lng: number };
+  /** The part of the map these results are for, when it was searched by area. */
+  area?: Area;
+  /** The search address that "Search this area" adds its box to, such as "/search?category=braids". Leave out to not offer it. */
+  areaBase?: string;
+}) {
+  const router = useRouter();
+  // The device is asked where it is only when "Near me" is pressed. The answer is kept in a cookie and the
+  // server orders the list by distance; nothing is worked out here.
+  const [finding, setFinding] = useState(false);
+  const [problem, setProblem] = useState("");
+  const nearMe = async () => {
+    setFinding(true);
+    setProblem("");
+    const me = await findMe(home);
+    setFinding(false);
+    if (!me.ok) { setProblem(me.why); return; }
+    const u = new URL(window.location.href);
+    for (const k of ["place", "bbox", "page", "market", "where", "sort"]) u.searchParams.delete(k);
+    router.push(`/search${u.searchParams.toString() ? `?${u.searchParams}` : ""}`);
+    router.refresh();
+  };
+  const stopNear = () => { forgetChosen(); router.refresh(); };
+  const searchArea = areaBase ? (box: Area) => router.push(`${areaBase}${areaBase.includes("?") ? "&" : "?"}bbox=${box.join(",")}`) : undefined;
   const pillBtn = "inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-default disabled:opacity-60";
 
   const [active, setActive] = useState<string | null>(null);
@@ -88,20 +114,17 @@ export function SearchResults({ cards: listed, pins, q = "", header }: { cards: 
     <>
     <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <div className="min-w-0 text-[13.5px] text-muted">{header}</div>
-      {placed && (
+      {near && (
         <div className="flex flex-wrap items-center gap-2">
-          {point ? (
-            <>
-              <button type="button" aria-pressed={nearest} onClick={() => setNearest((v) => !v)} title="Orders the results on this page only" className={`${pillBtn} ${nearest ? "border-ink bg-ink text-cream" : "border-line bg-white hover:border-ink"}`}>Nearest first on this page</button>
-              <button type="button" onClick={() => { setNearest(false); forget(); }} className="text-[13px] font-semibold text-wine underline underline-offset-2">Stop using my location</button>
-            </>
+          {near === "on" ? (
+            <button type="button" onClick={stopNear} className="text-[13px] font-semibold text-wine underline underline-offset-2">Stop using my location</button>
           ) : (
-            <button type="button" onClick={ask} disabled={status === "asking"} className={`${pillBtn} border-line bg-white hover:border-ink`}><Icon.Pin width={13} height={13} />{status === "asking" ? "Finding you…" : "Near me"}</button>
+            <button type="button" onClick={nearMe} disabled={finding} title="Your browser will ask first. It is used only to put what is nearest to you first." className={`${pillBtn} border-line bg-white hover:border-ink`}><Icon.Pin width={13} height={13} />{finding ? "Finding you…" : "Near me"}</button>
           )}
         </div>
       )}
       {problem && <p role="status" className="basis-full text-[13px] text-muted">{problem}</p>}
-      {point && <p className="sr-only" role="status">Showing how far each one is from you.</p>}
+      {near === "on" && <p className="sr-only" role="status">Showing how far each one is from you, nearest first.</p>}
     </div>
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className={`flex min-w-0 flex-col gap-3.5 ${showMap ? "max-lg:hidden" : ""}`}>
@@ -136,7 +159,8 @@ export function SearchResults({ cards: listed, pins, q = "", header }: { cards: 
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] text-muted">
                 <span className="flex items-center gap-1"><Icon.Pin width={12} height={12} />{c.area}</span>
-                {(() => { const far = distanceTo(point, c, c.miles !== false); return far ? <span className="whitespace-nowrap font-semibold text-ink">{far}</span> : null; })()}
+                {c.distance && <span className="whitespace-nowrap font-semibold text-ink">{c.distance}</span>}
+                {c.travels && <span className="whitespace-nowrap rounded-full border border-line px-2 py-px text-[11.5px] font-semibold text-ink">Comes to you</span>}
                 {c.open !== null && <span className="flex items-center gap-1.5"><i className={`block h-1.5 w-1.5 rounded-full ${c.open ? "bg-ok" : "bg-muted-2"}`} />{c.openText}</span>}
               </div>
 
@@ -185,10 +209,10 @@ export function SearchResults({ cards: listed, pins, q = "", header }: { cards: 
       </div>
 
       <aside className={`overflow-hidden rounded-[22px] border border-line lg:sticky lg:top-[76px] lg:block lg:h-[calc(100vh-100px)] ${showMap ? "h-[70vh]" : "max-lg:hidden"}`}>
-        <ResultsMap pins={pins} active={active} onHover={setActive} onPick={pick} />
+        <ResultsMap pins={pins} active={active} onHover={setActive} onPick={pick} centre={centre} area={area} onArea={searchArea} />
       </aside>
 
-      {pins.length > 0 && (
+      {(pins.length > 0 || areaBase) && (
         <button type="button" onClick={() => setShowMap((v) => !v)} className="fixed bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-ink px-5 py-3 text-[14px] font-semibold text-cream shadow-[0_12px_30px_rgba(0,0,0,.35)] lg:hidden">
           {showMap ? <><Icon.List width={16} height={16} />Show list</> : <><Icon.Pin width={16} height={16} />Show map</>}
         </button>

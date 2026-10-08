@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { Icon } from "@/components/icons";
-import { api, money, type Business } from "@/lib/api";
+import { api, money } from "@/lib/api";
 import { SearchBar } from "@/components/search-bar";
+import { CategoryIcon } from "@/components/category-icons";
+import { PlacePicker } from "@/components/place-picker";
+import type { Found, Listing } from "@/lib/listings";
+import { inCountry, shortName, whereLine } from "@/lib/place";
+import { livePlaces, pickerWhere, whereAmI } from "@/lib/places";
 import { Motion, MotionBoot } from "@/components/motion";
 import { HeroShowcase, type HeroImage } from "@/components/hero-slides";
 import { Pic } from "@/components/pic";
@@ -27,17 +32,32 @@ const PRO_FEATURES: [React.ReactNode, string, string][] = [
 ];
 
 export default async function Landing() {
-  let featured: Business[] = [];
+  let featured: Listing[] = [];
+  let found: Found | null = null;
   // Hero pictures are uploaded in the admin console under Site images.
   const [heroImages, categoryMedia, businessMedia]: [HeroImage[], Awaited<ReturnType<typeof siteMedia>>, Awaited<ReturnType<typeof siteMedia>>] = await Promise.all([siteMedia("hero"), siteMedia("category"), siteMedia("business")]);
   const categoryPic = firstByRef(categoryMedia);
   const cover = firstByRef(businessMedia);
+  // Where this visitor is looking: the place they chose, or our first guess. Only their country is shown.
+  const [where, picker, { places, countries }] = await Promise.all([whereAmI(), pickerWhere(), livePlaces()]);
+  const place = where.place;
+  const device = where.source === "device";
   try {
-    const data = await api.get<{ businesses: Business[] }>("/v1/businesses?market=US");
-    featured = data.businesses.slice(0, 4);
+    // Four cards, always: the nearest, then the best of the country, then the best anywhere, then an invitation.
+    const q = new URLSearchParams({ limit: "4", fill: "4" });
+    if (where.scope) q.set("scope", where.scope);
+    // Around a city or the visitor's own position, looking further out when little is close; else the best of the state or country.
+    if (place && place.kind !== "state" && place.kind !== "country" && (place.lat || place.lng)) { q.set("lat", String(place.lat)); q.set("lng", String(place.lng)); if (!device) q.set("sort", "top"); }
+    else if (place?.slug) q.set("place", place.slug);
+    found = await api.get<Found>(`/v1/businesses?${q}`);
+    featured = found.businesses;
   } catch {
     featured = [];
   }
+  const served = countries.filter((c) => c.businesses > 0);
+  const inScope = places.filter((p) => !where.scope || p.country === where.scope);
+  const nearName = place ? (place.kind === "country" ? inCountry(place.country) : shortName(place)) : "";
+  const elsewhere = served.filter((c) => c.code !== where.scope);
 
   return (
     <>
@@ -47,14 +67,14 @@ export default async function Landing() {
         <SiteHeader transparent />
         <section className="container-x grid items-center gap-14 pb-24 pt-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16 lg:pb-28 lg:pt-20" id="top">
           <div className="min-w-0">
-            <div className="eyebrow rise" style={{ "--i": 0 } as React.CSSProperties}>Nashville · Lagos</div>
+            <div className="eyebrow rise" style={{ "--i": 0 } as React.CSSProperties}>{served.length > 0 ? served.map((c) => c.name).join(" · ") : "Beauty, booked"}</div>
             <h1 style={{ "--i": 1 } as React.CSSProperties} className="rise serif mt-7 text-[58px] leading-[.95] md:text-[104px]">
               Beauty you<br />can <em className="text-gold-2">trust.</em>
             </h1>
             <p style={{ "--i": 2 } as React.CSSProperties} className="rise mb-10 mt-7 max-w-[440px] text-[19px] leading-relaxed text-[#C9BCB0]">
               Verified professionals. Real openings. Booked in under a minute.
             </p>
-            <div className="rise max-w-[600px]" style={{ "--i": 3 } as React.CSSProperties}><SearchBar /></div>
+            <div className="rise max-w-[600px]" style={{ "--i": 3 } as React.CSSProperties}><SearchBar where={picker} /></div>
           </div>
 
           <div className="rise relative mx-auto w-full max-w-[440px] max-lg:hidden" style={{ "--i": 2 } as React.CSSProperties}>
@@ -89,14 +109,21 @@ export default async function Landing() {
           <div data-stagger className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
             {CATEGORIES.map(([id, name, sub]) => (
               <Link key={id} href={`/search?category=${id}`} className="card lift flex min-h-[124px] flex-col justify-between gap-3 p-5 hover:border-ink">
-                <span className="photo zoom h-11 w-11 flex-none rounded-full !bg-cream-2 !p-0"><Pic img={categoryPic.get(id)} /></span>
+                {/* The uploaded photo for the category when there is one (Site images in the console); its drawing until then. */}
+                {categoryPic.get(id)
+                  ? <span className="photo zoom h-11 w-11 flex-none rounded-full !bg-cream-2 !p-0"><Pic img={categoryPic.get(id)} /></span>
+                  : <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-cream-2 text-wine"><CategoryIcon id={id} /></span>}
                 <span><b className="block text-[15px] font-semibold leading-tight">{name}</b><small className="text-[12px] text-muted">{sub}</small></span>
               </Link>
             ))}
           </div>
-          <p className="mt-6 text-[14.5px] text-muted">
-            Browse by city: <Link href="/nashville" className="font-semibold text-wine hover:underline">Beauty professionals in Nashville</Link> · <Link href="/lagos" className="font-semibold text-wine hover:underline">Beauty professionals in Lagos</Link>
-          </p>
+          {inScope.length > 0 && (
+            <p className="mt-6 text-[14.5px] leading-relaxed text-muted">
+              Browse by city:{" "}
+              {inScope.slice(0, 6).map((p, i) => <span key={p.slug}>{i > 0 && " · "}<Link href={`/${p.slug}`} className="font-semibold text-wine hover:underline">{p.label}</Link></span>)}
+              {" · "}<Link href="/places" className="font-semibold text-wine hover:underline">All places</Link>
+            </p>
+          )}
         </div>
       </section>
 
@@ -105,13 +132,24 @@ export default async function Landing() {
           <div data-reveal className="mb-10 flex flex-wrap items-end justify-between gap-8">
             <div>
               <div className="eyebrow !text-wine">Recommended</div>
-              <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">Top rated near <em className="text-wine">Nashville</em></h2>
-              <p className="mt-3 max-w-[520px] text-[17px] leading-relaxed text-muted">Ranked by rating, distance, and who has an opening this week.</p>
+              <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">{device ? "Nearest to" : place?.kind === "state" || place?.kind === "country" ? "Top rated in" : "Top rated near"} <em className="text-wine">{device ? "you" : nearName || "you"}</em></h2>
+              {/* One calm line: where, and how we came by it (a guess is called a guess), with the way to change it. */}
+              {place && (
+                <div className="mt-3 flex flex-wrap items-center gap-x-2 text-[16px] text-muted">
+                  <Icon.Pin width={15} height={15} className="flex-none text-wine" />
+                  <span>{where.elsewhere ? `We do not serve ${where.elsewhere} yet. Showing ${place.label}` : whereLine(picker, place.kind, place.country)}</span>
+                  <span aria-hidden className="text-muted-2">·</span>
+                  <PlacePicker look="change" where={picker} />
+                </div>
+              )}
+              {found?.geo && (found.geo.fill_notice || found.geo.notice) && featured.length > 0 && <p role="status" className="mt-2 max-w-[560px] text-[15px] font-semibold text-ink">{found.geo.fill_notice || found.geo.notice}</p>}
             </div>
-            <div className="inline-flex rounded-full bg-[#EFE5DA] p-1">
-              <Link href="/search?market=US" className="rounded-full bg-ink px-4 py-2.5 text-[14px] font-semibold text-cream">Nashville</Link>
-              <Link href="/search?market=NG" className="rounded-full px-4 py-2.5 text-[14px] font-semibold text-muted">Lagos</Link>
-            </div>
+            {/* Looking somewhere else on purpose: a gift for someone there, or a visit. */}
+            {elsewhere.length > 0 && (
+              <div className="flex flex-col items-start gap-1.5 text-[14px] text-muted">
+                {elsewhere.map((c) => <Link key={c.code} href={`/search?place=${c.name.toLowerCase().replace(/[^a-z]+/g, "-")}`} className="font-semibold text-wine hover:underline">Booking for someone in {inCountry(c.code)}?</Link>)}
+              </div>
+            )}
           </div>
           <div data-stagger className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {featured.map((b) => (
@@ -123,7 +161,8 @@ export default async function Landing() {
                 </div>
                 </div>
                 <div className="flex flex-1 flex-col gap-2.5 p-4.5 p-[18px]">
-                  <div className="text-[13px] text-muted"><b className="text-ink">{b.category}</b> · {b.area}</div>
+                  {b.tier && b.tier !== "near" && <span className="self-start rounded-full bg-cream-2 px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-wide text-wine">{b.tier === "country" ? `Elsewhere in ${inCountry(b.country ?? "")}` : "Elsewhere on LogaLuxe"}</span>}
+                  <div className="text-[13px] text-muted"><b className="text-ink">{b.category}</b> · {(b.tier && b.tier !== "near" ? [b.city, b.region] : [b.area, b.city && b.city !== b.area ? b.city : ""]).filter(Boolean).join(", ")}{b.distance_text && (device || found?.geo?.widened || (b.tier && b.tier !== "near")) ? ` · ${b.distance_text}${device ? " away" : ""}` : ""}</div>
                   <h3 className="text-[19px] font-semibold leading-tight">{b.name}</h3>
                   <div className="mt-auto flex items-center justify-between border-t border-line-2 pt-2.5">
                     <span className="text-[14px] text-muted">From <b className="block text-[17px] text-ink">{b.from_cents ? money(b.from_cents, b.currency) : "—"}</b></span>
@@ -132,9 +171,32 @@ export default async function Landing() {
                 </div>
               </Link>
             ))}
-            {featured.length === 0 && <div className="card col-span-full p-8 text-center text-muted">The API is not running. Start it with <code>go run ./cmd/api</code> in logaluxe-be.</div>}
+            {/* Fewer professionals on LogaLuxe than cards: the rest of the row invites the next one. */}
+            {Array.from({ length: found?.geo?.fill?.short ?? 0 }).map((_, i) => (
+              <Link key={`open-${i}`} href="/business/signup" className="card lift flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-[22px] border-dashed p-8 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-cream-2 text-wine"><Icon.Spark width={24} height={24} /></span>
+                <b className="text-[18px] leading-tight">This chair is open</b>
+                <span className="text-[14.5px] text-muted">Be the first professional {nearName ? `in ${nearName}` : "here"} on LogaLuxe.</span>
+                <span className="btn btn-out btn-sm mt-2">List your business</span>
+              </Link>
+            ))}
+            {featured.length === 0 && (
+              <div className="card col-span-full rounded-[22px] p-8 text-center">
+                {found ? (
+                  <>
+                    <p className="text-[17px] font-semibold">No professional is listed {nearName ? `near ${nearName}` : "here"} yet.</p>
+                    {(found.geo?.nearest_places ?? []).length > 0 && (
+                      <p className="mt-2 text-[15px] text-muted">The nearest places that have someone:{" "}
+                        {found.geo!.nearest_places.map((p, i) => <span key={p.slug}>{i > 0 && " · "}<Link href={`/${p.slug}`} className="font-semibold text-wine hover:underline">{p.label}{p.distance_text ? `, ${p.distance_text}` : ""}</Link></span>)}
+                      </p>
+                    )}
+                    <p className="mt-4"><Link href="/business/signup" className="btn btn-ink">List your business here</Link></p>
+                  </>
+                ) : <p className="text-muted">We could not load professionals just now. Try again in a moment.</p>}
+              </div>
+            )}
           </div>
-          <div className="mt-10 flex justify-center"><Link href="/search" className="btn btn-out">See all in Nashville</Link></div>
+          {featured.length > 0 && <div className="mt-10 flex justify-center"><Link href="/search" className="btn btn-out">See all {device ? "near you" : place?.kind === "state" || place?.kind === "country" ? `in ${nearName}` : `near ${nearName}`}</Link></div>}
         </div>
       </section>
 

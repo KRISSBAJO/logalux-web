@@ -1,6 +1,7 @@
 "use server";
 
 import { fid, mBackTo, mClearFlash, mDel, mPost, mPut, mRun, mSetFlash, num, on, str } from "@/lib/merchant-actions";
+import { locationBody, pinWords } from "@/lib/location-form";
 import { qs } from "@/lib/merchant-api";
 
 // Settings: the business profile, its locations and hours, the rules clients
@@ -36,7 +37,7 @@ const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 /** Adds a location, or saves one. A day that is not ticked is closed. */
 export async function saveLocation(fd: FormData) {
   const id = str(fd, "id");
-  const body: Record<string, unknown> = { name: str(fd, "name"), address: str(fd, "address"), city: str(fd, "city"), region: str(fd, "region"), arrival_notes: str(fd, "arrival_notes") };
+  const body: Record<string, unknown> = { name: str(fd, "name"), ...locationBody(fd), arrival_notes: str(fd, "arrival_notes") };
   if (fd.has("hours_set")) {
     const hours: Record<string, string[]> = {};
     for (const d of DAYS) if (on(fd, `open_${d}`)) hours[d] = [str(fd, `from_${d}`), str(fd, `to_${d}`)];
@@ -44,7 +45,7 @@ export async function saveLocation(fd: FormData) {
   }
   await mRun(
     fd,
-    (out) => (!id ? "Location added. It opens Monday to Saturday to start with: set its real hours next." : out.position === "not found" ? "Saved. We could not place that address on the map, so check the street and city." : "Location saved."),
+    (out) => (!id ? `Location added. It opens Monday to Saturday to start with: set its real hours next.${pinWords(String(out.position ?? ""))}` : `Location saved.${out.position === "kept" ? "" : pinWords(String(out.position ?? ""))}`),
     () => (id ? mPut(`/locations/${encodeURIComponent(id)}`, body) : mPost("/locations", body)),
   );
 }

@@ -3,6 +3,7 @@ import { AutoForm, ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, Ic, LoadError, Pill, Switch, Topbar, TopSearch, type PillTone } from "@/components/merchant-ui";
 import { getMe, mCan, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { CHANNEL_LABEL, clock, dateMed, dateOnly, dayShort, money, plural, STATUS_LABEL, when, ymd } from "@/lib/merchant-format";
+import { channelModes, loggedOnly, phoneChannelsHint } from "@/lib/merchant-channels";
 import { adjustPoints, createClient, importClients, messageClient, planAction, updateClient } from "./actions";
 import "../../css/clients.css";
 
@@ -46,6 +47,8 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const sort = SORTS.some(([id]) => id === sp.sort) ? sp.sort! : "";
   const filters = { q: sp.q, segment, sort, page: sp.page };
   const { data: d, error } = await mLoad("/clients" + qs(filters));
+  // Whether WhatsApp and SMS really go out for this business. LogaLuxe staff switch them on, so it is asked, not assumed.
+  const modes = await channelModes();
   if (error) return <div className="main pg-clients"><LoadError title="Clients" error={error} /></div>;
 
   const rows = (d.clients ?? []) as Row[], counts = (d.counts ?? {}) as Row;
@@ -241,13 +244,13 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
                     <form action={messageClient}>
                       <input type="hidden" name="back" value={back} />
                       <input type="hidden" name="client_id" value={sel.id} />
-                      <Fld label="Send by" hint="In-app reaches clients who have a LogaLuxe account. Email goes out when a mail provider is set. WhatsApp and SMS are not connected on this install, so those messages are logged, not sent.">
+                      <Fld label="Send by" hint={`In-app reaches clients who have a LogaLuxe account. Email goes out when a mail provider is set. ${phoneChannelsHint(modes)}`}>
                         <select name="channel" defaultValue="">
                           <option value="">Best way to reach them</option>
                           <option value="in_app">In-app</option>
                           <option value="email" disabled={!sel.email}>Email{sel.email ? "" : " (no address on file)"}</option>
-                          <option value="whatsapp" disabled={!sel.phone}>WhatsApp, logged only{sel.phone ? "" : " (no number on file)"}</option>
-                          <option value="sms" disabled={!sel.phone}>SMS, logged only{sel.phone ? "" : " (no number on file)"}</option>
+                          <option value="whatsapp" disabled={!sel.phone}>WhatsApp{loggedOnly(modes, "whatsapp")}{sel.phone ? "" : " (no number on file)"}</option>
+                          <option value="sms" disabled={!sel.phone}>SMS{loggedOnly(modes, "sms")}{sel.phone ? "" : " (no number on file)"}</option>
                         </select>
                       </Fld>
                       <Fld label="Message"><textarea name="body" required maxLength={4000} rows={5} /></Fld>

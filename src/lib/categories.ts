@@ -1,5 +1,6 @@
-// The kinds of business a client can look for, and the two cities LogaLuxe
-// serves. Search, the city pages and the sitemap all read from here.
+// The kinds of business a client can look for. Search, the place pages and
+// the sitemap all read from here. The places themselves are not listed
+// anywhere in the code: they come from where businesses are (lib/places.ts).
 
 /** Category id as the API knows it, and its name in the search filters. */
 export const CATEGORIES: [string, string][] = [["hair", "Hair"], ["braids", "Braids & locs"], ["barber", "Barber"], ["nails", "Nails"], ["lashes", "Lashes & brows"], ["skin", "Skin"], ["makeup", "Makeup"], ["spa", "Spa"]];
@@ -22,15 +23,11 @@ export type CategoryPage = { id: string; label: string; slug: string; heading: s
 export const CATEGORY_PAGES: CategoryPage[] = CATEGORIES.map(([id, label]) => ({ id, label, ...(PAGE[id] ?? { slug: id, heading: label, phrase: label.toLowerCase() }) }));
 export const categoryPage = (slug: string) => CATEGORY_PAGES.find((c) => c.slug === slug);
 
-export type City = { slug: string; name: string; market: "US" | "NG" };
-export const CITIES: City[] = [{ slug: "nashville", name: "Nashville", market: "US" }, { slug: "lagos", name: "Lagos", market: "NG" }];
-export const cityPage = (slug: string) => CITIES.find((c) => c.slug === slug);
-
-/** Full search with the same filters as a city page. */
-export function searchHref(city: City, categoryId = "") {
+/** Search in a place, with a category if there is one. */
+export function searchHref(placeSlug: string, categoryId = "") {
   const p = new URLSearchParams();
+  if (placeSlug) p.set("place", placeSlug);
   if (categoryId) p.set("category", categoryId);
-  if (city.market !== "US") p.set("market", city.market);
   const s = p.toString();
   return s ? `/search?${s}` : "/search";
 }

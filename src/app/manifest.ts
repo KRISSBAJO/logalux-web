@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "LogaLuxe",
     short_name: "LogaLuxe",
-    description: "Find verified beauty professionals, see real openings and book online. Nashville and Lagos.",
+    description: "Find verified beauty professionals, see real openings and book online. In the United States and Nigeria.",
     start_url: "/",
     scope: "/",
     display: "standalone",

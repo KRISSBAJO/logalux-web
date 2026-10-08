@@ -1,4 +1,8 @@
 import { headers } from "next/headers";
+import { LocationFields } from "@/components/location-fields";
+import { LOOKS } from "@/lib/location-form";
+import { zoneName } from "@/lib/place";
+import { allStates } from "@/lib/places";
 import Link from "next/link";
 import { toDataURL } from "qrcode";
 import type { ReactNode } from "react";
@@ -7,6 +11,7 @@ import { Avatar, Flash, LoadError, Topbar } from "@/components/merchant-ui";
 import { mReadFlash } from "@/lib/merchant-actions";
 import { getMe, mCan, mLoad, qs, type Me, type Row } from "@/lib/merchant-api";
 import { dateMed, dateOnly, money, plural, when } from "@/lib/merchant-format";
+import { channelModes, liveNames, loggedNames } from "@/lib/merchant-channels";
 import { CalendarSync } from "./calendar-sync";
 import { cancelTwoStepSetup, changePassword, changePlan, dismissRecoveryCodes, finishTwoStep, locationAction, saveAccount, saveLocation, saveProfile, saveRules, setListing, startTwoStep, stopTwoStep } from "./actions";
 import "../../css/settings.css";
@@ -218,6 +223,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const locations = (d.locations ?? []) as Row[], logins = (d.logins ?? []) as Row[], plans = (d.plans ?? []) as Row[];
   const cur = String(b.currency ?? m.currency), tz = String(b.timezone ?? m.timezone);
   const mailLogged = d.mail_mode === "log";
+  // WhatsApp and SMS are switched on by LogaLuxe staff. What is said about them follows what the API reports for this business.
+  const modes = await channelModes();
+  const phoneLive = liveNames(modes), phoneLogged = loggedNames(modes);
+  const many = (names: string) => names.includes(" and ");
   const bill = (d.billing ?? {}) as Row;
   const proPrice = money(bill.pro_price_cents ?? ((d.plans ?? []) as Row[]).find((p) => p.plan === "pro")?.plan_price_cents ?? 0, cur);
   const graceDays = Number(bill.grace_days ?? 0);
@@ -227,6 +236,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
     return all.includes(tz) ? all : [tz, ...all];
   })();
   const primary = locations.find((l) => l.is_primary) ?? locations[0];
+  const states = await allStates();
   const hd = await headers();
   const bookingPath = `/b/${b.slug}`;
   const bookingUrl = `${hd.get("x-forwarded-proto") ?? "http"}://${hd.get("x-forwarded-host") ?? hd.get("host") ?? "localhost"}${bookingPath}`;
@@ -236,11 +246,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const locationFields = (l: Row | null, idp: string) => (
     <>
       <div className="field"><label htmlFor={`${idp}-name`}>Name · how you tell your locations apart</label><input id={`${idp}-name`} name="name" type="text" required maxLength={80} defaultValue={l?.name ?? ""} placeholder="Lekki Phase 1" /></div>
-      <div className="field"><label htmlFor={`${idp}-addr`}>Street address</label><input id={`${idp}-addr`} name="address" type="text" maxLength={160} defaultValue={l?.address ?? ""} /></div>
-      <div className="two">
-        <div className="field"><label htmlFor={`${idp}-city`}>City</label><input id={`${idp}-city`} name="city" type="text" maxLength={80} defaultValue={l?.city ?? ""} /></div>
-        <div className="field"><label htmlFor={`${idp}-reg`}>State or region</label><input id={`${idp}-reg`} name="region" type="text" maxLength={80} defaultValue={l?.region ?? ""} /></div>
-      </div>
+      {/* The country is the business's own; the address decides the pin and the time zone. */}
+      <LocationFields states={states} look={LOOKS.merchant} idp={idp} country={String(b.market)} fixedCountry
+        value={{ address: l?.address ?? "", city: l?.city ?? "", region: l?.region ?? "", lat: l?.lat ?? null, lng: l?.lng ?? null, travels: !!l?.travels, travel_radius_km: l?.travel_radius_km ?? null, timezone: l?.timezone }} />
       <div className="field"><label htmlFor={`${idp}-notes`}>Parking and arrival notes</label><textarea id={`${idp}-notes`} name="arrival_notes" maxLength={400} defaultValue={l?.arrival_notes ?? ""} placeholder="Free parking behind the building, ring bell 2" /></div>
     </>
   );
@@ -278,7 +286,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                     <div className="field"><label htmlFor="cat">Primary category</label><select id="cat" name="category" defaultValue={b.category ?? ""} required>{CATEGORIES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
                     <div className="field"><label htmlFor="ph">Business phone · with the country code</label><input id="ph" name="phone" type="tel" maxLength={24} defaultValue={b.phone ?? ""} /></div>
                     <div className="field"><label htmlFor="em">Email</label><input id="em" name="email" type="email" maxLength={120} defaultValue={b.email ?? ""} placeholder="hello@yourbusiness.com" /></div>
-                    <div className="field"><label htmlFor="tz">Time zone</label><select id="tz" name="timezone" defaultValue={tz}>{zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}</select></div>
+                    <div className="field"><label htmlFor="tz">Time zone · set from your main location</label><select id="tz" name="timezone" defaultValue={tz}>{zones.map((z) => <option key={z} value={z}>{z === tz ? `${zoneName(z)} (${z.replace(/_/g, " ")})` : z.replace(/_/g, " ")}</option>)}</select></div>
                     {b.market === "NG" ? (
                       <div className="field"><label htmlFor="taxn">Sales tax</label><input id="taxn" type="text" readOnly value="None · not charged in Nigeria" /><input type="hidden" name="sales_tax_pct" value={taxPct} /></div>
                     ) : (
@@ -286,7 +294,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                     )}
                   </div>
                   <div className="field"><label htmlFor="bio">About · shown on your booking page</label><textarea id="bio" name="about" maxLength={2000} defaultValue={b.about ?? ""} /></div>
-                  <div className="sub">Changing the time zone changes it for every location. Money is taken in {cur}; that is fixed for a business in {b.market === "NG" ? "Nigeria" : "the United States"}.</div>
+                  <div className="sub">Your time zone follows the address of your main location, and changes by itself when that address changes. Change it here only if it is wrong. Money is taken in {cur}; that is fixed for a business in {b.market === "NG" ? "Nigeria" : "the United States"}.</div>
                   <div><button className="btn btn-ink btn-sm">Save profile</button></div>
                 </form>
               </div>
@@ -308,7 +316,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><b>{l.name}</b>{l.is_primary ? <span className="pill pill-ok">Primary</span> : null}</div>
                       <span>{[l.address, l.city, l.region].filter(Boolean).join(", ") || "No address yet"}</span>
                       <span>{hoursLine(l.hours) || "Closed every day"}</span>
-                      <span>Timezone {l.timezone} · {cur}{taxPct > 0 ? ` · sales tax ${taxPct}% on retail` : ""}{l.lat === null || l.lat === undefined ? " · not on the map yet" : ""}</span>
+                      <span>{zoneName(String(l.timezone))}{l.travels ? ` · travels to clients${l.travel_radius_km ? ` up to ${b.market === "US" ? `${Math.round(Number(l.travel_radius_km) / 1.609344)} mi` : `${l.travel_radius_km} km`}` : ""}` : ""} · {cur}{taxPct > 0 ? ` · sales tax ${taxPct}% on retail` : ""}{l.lat === null || l.lat === undefined ? " · not on the map yet" : ""}</span>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         <Sheet trigger="Edit" triggerClass="btn btn-out btn-sm" title={`Edit ${l.name}`} sub="The address places you on the map and in search near the client.">
                           <form action={saveLocation}>
@@ -321,9 +329,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                         <Sheet trigger="Hours" triggerClass="btn btn-out btn-sm" title={`Opening hours · ${l.name}`} sub="Clients can only book inside these hours. Untick a day to close it.">
                           <form action={saveLocation}>
                             <input type="hidden" name="back" value={back} /><input type="hidden" name="id" value={l.id} /><input type="hidden" name="hours_set" value="1" />
-                            <input type="hidden" name="name" value={l.name ?? ""} /><input type="hidden" name="address" value={l.address ?? ""} /><input type="hidden" name="city" value={l.city ?? ""} /><input type="hidden" name="region" value={l.region ?? ""} /><input type="hidden" name="arrival_notes" value={l.arrival_notes ?? ""} />
+                            <input type="hidden" name="name" value={l.name ?? ""} /><input type="hidden" name="address" value={l.address ?? ""} /><input type="hidden" name="city" value={l.city ?? ""} /><input type="hidden" name="region" value={l.region ?? ""} />{l.lat != null && <><input type="hidden" name="lat" value={l.lat} /><input type="hidden" name="lng" value={l.lng} /></>}<input type="hidden" name="arrival_notes" value={l.arrival_notes ?? ""} />
                             <HoursRows hours={l.hours} idp={`h-${l.id}`} />
-                            <div className="muted" style={{ fontSize: 12.5 }}>Times are in {l.timezone}. Each person&apos;s own working days are set in Staff &amp; rosters.</div>
+                            <div className="muted" style={{ fontSize: 12.5 }}>Times are in {zoneName(String(l.timezone))}. Each person&apos;s own working days are set in Staff &amp; rosters.</div>
                             <div className="sheet-ft"><button className="btn btn-ink">Save hours</button></div>
                           </form>
                         </Sheet>
@@ -411,7 +419,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <div className="card">
                 <h3>Messages to clients</h3>
                 <div className="row"><div><b>Booking confirmation, reminders and review requests</b><span>Turned on and off, and worded, in Marketing</span></div><Link href="/business/marketing" className="btn btn-out btn-sm">Open Marketing</Link></div>
-                <div className="row"><div><b>WhatsApp and SMS</b><span>Not connected yet. Messages on these channels are logged, not delivered.</span></div><span className="pill pill-grey">Not available yet</span></div>
+                {phoneLive ? <div className="row"><div><b>{phoneLive}</b><span>Connected. Messages on {many(phoneLive) ? "these channels" : "this channel"} go to the client&apos;s phone.</span></div><span className="pill pill-ok">Connected</span></div> : null}
+                {phoneLogged ? <div className="row"><div><b>{phoneLogged}</b><span>Not connected yet. Messages on {many(phoneLogged) ? "these channels" : "this channel"} are logged, not delivered.</span></div><span className="pill pill-grey">Not available yet</span></div> : null}
               </div>
               <div className="card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}><h3>Alerts to you and your team</h3>{mailLogged ? <span className="sim">Email is not connected: alerts are logged, not delivered</span> : null}</div>
@@ -457,6 +466,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <>
               <div className="card">
                 <h3>Built in</h3>
+                {phoneLive ? <div className="row"><div><b>{phoneLive}</b><span>Messages to clients on {many(phoneLive) ? "these channels" : "this channel"} are delivered to their phone.</span></div><span className="pill pill-ok">Connected</span></div> : null}
                 <div className="row"><div><b>Email</b><span>{mailLogged ? "Not connected on this server. Emails to clients and alerts to you are logged, not delivered." : "Emails to clients and alerts to you are delivered."}</span></div><span className={"pill " + (mailLogged ? "pill-grey" : "pill-ok")}>{mailLogged ? "Logged only" : "Connected"}</span></div>
                 {pay && !pay.error ? (() => {
                   const provider = pay.data.provider === "paystack" ? "Paystack" : "Stripe";
@@ -474,7 +484,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 <h3>Not available yet</h3>
                 <div className="sub">These are planned. There is nothing to connect today, and LogaLuxe will say here when there is.</div>
                 {[
-                  ["WhatsApp Business and SMS", "Messages on these channels are logged, not delivered"],
+                  ...(phoneLogged ? [[phoneLogged === "WhatsApp and SMS" ? "WhatsApp Business and SMS" : phoneLogged === "WhatsApp" ? "WhatsApp Business" : phoneLogged, many(phoneLogged) ? "Messages on these channels are logged, not delivered" : "Messages on this channel are logged, not delivered"]] : []),
                   ["Google Business Profile", "A book button on your Google listing"],
                   ["Instagram and Facebook", "A book button on your profile. For now, put your booking link in your bio."],
                   ["Card readers", "Taking a card in person on a reader"],

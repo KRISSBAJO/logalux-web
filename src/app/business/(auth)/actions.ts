@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { locationBody } from "@/lib/location-form";
 import { redirect } from "next/navigation";
 import { MERCHANT_COOKIE, MerchantApiError, mPublic, merchantCookie } from "@/lib/merchant-api";
 
@@ -45,7 +46,7 @@ export async function merchantSignUp(fd: FormData) {
     try {
       await start(await mPublic<Session>("/signup", {
         name: v(fd, "name"), email: v(fd, "email"), phone: v(fd, "phone"), password: String(fd.get("password") ?? ""),
-        business: v(fd, "business"), category: v(fd, "category"), market: v(fd, "market"), city: v(fd, "city"), region: v(fd, "region"), address: v(fd, "address"),
+        business: v(fd, "business"), category: v(fd, "category"), ...locationBody(fd),
       }));
     } catch (e) {
       error = (e as Error).message;
@@ -54,7 +55,7 @@ export async function merchantSignUp(fd: FormData) {
   if (error) {
     // Send back what was typed, apart from the passwords, so nothing has to be entered twice.
     const keep = new URLSearchParams({ err: error });
-    for (const k of ["name", "email", "phone", "business", "category", "market", "city", "region", "address"]) if (v(fd, k)) keep.set(k, v(fd, k));
+    for (const k of ["name", "email", "phone", "business", "category", "country", "city", "region", "address", "travels"]) if (v(fd, k)) keep.set(k, v(fd, k));
     redirect(`/business/signup?${keep}`);
   }
   redirect(`/business/setup?ok=${enc("Welcome to LogaLuxe. Add your services and your hours, and you are ready to take bookings.")}`);

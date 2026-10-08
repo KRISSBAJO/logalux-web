@@ -29,3 +29,14 @@ export function AuthField({ label, ...props }: { label: string } & React.InputHT
     </label>
   );
 }
+
+/** The choice between a password and a code sent to the phone. Shown only while signing in by code is switched on. */
+export function AuthWays({ label, current, passwordHref, codeHref }: { label: string; current: "password" | "code"; passwordHref: string; codeHref: string }) {
+  const chip = (on: boolean) => `flex min-h-[42px] flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 text-[13.5px] font-semibold transition ${on ? "border-ink bg-ink text-cream" : "border-line bg-white hover:border-ink"}`;
+  return (
+    <nav aria-label={label} className="mb-5 flex gap-2">
+      <Link href={passwordHref} replace aria-current={current === "password" ? "true" : undefined} className={chip(current === "password")}>Email and password</Link>
+      <Link href={codeHref} replace aria-current={current === "code" ? "true" : undefined} className={chip(current === "code")}>Text me a code</Link>
+    </nav>
+  );
+}

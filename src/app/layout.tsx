@@ -6,7 +6,7 @@ import { SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: { default: "LogaLuxe — Discover and book beauty you can trust", template: "%s · LogaLuxe" },
   description:
-    "Find verified beauty professionals near you, see real openings, and book in under a minute. Braids, barbers, nails, lashes, skin, and more. Nashville and Lagos.",
+    "Find verified beauty professionals near you, see real openings, and book in under a minute. Braids, barbers, nails, lashes, skin, and more. Across the United States and Nigeria.",
   metadataBase: new URL(SITE_URL),
   openGraph: { siteName: "LogaLuxe", type: "website" },
 };

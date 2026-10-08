@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/api";
 import { customerApi, getCustomer, type Customer } from "@/lib/customer";
-import { BookingMover, CopyButton, HashTab, ProblemForm, ReturnForm, ReviewPhotos, TipForm } from "./account-client";
+import { myCards } from "@/lib/cards";
+import { getFeatures } from "@/lib/features";
+import { NO_PAY, WalletNote, cardExpiry, cardLabel, cardsFor, type PayFeatures } from "@/components/pay-bits";
+import { BookingMover, ConfirmSubmit, CopyButton, HashTab, PhoneConfirm, ProblemForm, ReturnForm, ReviewPhotos, TipForm } from "./account-client";
 import { RepeatCard } from "@/app/b/[slug]/book/repeat";
-import { cancelMyBooking, cancelMySeries, changeMyPassword, leaveReview, removeSaved, removeSavedProduct, resendConfirmation, saveDetails, sendMessage, cancelMyOrder } from "./actions";
+import { cancelMyBooking, cancelMySeries, changeMyPassword, leaveReview, removeCard, removeSaved, removeSavedProduct, resendConfirmation, saveChannel, saveDetails, sendMessage, cancelMyOrder } from "./actions";
 
 export const metadata = { title: "Your account" };
 
@@ -76,7 +79,9 @@ function problemState(p: Row, business: string, currency: string): string {
 }
 
 /** `series`: the upcoming visits that repeat this one (itself included), soonest first. */
-function Booking({ b, past, sp, series = [] }: { b: Row; past?: boolean; sp: SP; series?: Row[] }) {
+function Booking({ b, past, sp, series = [], pay: payf = NO_PAY }: { b: Row; past?: boolean; sp: SP; series?: Row[]; /** Kept cards and wallets, each only while it is switched on. */ pay?: PayFeatures }) {
+  // Apple Pay and Google Pay are named only on payments that go to Stripe: a booking in dollars.
+  const wallets = payf.wallets && b.currency !== "NGN";
   const guest = String(b.guest_name ?? "").trim();
   const canRepeat = ["requested", "confirmed", "completed", "paid"].includes(b.status);
   const [label, pill] = bookingState[b.status] ?? [b.status, "pill-grey"];
@@ -100,7 +105,7 @@ function Booking({ b, past, sp, series = [] }: { b: Row; past?: boolean; sp: SP;
 
       {!past && depositDue && pay?.url && (
         <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl bg-warn-bg px-4 py-3 text-[14px] text-gold-ink">
-          <span>Pay the {money(pay.amount_cents ?? b.deposit_cents, pay.currency ?? b.currency)} deposit to keep this time{pay.expires_at ? `. It is held until ${when(pay.expires_at, b.timezone)}` : ""}. You pay on the payment provider&apos;s secure page; LogaLuxe never sees your card.</span>
+          <span>Pay the {money(pay.amount_cents ?? b.deposit_cents, pay.currency ?? b.currency)} deposit to keep this time{pay.expires_at ? `. It is held until ${when(pay.expires_at, b.timezone)}` : ""}. You pay on the payment provider&apos;s secure page; LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</span>
           <a href={pay.url} className="btn btn-ink btn-sm">Pay deposit</a>
         </div>
       )}
@@ -157,7 +162,7 @@ function Booking({ b, past, sp, series = [] }: { b: Row; past?: boolean; sp: SP;
           <details className="w-full">
             <summary className="inline-flex cursor-pointer text-[14px] font-semibold text-wine">Repeat this visit</summary>
             <div className="mt-3 max-w-[520px] rounded-2xl border border-line bg-cream p-4">
-              <RepeatCard id={b.id} startsAt={b.starts_at} tz={b.timezone} currency={b.currency} business={b.business} look="account" />
+              <RepeatCard id={b.id} startsAt={b.starts_at} tz={b.timezone} currency={b.currency} business={b.business} look="account" wallets={wallets} />
             </div>
           </details>
         )}
@@ -182,7 +187,7 @@ function Booking({ b, past, sp, series = [] }: { b: Row; past?: boolean; sp: SP;
       {(b.can_tip || b.tip_cents > 0 || b.can_report || b.problem) && (
         <div className="flex w-full flex-col gap-2.5 border-t border-line-2 pt-3">
           {b.tip_cents > 0 && <p className="text-[14px]">You tipped <b className="font-semibold">{money(b.tip_cents, b.currency)}</b>.</p>}
-          {b.can_tip && <TipForm id={b.id} business={b.business} totalCents={Number(b.total_cents) || 0} currency={b.currency} tipped={Number(b.tip_cents) || 0} />}
+          {b.can_tip && <TipForm id={b.id} business={b.business} totalCents={Number(b.total_cents) || 0} currency={b.currency} tipped={Number(b.tip_cents) || 0} saved={payf.saved} cards={cardsFor(payf.cards, b.currency)} wallets={wallets} />}
           {b.problem && (
             <p className="text-[14px] [overflow-wrap:anywhere]">
               <b className="font-semibold">Problem reported{b.problem.ref ? ` · reference ${b.problem.ref}` : ""}.</b> {problemState(b.problem, b.business, b.currency)}
@@ -296,6 +301,14 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     referral = r;
     creditCents = Number(w?.credit_cents ?? r?.balance_cents) || 0;
   }
+  // What LogaLuxe staff have switched on. Anything that is off is left out of the page altogether.
+  const features = await getFeatures();
+  const kept = tab === "bookings" || tab === "details" ? await myCards() : { enabled: false, cards: [], failed: false };
+  const pay: PayFeatures = { saved: kept.enabled, wallets: features.wallets, cards: kept.cards };
+  // How the person hears about bookings. Only a channel that is switched on is offered, and email always.
+  const phoneWays: ["sms" | "whatsapp", string][] = [...(features.sms_messages ? [["sms", "Text, and email"] as ["sms", string]] : []), ...(features.whatsapp ? [["whatsapp", "WhatsApp, and email"] as ["whatsapp", string]] : [])];
+  const chosenWay = phoneWays.some(([k]) => k === user.preferred_channel) && user.phone ? user.preferred_channel! : "email";
+  const wayChip = "flex min-h-[42px] cursor-pointer items-center rounded-full border border-line bg-white px-3.5 text-[14px] font-semibold transition hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-cream has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-gold";
   const creditHistory = referral?.history ?? [];
   const inviting = !!referral?.on && !!referral.link && !!referral.code && referral.credit_cents > 0;
 
@@ -335,7 +348,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <section className="mt-8 scroll-mt-6" id="bookings">
               <h2 className={h2}>Upcoming</h2>
               <div className="flex flex-col gap-3">
-                {upcoming.map((b) => <Booking key={b.id} b={b} sp={sp} series={b.series_id ? upcoming.filter((x) => x.series_id === b.series_id && x.can_cancel) : []} />)}
+                {upcoming.map((b) => <Booking key={b.id} b={b} sp={sp} pay={pay} series={b.series_id ? upcoming.filter((x) => x.series_id === b.series_id && x.can_cancel) : []} />)}
                 {upcoming.length === 0 && (
                   <div className="card flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-6">
                     <p className="text-[15.5px] text-muted">Nothing booked yet. Bookings you make while signed in appear here.</p>
@@ -347,7 +360,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             {past.length > 0 && (
               <section className="mt-12">
                 <h2 className={h2}>Past visits</h2>
-                <div className="flex flex-col gap-3">{past.map((b) => <Booking key={b.id} b={b} past sp={sp} />)}</div>
+                <div className="flex flex-col gap-3">{past.map((b) => <Booking key={b.id} b={b} past sp={sp} pay={pay} />)}</div>
               </section>
             )}
           </>
@@ -390,7 +403,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
 
                     {o.status === "pending" && (
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-warn-bg px-4 py-3 text-[14px] text-gold-ink">
-                        <span>{o.pay_url ? "This order is not paid yet. Nothing is sent or set aside until it is. You pay on the payment provider's secure page." : "This order is waiting for payment."}</span>
+                        <span>{o.pay_url ? <>This order is not paid yet. Nothing is sent or set aside until it is. You pay on the payment provider&apos;s secure page.{features.wallets && oc !== "NGN" ? <WalletNote /> : null}</> : "This order is waiting for payment."}</span>
                         <span className="flex flex-wrap items-center gap-2">
                           <form action={cancelMyOrder}><input type="hidden" name="id" value={o.id} /><button className="btn btn-sm border border-line bg-white">Cancel order</button></form>
                           {o.pay_url && <a href={o.pay_url} className="btn btn-ink btn-sm">Pay now</a>}
@@ -658,6 +671,65 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                 <label className="field"><span className={cap}>New password again</span><input name="again" type="password" required minLength={8} autoComplete="new-password" /></label>
                 <div><button className="btn btn-out">Change password</button></div>
               </form>
+
+              {(features.sms_login || phoneWays.length > 0) && (
+                <div className="card flex flex-col gap-4 rounded-[20px] p-6">
+                  <h3 className="text-[16px] font-semibold">Your mobile number</h3>
+                  {!user.phone ? (
+                    <p className="text-[14.5px] text-muted">There is no mobile number on your account. Add one in your details and save.{features.sms_login ? " Then you can confirm it here and sign in with a code sent to it." : ""}</p>
+                  ) : features.sms_login ? (
+                    user.phone_verified ? (
+                      <p className="text-[14.5px]"><span className="pill pill-ok mr-2">Confirmed</span>You can sign in with a code sent to <b className="font-semibold">{user.phone}</b>.</p>
+                    ) : (
+                      <>
+                        <p className="text-[14.5px]"><span className="pill pill-gold mr-2">Not confirmed</span><b className="font-semibold">{user.phone}</b> has not been confirmed. Confirm it to sign in with a code sent to it.</p>
+                        <PhoneConfirm phone={user.phone} whatsapp={features.whatsapp} />
+                      </>
+                    )
+                  ) : null}
+                  {phoneWays.length > 0 && (
+                    <form action={saveChannel} className={`flex flex-col gap-3 ${features.sms_login || !user.phone ? "border-t border-line-2 pt-4" : ""}`}>
+                      <fieldset className="flex flex-wrap gap-2">
+                        <legend className="mb-2 text-[13.5px] leading-relaxed text-muted">How you hear about bookings. {user.email ? "A confirmation always goes to your email. It can go to your phone as well." : "A confirmation can go to your phone."}</legend>
+                        <label className={wayChip}><input type="radio" name="channel" value="email" defaultChecked={chosenWay === "email"} className="sr-only" />Email only</label>
+                        {phoneWays.map(([k, label]) => (
+                          <label key={k} className={wayChip}><input type="radio" name="channel" value={k} defaultChecked={chosenWay === k} disabled={!user.phone} className="sr-only" />{label}</label>
+                        ))}
+                      </fieldset>
+                      {!user.phone && <p className="text-[12.5px] text-muted">Add a mobile number to choose your phone.</p>}
+                      <div><button className="btn btn-out">Save</button></div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {kept.enabled && (
+                <div className="card flex flex-col gap-4 rounded-[20px] p-6" id="cards">
+                  <h3 className="text-[16px] font-semibold">Saved cards</h3>
+                  {kept.failed ? (
+                    <p role="alert" className="text-[14.5px] text-bad">We could not load your cards just now. Try again in a moment.</p>
+                  ) : kept.cards.length === 0 ? (
+                    <p className="text-[14.5px] text-muted">No cards kept yet. The next time you pay, tick &quot;Keep this card for next time&quot; and it appears here.</p>
+                  ) : (
+                    <ul className="border-t border-line-2 text-[14.5px]">
+                      {kept.cards.map((c) => {
+                        const by = c.provider === "paystack" ? "Paystack" : "Stripe";
+                        return (
+                          <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-line-2 py-2.5 last:border-0">
+                            <span className="min-w-0"><b className="font-semibold">{cardLabel(c)}</b><span className="block text-[12.5px] text-muted">{[cardExpiry(c), c.currency === "NGN" ? "Pays in naira" : "Pays in US dollars", `Kept by ${by}`].filter(Boolean).join(" · ")}</span></span>
+                            <form action={removeCard}>
+                              <input type="hidden" name="card" value={c.id} />
+                              <input type="hidden" name="label" value={cardLabel(c)} />
+                              <ConfirmSubmit className="btn btn-out btn-sm" message={`Remove ${cardLabel(c)}? ${by} forgets it too. You can keep a card again the next time you pay.`} aria-label={`Remove ${cardLabel(c)}`}>Remove</ConfirmSubmit>
+                            </form>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <p className="text-[12.5px] leading-relaxed text-muted">Cards are kept by Stripe or Paystack, not by LogaLuxe. LogaLuxe never sees a card number.</p>
+                </div>
+              )}
             </div>
           </section>
         )}

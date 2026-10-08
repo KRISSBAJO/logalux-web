@@ -7,32 +7,48 @@ import { money } from "@/lib/api";
 import { SaveProduct } from "@/components/save-product";
 import { customerApi, getCustomer } from "@/lib/customer";
 import { categoryName, currencyOf, isValueTag, tagName, type Currency, type ShopList, type ShopProduct } from "@/lib/shop";
+import { livePlaces, whereAmI } from "@/lib/places";
 
 const DESCRIPTION = "Beauty products from the professionals you book, and the brands they trust.";
-const DESCRIPTION_NG = "Beauty products from the professionals you book in Lagos, priced in naira.";
-/** The shop is two shops at one address: dollars by default, naira with ?market=ng. */
-const isNaira = (market: string) => market.toLowerCase() === "ng";
+const DESCRIPTION_NG = "Beauty products from the professionals you book in Nigeria, priced in naira.";
+
+/**
+ * The shop is two shops at one address: one priced in dollars, one in naira.
+ * Which one opens follows the country of the place the visitor is looking in.
+ * ?country=ng or ?country=us says so outright, and is how a person changes it
+ * (?market=ng is the older form of the same thing).
+ */
+async function whichShop(raw: Params): Promise<{ ng: boolean; explicit: boolean; place: string }> {
+  const one = (k: string) => String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim().toLowerCase();
+  const asked = one("country") || one("market");
+  if (asked === "ng" || asked === "us") return { ng: asked === "ng", explicit: true, place: "" };
+  const where = await whereAmI();
+  const served = where.place && (where.place.country === "US" || where.place.country === "NG");
+  // Looking from somewhere we do not trade: the country with the most businesses.
+  const country = served ? where.place!.country : (await livePlaces()).default?.country ?? "US";
+  return { ng: country === "NG", explicit: false, place: served ? where.place!.label : "" };
+}
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
   const raw = await searchParams;
   const one = (k: string) => String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim();
   const q = one("q"), category = one("category"), seller = one("seller");
   const page = Math.max(1, Number.parseInt(one("page"), 10) || 1);
-  const ng = isNaira(one("market"));
-  const shop = ng ? "Shop Lagos" : "Shop";
+  const { ng } = await whichShop(raw);
+  const shop = ng ? "Shop Nigeria" : "Shop";
   const subject = q ? `"${q}"` : category ? categoryName(category) : "";
   const title = `${subject ? `${subject} · ${shop}` : shop}${page > 1 ? ` · page ${page}` : ""}`;
   const description = q
-    ? `Products matching "${q}" in the LogaLuxe shop${ng ? " in Lagos" : ""}.`
+    ? `Products matching "${q}" in the LogaLuxe shop${ng ? " in Nigeria" : ""}.`
     : category
       ? ng
-        ? `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book in Lagos and priced in naira.`
+        ? `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book in Nigeria and priced in naira.`
         : `${categoryName(category)} products in the LogaLuxe shop, sold by the professionals you book and the brands they trust.`
       : ng ? DESCRIPTION_NG : DESCRIPTION;
   // Each shop and each of its categories have one address each. Typed searches, later pages and narrower filters stay out of search engines.
   const narrowed = !!q || page > 1 || !!seller || ["tag", "delivery", "price"].some((k) => one(k));
-  const canon = new URLSearchParams();
-  if (ng) canon.set("market", "ng");
+  // The address of each shop names its country, so it is the same page whoever opens it.
+  const canon = new URLSearchParams({ country: ng ? "ng" : "us" });
   if (category) canon.set("category", category);
   const canonical = `/shop${canon.toString() ? `?${canon}` : ""}`;
   return {
@@ -86,8 +102,7 @@ function Tile({ p }: { p: ShopProduct }) {
 export default async function Shop({ searchParams }: { searchParams: Promise<Params> }) {
   const raw = await searchParams;
   const sp = Object.fromEntries(KEYS.map((k) => [k, String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim()])) as Record<Key, string>;
-  const marketParam = String((Array.isArray(raw.market) ? raw.market[0] : raw.market) ?? "").trim();
-  const ng = isNaira(marketParam);
+  const { ng, explicit, place: placeLabel } = await whichShop(raw);
   const cur: Currency = ng ? "NGN" : "USD";
   const band = BANDS[cur].find((b) => b.key === sp.price);
   const sort = SORTS.some(([k]) => k === sp.sort) ? sp.sort : "recommended";
@@ -132,21 +147,20 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
   const href = (change: Partial<Record<Key, string>>, hash = "") => {
     const next = { ...sp, sort: sort === "recommended" ? "" : sort, delivery, price: band?.key ?? "", page: "", ...change };
     const out = new URLSearchParams();
-    if (ng) out.set("market", "ng");
+    if (explicit) out.set("country", ng ? "ng" : "us"); // a shop chosen by hand stays chosen
     for (const k of KEYS) if (next[k]) out.set(k, next[k]);
     const s = out.toString();
     return `/shop${s ? `?${s}` : ""}${hash}`;
   };
   // The same search and sort in the other shop. Categories, sellers and price bands belong to one shop, so they are not carried over.
   const otherShop = (toNaira: boolean) => {
-    const out = new URLSearchParams();
-    if (toNaira) out.set("market", "ng");
+    const out = new URLSearchParams({ country: toNaira ? "ng" : "us" });
     if (sp.q) out.set("q", sp.q);
     if (sort !== "recommended") out.set("sort", sort);
     const s = out.toString();
     return `/shop${s ? `?${s}` : ""}`;
   };
-  const home = ng ? "/shop?market=ng" : "/shop";
+  const home = explicit ? `/shop?country=${ng ? "ng" : "us"}` : "/shop";
   // A product is shown in its own currency. The list says which one it is in, should a product ever leave its out.
   const curOf = (p: ShopProduct) => currencyOf(p.currency ?? data?.currency ?? cur);
 
@@ -193,14 +207,14 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
               <div className="eyebrow"><i />The LogaLuxe shop</div>
               <h1 className="serif">What your stylist <em>actually uses.</em></h1>
               <p>
-                {ng ? "Products sold by the professionals you book in Lagos. Prices are in naira and you pay through Paystack." : "Products sold by the professionals you book, and the brands they trust."}
+                {ng ? "Products sold by the professionals you book in Nigeria. Prices are in naira and you pay through Paystack." : "Products sold by the professionals you book, and the brands they trust."}
                 {top.length > 0 && <> {canCollect ? (shippers.length > 0 ? "Pick up at your next visit for free, or get it shipped." : "Pick up at your next visit for free.") : shippers.length > 0 ? "Shipped to your door." : ""}</>}
               </p>
               <div className="herobtns">
-                {top.length > 0 && <a href="#grid" className="btn btn-gold">{ng ? "Shop Lagos" : "Shop bestsellers"}</a>}
+                {top.length > 0 && <a href="#grid" className="btn btn-gold">{ng ? "Shop Nigeria" : "Shop bestsellers"}</a>}
                 {featured && <Link href={href({ q: "", category: "", tag: "", delivery: "", price: "", seller: featured.business_slug! }, "#grid")} className="btn btn-ghost">From {featured.seller_name}</Link>}
-                {/* Gift cards are in US dollars and cannot pay for an order in naira, so the naira shop does not offer them. */}
-                {!ng && <Link href={GIFT_HREF} className="btn btn-ghost">Gift cards</Link>}
+                {/* A gift card is in the money of the shop it is for. */}
+                <Link href={`${GIFT_HREF}?country=${ng ? "ng" : "us"}`} className="btn btn-ghost">Gift cards</Link>
                 <CartLink />
               </div>
             </div>
@@ -217,10 +231,10 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
         <main className="wrap">
           <div className="market">
             <nav className="seg" aria-label="Which shop">
-              <Link href={otherShop(false)} className={ng ? "" : "on"} aria-current={ng ? undefined : "true"}>Nashville · $</Link>
-              <Link href={otherShop(true)} className={ng ? "on" : ""} aria-current={ng ? "true" : undefined}>Lagos · ₦</Link>
+              <Link href={otherShop(false)} className={ng ? "" : "on"} aria-current={ng ? undefined : "true"}>United States · $</Link>
+              <Link href={otherShop(true)} className={ng ? "on" : ""} aria-current={ng ? "true" : undefined}>Nigeria · ₦</Link>
             </nav>
-            <span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}</span>
+            <span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}{!explicit && placeLabel ? ` This shop opened because you are looking in ${placeLabel}.` : ""}</span>
           </div>
           <nav className="cats" aria-label="Categories">
             <Link href={href({ category: "" })} scroll={false} className={`chip ${sp.category ? "" : "on"}`} aria-current={sp.category ? undefined : "true"}>All</Link>
@@ -228,7 +242,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
               <Link key={c.category} href={href({ category: c.category })} scroll={false} className={`chip ${sp.category === c.category ? "on" : ""}`} aria-current={sp.category === c.category ? "true" : undefined}>{categoryName(c.category)}</Link>
             ))}
             {/* Gift cards have their own page, where the amount and the person it is for are chosen. */}
-            {!ng && <Link href={GIFT_HREF} className="chip">Gift cards</Link>}
+            <Link href={`${GIFT_HREF}?country=${ng ? "ng" : "us"}`} className="chip">Gift cards</Link>
           </nav>
 
           <div className="layout" id="grid">
@@ -269,7 +283,7 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
                 </span>
                 <div className="tools">
                   <form action="/shop" method="get" role="search" className="search">
-                    {ng && <input type="hidden" name="market" value="ng" />}
+                    {explicit && <input type="hidden" name="country" value={ng ? "ng" : "us"} />}
                     {(["category", "seller", "tag", "delivery", "price", "sort", "per"] as const).map((k) => {
                       const v = k === "sort" ? (sort === "recommended" ? "" : sort) : k === "price" ? band?.key ?? "" : k === "delivery" ? delivery : sp[k];
                       return v ? <input key={k} type="hidden" name={k} value={v} /> : null;
@@ -292,11 +306,11 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
 
               {error && <p className="note" role="alert">The shop could not be loaded. {error}</p>}
               {!error && products.length === 0 && (filtered || page > 1 || top.length > 0) && (
-                <p className="note">Nothing matches that. <Link href={home}>See every product{ng ? " in the Lagos shop" : ""}</Link>.</p>
+                <p className="note">Nothing matches that. <Link href={home}>See every product{ng ? " in the Nigeria shop" : ""}</Link>.</p>
               )}
               {!error && products.length === 0 && !filtered && page === 1 && top.length === 0 && (
                 ng
-                  ? <p className="note">No seller in Lagos has products in the shop yet. You can <Link href="/search?market=NG">book a professional in Lagos</Link>, or see <Link href="/shop">the Nashville shop</Link>, which is priced in US dollars.</p>
+                  ? <p className="note">No seller in Nigeria has products in the shop yet. You can <Link href="/search">book a professional</Link>, or see <Link href={otherShop(false)}>the United States shop</Link>, which is priced in US dollars.</p>
                   : <p className="note">The shop has no products yet. You can <Link href="/search">book a professional</Link> in the meantime.</p>
               )}
 

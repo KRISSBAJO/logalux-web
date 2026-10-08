@@ -1,102 +1,165 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { LogoMark } from "@/components/logo-mark";
-import type { Pin } from "@/components/results-map";
+import { PlacePicker } from "@/components/place-picker";
+import type { Area, Pin } from "@/components/results-map";
 import { SearchBar } from "@/components/search-bar";
 import { SearchResults, type ResultCard } from "@/components/search-results";
 import type { Metadata } from "next";
-import { api, money } from "@/lib/api";
+import { api } from "@/lib/api";
 import { CATEGORIES, categoryLabel } from "@/lib/categories";
-import { toCard, type ApiPin, type Listing } from "@/lib/listings";
+import { toCard, toPin, type Found, type GeoInfo, type Listing } from "@/lib/listings";
 import { firstByRef, siteMedia } from "@/lib/media";
+import { inCountry, people, shortName, whereLine, type Place } from "@/lib/place";
+import { getPlace, pickerWhere, whereAmI } from "@/lib/places";
 
-type Result = Listing;
-type SP = { q?: string; where?: string; category?: string; market?: string; sort?: string; when?: string; page?: string };
+type SP = { q?: string; category?: string; sort?: string; when?: string; page?: string; place?: string; bbox?: string; market?: string; where?: string };
 
 const PER_PAGE = 20;
-const SORTS: [string, string][] = [["", "Top rated"], ["reviews", "Most reviewed"], ["price", "Lowest price"]];
 
-const titleCase = (s: string) => s.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+/** The box of a "search this area", when the address carries a sound one. */
+function areaOf(raw: string | undefined): Area | null {
+  const n = (raw ?? "").split(",").map((x) => Number(x));
+  if (n.length !== 4 || n.some((x) => !Number.isFinite(x)) || n[0] >= n[2] || n[1] >= n[3] || Math.abs(n[0]) > 90 || Math.abs(n[2]) > 90 || Math.abs(n[1]) > 180 || Math.abs(n[3]) > 180) return null;
+  return n as Area;
+}
+
+/**
+ * What is being searched: the place named in the address if there is one
+ * (a link someone shared, or a place page's "search with filters"), else the
+ * place the visitor is looking in. Only the country being browsed is shown.
+ */
+async function target(sp: SP) {
+  const me = await whereAmI();
+  // ?market=NG is the older way to say "all of Nigeria".
+  const slug = (sp.place ?? "").trim().toLowerCase() || (sp.market === "NG" ? "nigeria" : sp.market === "US" ? "united-states" : "");
+  if (slug) {
+    const found = await getPlace(slug);
+    if (found) return { place: found.place, canonical: found.canonical, named: true, device: false, me, scope: found.place.country };
+  }
+  return { place: me.place, canonical: "", named: false, device: me.source === "device", me, scope: me.scope };
+}
+
+/** "in Nashville, TN", "near you", "in Tennessee", "across Nigeria", "in this part of the map". */
+function whereWords(place: Place | null, device: boolean, area: boolean) {
+  if (area) return "in this part of the map";
+  if (!place) return "";
+  if (device) return `near ${shortName(place)}`;
+  if (place.kind === "country") return `across ${inCountry(place.country)}`;
+  return `in ${place.label}`;
+}
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
   const one = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-  const market = sp.market === "NG" ? "NG" : "US";
-  const q = one(sp.q), where = one(sp.where), category = one(sp.category);
+  const q = one(sp.q), category = one(sp.category);
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
-  const city = market === "NG" ? "Lagos" : "Nashville";
+  const t = await target(sp);
+  const area = !!areaOf(sp.bbox);
   const catName = categoryLabel(category);
-  const place = where ? titleCase(where) : city;
+  const words = whereWords(t.place, t.device, area);
   const subject = q ? `"${q}"` : catName ?? "Beauty professionals";
-  const title = `${subject} in ${place}${page > 1 ? ` · page ${page}` : ""}`;
+  const title = `${subject}${words ? ` ${words}` : ""}${page > 1 ? ` · page ${page}` : ""}`;
   const description = q
-    ? `Professionals in ${place} matching "${q}" on LogaLuxe. See prices and the next free times, and book online.`
-    : `${catName ? `${catName} professionals` : "Beauty professionals"} in ${place} on LogaLuxe. See prices, reviews from real visits and the next free times, and book online.`;
-  // One address for each list worth finding: a city, or a category in a city. Typed searches and later pages are left out of search engines.
-  const canon = new URLSearchParams();
-  if (catName) canon.set("category", category);
-  if (market === "NG") canon.set("market", "NG");
-  const canonical = `/search${canon.toString() ? `?${canon}` : ""}`;
-  const hidden = !!q || !!where || page > 1 || (!!category && !catName);
+    ? `Professionals ${words} matching "${q}" on LogaLuxe. See prices and the next free times, and book online.`
+    : `${catName ? `${catName} professionals` : "Beauty professionals"} ${words} on LogaLuxe. See prices, reviews from real visits and the next free times, and book online.`;
+  // The lists worth finding have pages of their own (/nashville-tn, /nashville-tn/braids). Search itself has one address
+  // for search engines; what it shows depends on who is looking, so everything narrower stays out of them.
+  const plain = !q && !category && page === 1 && !sp.place && !sp.bbox && !sp.market && !sp.where && !sp.sort;
   return {
     title,
     description,
-    alternates: hidden ? undefined : { canonical },
-    robots: hidden ? { index: false, follow: true } : undefined,
-    openGraph: { title, description, url: canonical, siteName: "LogaLuxe", type: "website" },
+    alternates: plain ? { canonical: "/search" } : undefined,
+    robots: plain ? undefined : { index: false, follow: true },
+    openGraph: { title, description, url: "/search", siteName: "LogaLuxe", type: "website" },
     twitter: { card: "summary", title, description },
   };
 }
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const market = sp.market === "NG" ? "NG" : "US";
-  const q = (sp.q ?? "").trim(), where = (sp.where ?? "").trim(), category = sp.category ?? "";
-  const sort = SORTS.some(([v]) => v === sp.sort) ? sp.sort! : "";
+  const q = (sp.q ?? "").trim(), category = sp.category ?? "";
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const area = areaOf(sp.bbox);
+  const [t, picker] = await Promise.all([target(sp), pickerWhere()]);
+  const { place, device, me, scope } = t;
+  // An old address for a place goes to its new one: /search?place=nashville is /search?place=nashville-tn.
+  if (t.canonical && sp.place && t.canonical !== sp.place) {
+    const p = new URLSearchParams(Object.entries(sp).filter(([, v]) => typeof v === "string" && v) as [string, string][]);
+    p.set("place", t.canonical);
+    redirect(`/search?${p}`);
+  }
 
-  const params = new URLSearchParams({ market, limit: String(PER_PAGE), offset: String((page - 1) * PER_PAGE) });
+  // A point to measure from: the device's position, or the middle of the city being looked in.
+  const point = !area && place && (device || place.kind === "city" || place.kind === "point") && (place.lat !== 0 || place.lng !== 0) ? { lat: place.lat, lng: place.lng } : null;
+  // With a point the list can be nearest first. From a device that is the natural order; from the middle of a city, rating is.
+  const SORTS: [string, string][] = [...(point ? ([device ? ["", "Nearest"] : ["distance", "Nearest"]] as [string, string][]) : []), [device ? "top" : "", "Top rated"], ["reviews", "Most reviewed"], ["price", "Lowest price"]];
+  const sort = SORTS.some(([v]) => v === sp.sort) ? sp.sort! : "";
+
+  const params = new URLSearchParams({ limit: String(PER_PAGE), offset: String((page - 1) * PER_PAGE) });
   if (q) params.set("q", q);
-  if (where) params.set("where", where);
   if (category) params.set("category", category);
-  if (sort) params.set("sort", sort);
+  if (scope) params.set("scope", scope); // someone in the United States is not shown a barber in Nigeria unless they ask
+  if (area) params.set("bbox", area.join(","));
+  else if (point) { params.set("lat", String(point.lat)); params.set("lng", String(point.lng)); }
+  else if (place?.slug) params.set("place", place.slug);
+  if (device && area && place) { params.set("lat", String(place.lat)); params.set("lng", String(place.lng)); } // distances still, inside the box
+  const apiSort = sort || (point && !device ? "top" : "");
+  if (apiSort) params.set("sort", apiSort);
 
   let error = "";
   const [found, coverMedia] = await Promise.all([
-    api.get<{ businesses: Result[]; total: number; pins: ApiPin[] }>(`/v1/businesses?${params}`).catch((e) => { error = (e as Error).message; return { businesses: [] as Result[], total: 0, pins: [] as ApiPin[] }; }),
+    api.get<Found>(`/v1/businesses?${params}`).catch((e) => { error = (e as Error).message; return { businesses: [] as Listing[], total: 0, pins: [] } as Found; }),
     siteMedia("business"),
   ]);
+  const geo: GeoInfo | undefined = found.geo;
   const cover = firstByRef(coverMedia);
   const total = found.total ?? found.businesses.length;
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  // A distance from the visitor reads "2.3 mi away". One from the middle of a city only matters when the search had to look further out.
+  const from = device ? "" : place ? shortName(place) : "";
+  const showDistance = device || !!geo?.widened;
+  const cards: ResultCard[] = found.businesses.map((b) => toCard(showDistance ? b : { ...b, distance_text: "" }, cover, from));
+  const pins: Pin[] = (found.pins ?? []).map(toPin);
 
-  const cards: ResultCard[] = found.businesses.map((b) => toCard(b, cover));
-  const pins: Pin[] = (found.pins ?? []).map((p) => ({ slug: p.slug, name: p.name, rating: Number(p.rating), lat: p.lat, lng: p.lng, label: p.from_cents ? money(p.from_cents, p.currency) : p.name.slice(0, 1) }));
-
-  const city = market === "NG" ? "Lagos" : "Nashville";
   const catName = categoryLabel(category);
   const subject = q ? `“${q}”` : catName ?? "Beauty professionals";
-  const place = where ? titleCase(where) : city;
+  const words = whereWords(place, device, !!area);
   /** A link to this page with some filters changed. Changing a filter goes back to the first page. */
   const href = (change: Partial<SP>) => {
-    const next = { q, where, category, market, sort, page: "", ...change } as Record<string, string | undefined>;
+    const next = { q, category, sort, place: t.named ? place?.slug ?? "" : "", bbox: sp.bbox ?? "", when: sp.when ?? "", page: "", ...change } as Record<string, string | undefined>;
     const p = new URLSearchParams();
-    for (const [k, v] of Object.entries(next)) if (v && !(k === "market" && v === "US") && !(k === "page" && v === "1")) p.set(k, v);
+    for (const [k, v] of Object.entries(next)) if (v && !(k === "page" && v === "1")) p.set(k, v);
     const s = p.toString();
     return s ? `/search?${s}` : "/search";
   };
-  const filtered = !!(q || where || category);
+  const filtered = !!(q || category);
   const first = total === 0 ? 0 : (page - 1) * PER_PAGE + 1, last = Math.min(total, page * PER_PAGE);
   // Page numbers to show: the ends, and two either side of where you are.
   const numbers = [...new Set([1, 2, page - 2, page - 1, page, page + 1, page + 2, pages - 1, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const nearby = (geo?.nearest_places ?? []).filter((p) => p.slug !== place?.slug);
+  const centre = place && (place.lat !== 0 || place.lng !== 0) ? { lat: place.lat, lng: place.lng } : undefined;
+  const pastEnd = page > 1 && total > 0;
+  // A named place in another country than the visitor's own: they are looking abroad for this page.
+  const abroadHere = t.named && !!me.home && !!scope && scope !== me.home && !me.abroad;
 
   return (
     <>
       <div className="hero-glow pb-8 text-[#F4ECE3]">
         <SiteHeader active="book" transparent />
         <div className="container-x pt-4">
-          <h1 className="serif mb-5 text-[32px] leading-[1.05] md:text-[44px]">{subject} <em className="text-gold-2">in {place}</em></h1>
-          <div className="max-w-[680px]"><SearchBar initial={{ q, where, when: sp.when }} market={market} /></div>
+          <h1 className="serif mb-3 text-[32px] leading-[1.05] md:text-[44px]">{subject} {words && <em className="text-gold-2">{words}</em>}</h1>
+          {/* A guess is said to be a guess, with the way to change it beside it. */}
+          {!t.named && !area && place && (
+            <div className="mb-4 flex flex-wrap items-center gap-x-2 text-[14.5px] text-[#C9BCB0] [&>div>button]:!text-gold-2">
+              <span>{me.elsewhere ? `We do not serve ${me.elsewhere} yet. Showing ${place.label}` : whereLine(picker, place.kind, place.country)}</span>
+              <span aria-hidden>·</span>
+              <PlacePicker look="change" where={picker} />
+            </div>
+          )}
+          {abroadHere && <p className="mb-4 text-[14.5px] text-[#C9BCB0]">You are looking in {inCountry(scope)}. Prices there are in {scope === "NG" ? "naira" : "US dollars"}. <Link href={href({ place: "" })} className="font-semibold text-gold-2 underline underline-offset-2">Back to {inCountry(me.home)}</Link></p>}
+          <div className="max-w-[680px]"><SearchBar initial={{ q, when: sp.when }} where={t.named && place ? { ...picker, label: place.label, source: "chosen" } : picker} keep={{ category, sort }} /></div>
         </div>
       </div>
 
@@ -109,29 +172,35 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             ))}
           </div>
           <div className="hidden flex-none items-center gap-1 rounded-full bg-[#EFE5DA] p-1 xl:inline-flex" role="group" aria-label="Sort">
-            {SORTS.map(([v, l]) => <Link key={v} href={href({ sort: v })} className={`whitespace-nowrap rounded-full px-3 py-1 text-[12.5px] font-semibold ${sort === v ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}>{l}</Link>)}
+            {SORTS.map(([v, l]) => <Link key={l} href={href({ sort: v })} className={`whitespace-nowrap rounded-full px-3 py-1 text-[12.5px] font-semibold ${sort === v ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}>{l}</Link>)}
           </div>
-          <div className="inline-flex flex-none rounded-full bg-[#EFE5DA] p-1" role="group" aria-label="City">
-            {[["US", "Nashville"], ["NG", "Lagos"]].map(([m, l]) => <Link key={m} href={href({ market: m, where: "" })} className={`rounded-full px-3 py-1 text-[12.5px] font-semibold ${market === m ? "bg-ink text-cream" : "text-muted hover:text-ink"}`}>{l}</Link>)}
-          </div>
+          {area && <Link href={href({ bbox: "" })} className="flex-none rounded-full bg-[#EFE5DA] px-3.5 py-2 text-[12.5px] font-semibold text-ink hover:bg-[#E6DCD2]">Clear the map area</Link>}
         </div>
       </div>
 
       <main className="container-x py-6 pb-24">
         {error && <div role="alert" className="card mb-6 p-6 text-bad">We could not load results just now. Try again in a moment.</div>}
 
+        {/* Said plainly when little or nothing was nearby and the search looked further out. */}
+        {!error && geo?.notice && cards.length > 0 && (
+          <div role="status" className="card mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[18px] px-5 py-3.5 text-[14.5px]">
+            <span><b className="font-semibold">{geo.notice}</b>{!device && place ? ` Distances are from the middle of ${shortName(place)}.` : ""}</span>
+            <Link href="/business/signup" className="flex-none font-semibold text-wine hover:underline">Are you a professional here? List your business</Link>
+          </div>
+        )}
+
         {cards.length > 0 && (
-          <>
-            <SearchResults
-              cards={cards} pins={pins} q={q}
-              header={(
-                <p>
-                  <b className="text-ink">{total.toLocaleString("en-US")}</b> verified {total === 1 ? "professional" : "professionals"}{pages > 1 ? ` · showing ${first} to ${last}` : ""}
-                  {filtered && <> · <Link href={href({ q: "", where: "", category: "" })} className="font-semibold text-wine">Clear filters</Link></>}
-                </p>
-              )}
-            />
-          </>
+          <SearchResults
+            cards={cards} pins={pins} q={q} near={device ? "on" : "off"} home={me.home} centre={centre} area={area ?? undefined} areaBase={href({ bbox: "", place: "", page: "" })}
+            header={(
+              <p>
+                <b className="text-ink">{total.toLocaleString("en-US")}</b> verified {total === 1 ? "professional" : "professionals"}
+                {geo?.mode === "near" && geo.radius_used ? ` within ${geo.radius_used} ${geo.unit === "mi" ? "miles" : "kilometres"}` : ""}
+                {pages > 1 ? ` · showing ${first} to ${last}` : ""}
+                {filtered && <> · <Link href={href({ q: "", category: "" })} className="font-semibold text-wine">Clear filters</Link></>}
+              </p>
+            )}
+          />
         )}
 
         {pages > 1 && cards.length > 0 && (
@@ -148,14 +217,30 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         )}
 
         {!error && cards.length === 0 && (
-          <div className="card mx-auto mt-6 max-w-[560px] rounded-[26px] p-10 text-center">
+          <div className="card mx-auto mt-6 max-w-[600px] rounded-[26px] p-10 text-center">
             <LogoMark className="mx-auto h-12 w-auto text-gold" />
-            <h2 className="serif mt-5 text-[30px] leading-tight">{page > 1 && total > 0 ? "No more results" : "Nothing matched that yet"}</h2>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted">{page > 1 && total > 0 ? "You have gone past the last page." : `We are growing in ${city} every week. Try a wider search, or tell us who you would like to see here.`}</p>
+            <h2 className="serif mt-5 text-[30px] leading-tight">{pastEnd ? "No more results" : filtered ? "Nothing matched that" : area ? "Nobody in this part of the map" : `Nobody listed ${words || "here"} yet`}</h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted">
+              {pastEnd ? "You have gone past the last page."
+                : filtered ? `No professional ${words || "here"} matches ${q ? `“${q}”` : catName ?? "that"}${geo?.mode === "near" && scope ? `, and none anywhere else in ${inCountry(scope)}` : ""}.`
+                : geo?.notice || `No professional takes bookings ${words || "here"} on LogaLuxe yet.`}
+            </p>
+            {!pastEnd && nearby.length > 0 && (
+              <div className="mt-5">
+                <p className="text-[12px] font-semibold uppercase tracking-[.1em] text-muted">The nearest places with professionals</p>
+                <ul className="mt-2.5 flex flex-wrap justify-center gap-2">
+                  {nearby.map((p) => (
+                    <li key={p.slug}><Link href={`/${p.slug}`} className="inline-flex items-baseline gap-1.5 rounded-full border border-line bg-white px-3.5 py-1.5 text-[13.5px] font-semibold transition hover:border-ink">{p.label}<small className="font-medium text-muted">{p.distance_text ? `${p.distance_text} · ` : ""}{people(p.businesses)}</small></Link></li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="mt-6 flex flex-wrap justify-center gap-2.5">
-              {page > 1 && total > 0 ? <Link href={href({ page: "" })} className="btn btn-ink">Back to the first page</Link> : (
+              {pastEnd ? <Link href={href({ page: "" })} className="btn btn-ink">Back to the first page</Link> : (
                 <>
-                  {filtered && <Link href={href({ q: "", where: "", category: "" })} className="btn btn-ink">Show everyone in {city}</Link>}
+                  {filtered && <Link href={href({ q: "", category: "" })} className="btn btn-ink">Show everyone {words || "here"}</Link>}
+                  {area && <Link href={href({ bbox: "" })} className="btn btn-ink">Clear the map area</Link>}
+                  <Link href="/business/signup" className="btn btn-out">List your business here</Link>
                   <Link href="/help" className="btn btn-out">Suggest a professional</Link>
                 </>
               )}

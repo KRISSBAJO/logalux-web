@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { CATEGORY_PAGES, CITIES } from "@/lib/categories";
+import { CATEGORY_PAGES } from "@/lib/categories";
+import type { Place } from "@/lib/place";
 import { allListings } from "@/lib/listings";
 import { absoluteUrl, isTestEntry } from "@/lib/site";
 
@@ -29,24 +30,24 @@ async function legalPages(): Promise<Entry[]> {
   });
 }
 
-/** Every business that is listed, and every city page that has at least one. */
-async function businessPages(): Promise<Entry[]> {
-  const out: Entry[] = [];
-  for (const city of CITIES) {
-    let list;
-    try {
-      list = (await allListings({ market: city.market, maxPages: 200, revalidate })).businesses;
-    } catch {
-      continue;
-    }
-    if (!list.length) continue;
-    out.push({ url: absoluteUrl(`/${city.slug}`), changeFrequency: "daily", priority: 0.8 });
-    for (const c of CATEGORY_PAGES) {
-      if (list.some((b) => b.category === c.id)) out.push({ url: absoluteUrl(`/${city.slug}/${c.slug}`), changeFrequency: "daily", priority: 0.8 });
-    }
-    for (const b of list) out.push({ url: absoluteUrl(`/b/${encodeURIComponent(b.slug)}`), changeFrequency: "weekly", priority: 0.7 });
+/** A page for every place that has businesses, and for each kind of service found there. The places come from the API. */
+async function placePages(): Promise<Entry[]> {
+  const data = await getJson<{ places?: Place[]; countries?: { code: string; name: string; businesses: number }[] }>("/v1/places");
+  const places = data?.places ?? [];
+  if (!places.length) return [];
+  const out: Entry[] = [{ url: absoluteUrl("/places"), changeFrequency: "daily", priority: 0.8 }];
+  for (const c of data?.countries ?? []) if (c.businesses > 0) out.push({ url: absoluteUrl(`/${c.name.toLowerCase().replace(/[^a-z]+/g, "-")}`), changeFrequency: "daily", priority: 0.7 });
+  for (const p of places) {
+    out.push({ url: absoluteUrl(`/${p.slug}`), changeFrequency: "daily", priority: 0.8 });
+    for (const c of CATEGORY_PAGES) if ((p.categories?.[c.id] ?? 0) > 0) out.push({ url: absoluteUrl(`/${p.slug}/${c.slug}`), changeFrequency: "daily", priority: 0.8 });
   }
   return out;
+}
+
+/** Every business that is listed, wherever it is. */
+async function businessPages(): Promise<Entry[]> {
+  const list = (await allListings({ maxPages: 400, revalidate })).businesses;
+  return list.map((b) => ({ url: absoluteUrl(`/b/${encodeURIComponent(b.slug)}`), changeFrequency: "weekly" as const, priority: 0.7 }));
 }
 
 /** Every product on sale in one of the two shops: the dollar shop, or the naira shop. */
@@ -65,11 +66,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fixed: Entry[] = [
     { url: absoluteUrl("/"), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/search"), changeFrequency: "daily", priority: 0.9 },
-    { url: absoluteUrl("/shop"), changeFrequency: "daily", priority: 0.8 },
   ];
   // Each part answers with what it could read. With the API down that is nothing, and the fixed pages still go out.
-  const [legal, businesses, products, naira] = await Promise.all([legalPages().catch(() => []), businessPages().catch(() => []), productPages("USD").catch(() => []), productPages("NGN").catch(() => [])]);
-  // The naira shop is listed only when it sells something.
-  const lagosShop: Entry[] = naira.length ? [{ url: absoluteUrl("/shop?market=ng"), changeFrequency: "daily", priority: 0.8 }] : [];
-  return [...fixed, ...lagosShop, ...legal, ...businesses, ...products, ...naira];
+  const [legal, places, businesses, products, naira] = await Promise.all([legalPages().catch(() => []), placePages().catch(() => []), businessPages().catch(() => []), productPages("USD").catch(() => []), productPages("NGN").catch(() => [])]);
+  // Each country's shop has its own address, and is listed only when it sells something.
+  const shops: Entry[] = [
+    ...(products.length ? [{ url: absoluteUrl("/shop?country=us"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
+    ...(naira.length ? [{ url: absoluteUrl("/shop?country=ng"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
+  ];
+  return [...fixed, ...shops, ...legal, ...places, ...businesses, ...products, ...naira];
 }

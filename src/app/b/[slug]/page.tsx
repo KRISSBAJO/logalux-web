@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { getCustomer, customerApi } from "@/lib/customer";
+import { getFeatures } from "@/lib/features";
 import { Pic } from "@/components/pic";
 import { JsonLd } from "@/components/json-ld";
 import { firstByRef, siteMedia } from "@/lib/media";
@@ -189,7 +190,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
           {b.verification_status === "verified" ? <div><span>Verified</span><b>Identity checked by LogaLuxe</b></div> : null}
           <div><span>Booking</span><b>{policy.instant === false ? "The business confirms each request" : "Confirmed at once"}</b></div>
           <div><span>Cancelling</span><b>{cancelHours > 0 ? `Free until ${cancelHours} h before${late ? `; after that ${late}` : ""}` : "Free at any time"}</b></div>
-          {policy.payments_live === false ? <div><span>Pays with</span><b>Paid at the visit</b></div> : <div><span>Pays with</span><b>{b.market === "NG" ? "Card, transfer or USSD, on Paystack" : "Card, on Stripe's secure page"}</b></div>}
+          {policy.payments_live === false ? <div><span>Pays with</span><b>Paid at the visit</b></div> : <div><span>Pays with</span><b>{b.market === "NG" ? "Card, transfer or USSD, on Paystack" : (await getFeatures()).wallets ? "Card, Apple Pay or Google Pay, on Stripe's secure page" : "Card, on Stripe's secure page"}</b></div>}
           {(policy.new_client_deposit_pct ?? 0) > 0 ? <div><span>First visit</span><b>{policy.new_client_deposit_pct}% deposit when you book</b></div> : null}
           {languages.length > 0 ? <div><span>Languages</span><b>{languages.join(", ")}</b></div> : null}
           {replies ? <div><span>Messages</span><b>{replies}</b></div> : null}
