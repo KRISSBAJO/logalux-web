@@ -507,10 +507,10 @@ export function BookFlow(p: Props) {
                     {offerCards && kept.length > 0 ? null : (
                       <div className="opt on" style={{ cursor: "default" }}>
                         <span className="radio"><i /></span>
-                        <span style={{ flex: 1 }}><b>{online ? provider : "Not charged online"}</b><span>{online ? <>You will pay on {provider}&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</> : "Online payment is not switched on for this business yet, so no card is asked for. The deposit is noted on your booking."}</span></span>
+                        <span style={{ flex: 1 }}><b>{online ? provider : "Not charged online"}</b><span>{online ? <>You will pay {money(deposit, currency)} on {provider}&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null}</> : "Online payment is not switched on for this business yet, so no card is asked for. The deposit is noted on your booking."}</span></span>
                       </div>
                     )}
-                    {offerCards ? <CardChoice cards={kept} provider={provider} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name="pay-card" wallets={wallets} /> : null}
+                    {offerCards ? <CardChoice cards={kept} provider={provider} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name="pay-card" wallets={wallets} charge={`You will be charged ${money(deposit, currency)} ${useCard ? "now, with no payment page" : `on ${provider}'s page`}.`} /> : null}
                   </>
                 ) : null}
                 <div className="field" style={{ maxWidth: 280 }}>

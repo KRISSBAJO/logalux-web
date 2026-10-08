@@ -468,7 +468,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
           {offerCards ? (
             <div className="choose">
               {kept.length > 0 ? <span className="lbl">Pay with</span> : null}
-              <CardChoice cards={kept} provider={provider} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name={id("pay-card")} wallets={wallets} otherSub={false} />
+              <CardChoice cards={kept} provider={provider} value={useCard ? useCard.id : ""} onChange={setCardId} keep={keepCard} onKeep={setKeepCard} name={id("pay-card")} wallets={wallets} otherSub={false} charge={due > 0 ? `You will be charged ${cash(due)} ${useCard ? "now, with no payment page" : `on ${provider}'s page`}.` : undefined} />
             </div>
           ) : null}
           <div className="tip"><Shield /><span>{free ? `Your ${covered.join(" and ") || "discount"} ${covered.length > 1 ? "cover" : "covers"} this order, so nothing will be charged and there is no payment page.` : useCard ? <>{cardLabel(useCard)} is charged when you press Pay. LogaLuxe never sees your card. It is one payment for {otherLeft > 0 ? `the items priced in ${WORD[currency]}` : "the whole order"}, and each seller is paid their share.</> : <>You will pay on {provider}&apos;s secure page. LogaLuxe never sees your card.{wallets ? <WalletNote /> : null} It is one payment for {otherLeft > 0 ? `the items priced in ${WORD[currency]}` : "the whole order"}, and each seller is paid their share.</>}</span></div>

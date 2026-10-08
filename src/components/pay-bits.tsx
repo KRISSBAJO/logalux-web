@@ -49,9 +49,11 @@ export const walletsFor = (pay: { wallets: boolean }, provider: string) => pay.w
  * `value` is the id of the kept card, or "" for a different card. The page styles `.opt` and `.radio`
  * on the booking and cart screens; in the account the same choice is drawn as chips.
  */
-export function CardChoice({ cards, provider, value, onChange, keep, onKeep, name, look = "cx", wallets = false, otherSub = true }: {
+export function CardChoice({ cards, provider, value, onChange, keep, onKeep, name, look = "cx", wallets = false, otherSub = true, charge }: {
   /** False where the screen already says, beside this choice, how a different card is paid. */
   otherSub?: boolean;
+  /** One plain sentence on what is charged and where: "You will be charged ₦7,000 on Paystack's page." */
+  charge?: string;
   cards: SavedCard[]; provider: string; value: string; onChange: (id: string) => void; keep: boolean; onKeep: (on: boolean) => void;
   /** Unique on the page: two carts can be shown at once. */
   name: string; look?: "cx" | "chips"; wallets?: boolean;
@@ -63,7 +65,7 @@ export function CardChoice({ cards, provider, value, onChange, keep, onKeep, nam
       <span>Keep this card for next time</span>
     </label>
   ) : null;
-  const note = <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "#6B5F57" }}>{KEPT_BY(provider)}</div>;
+  const note = <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "#6B5F57" }}>{charge ? <b style={{ display: "block", color: "#1A1513", fontSize: 13.5, marginBottom: 2 }}>{charge}</b> : null}{KEPT_BY(provider)}</div>;
 
   if (look === "chips") {
     const chip = (on: boolean) => `flex min-h-[42px] cursor-pointer items-center rounded-full border px-3.5 text-[14px] font-semibold transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-gold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white hover:border-ink"}`;
