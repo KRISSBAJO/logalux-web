@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
-import { Sheet } from "@/components/merchant-client";
+import { Sheet, SubmitButton } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, LoadError, Pill, type PillTone } from "@/components/merchant-ui";
 import { getMe, mCan, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { clock, dateOnly, dur, METHOD_LABEL, money, plural, ymd } from "@/lib/merchant-format";
@@ -33,7 +33,14 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   const cash = (n: number) => money(n, cur);
 
   const dayParam = /^\d{4}-\d{2}-\d{2}$/.test(sp.day ?? "") ? sp.day! : "";
-  const [{ data: d, error }, dayRes] = await Promise.all([mLoad("/checkout"), mLoad("/checkout/day" + qs({ date: dayParam }))]);
+  const quick = sp.sale === "new";
+  // The queue and the day's figures, plus the visit or the client the address names: none depends on another.
+  // A visit is only put on the ticket if it is in the queue, which is checked once the queue is here.
+  const [{ data: d, error }, dayRes, namedVisit, namedClient] = await Promise.all([
+    mLoad("/checkout"), mLoad("/checkout/day" + qs({ date: dayParam })),
+    !quick && sp.booking ? mLoad(`/bookings/${encodeURIComponent(sp.booking)}`) : null,
+    sp.client ? mLoad(`/clients/${encodeURIComponent(sp.client)}`) : null,
+  ]);
   if (error) return <div className="main pg-checkout"><LoadError title="Checkout" error={error} /></div>;
 
   const queue = (d.queue ?? []) as Row[], sales = (d.sales ?? []) as Row[];
@@ -47,14 +54,13 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   const today = ymd(new Date(), tz);
 
   // What is on the ticket: the visit named in the address, a quick sale, or the first visit waiting.
-  const quick = sp.sale === "new";
   const asked = !quick && sp.booking ? queue.find((b) => b.id === sp.booking) : undefined;
   const missing = !quick && !!sp.booking && !asked;
   const picked = quick ? undefined : asked ?? (sp.receipt || missing ? undefined : queue[0]);
 
   let visit: TillVisit | null = null, visitError = "";
   if (picked) {
-    const one = await mLoad(`/bookings/${encodeURIComponent(picked.id)}`);
+    const one = namedVisit && picked.id === sp.booking ? namedVisit : await mLoad(`/bookings/${encodeURIComponent(picked.id)}`);
     if (one.error) visitError = one.error;
     else {
       const lines: Line[] = ((one.data.items ?? []) as Row[]).map((it, i) => ({
@@ -68,10 +74,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
     }
   }
   let client: { id: string; name: string } | null = null;
-  if (!visit && sp.client) {
-    const one = await mLoad(`/clients/${encodeURIComponent(sp.client)}`);
-    if (!one.error && one.data.client) client = { id: one.data.client.id, name: one.data.client.name };
-  }
+  if (!visit && namedClient && !namedClient.error && namedClient.data.client) client = { id: namedClient.data.client.id, name: namedClient.data.client.name };
 
   const here = "/business/checkout" + qs(visit ? { booking: visit.id } : quick ? { sale: "new", client: client?.id } : {});
   const receipt = sp.receipt ? sales.find((s) => s.id === sp.receipt) : undefined;
@@ -209,9 +212,9 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
                   <tr key={s.id} style={s.id === receipt?.id ? { background: "#F1E8DD" } : undefined}>
                     <td style={{ whiteSpace: "nowrap" }} data-sort={s.created_at}>{clock(s.created_at, tz)}</td>
                     <td><b style={{ fontWeight: 600 }}>{s.client_name}</b>{s.staff ? <div className="muted" style={{ fontSize: 12 }}>with {s.staff}</div> : null}</td>
-                    <td>{s.items ?? "—"}</td>
+                    <td>{s.items ?? <span className="muted">None</span>}</td>
                     <td style={{ whiteSpace: "nowrap" }}>{paidBy(s.method)}</td>
-                    <td className="num" data-sort={s.tip_cents}>{s.tip_cents ? cash(s.tip_cents) : "—"}</td>
+                    <td className="num" data-sort={s.tip_cents}>{s.tip_cents ? cash(s.tip_cents) : <span className="muted">None</span>}</td>
                     <td className="num" data-sort={s.total_cents}><b>{cash(s.total_cents)}</b>{s.refunded_cents > 0 ? <div className="muted" style={{ fontSize: 12 }}>−{cash(s.refunded_cents)} refunded</div> : null}</td>
                     <td data-filter={st.text}><Pill tone={st.tone}>{st.text}</Pill></td>
                     {manager && (
@@ -233,7 +236,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
                                   : live ? "You took this money yourself, so give it back yourself (on your card machine or by transfer). This records it."
                                   : "Payments are simulated on this install. The refund is recorded, but no money moves."}
                               </div>
-                              <div className="sheet-ft"><button className="btn btn-danger">Refund</button></div>
+                              <div className="sheet-ft"><SubmitButton className="btn btn-danger">Refund</SubmitButton></div>
                             </form>
                           </Sheet>
                         ) : null}

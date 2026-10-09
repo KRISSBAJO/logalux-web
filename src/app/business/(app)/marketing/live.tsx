@@ -78,29 +78,41 @@ export function LoyaltyFields({ rules, currency }: { rules: { enabled: boolean; 
   );
 }
 
-/** The fields of a new promo code. The value box follows the kind of discount. */
-export function PromoFields({ currency }: { currency: string }) {
-  const [kind, setKind] = useState("percent");
-  const [code, setCode] = useState("");
+/** A saved code, as the edit form needs it: the dates already as YYYY-MM-DD in the business zone. */
+export type PromoValues = { code: string; description: string; kind: string; value: number; min_cents: number; max_uses: number | null; starts: string; ends: string; used: number };
+
+/**
+ * The fields of a promo code. The value box follows the kind of discount. With `p` the form edits
+ * a saved code: the code itself never changes, and once it has been used the discount is locked too.
+ */
+export function PromoFields({ currency, p, idp = "pc" }: { currency: string; p?: PromoValues; idp?: string }) {
+  const [kind, setKind] = useState(p?.kind ?? "percent");
+  const [code, setCode] = useState(p?.code ?? "");
+  const locked = !!p && p.used > 0;
+  const id = (k: string) => `${idp}-${k}`;
   return (
     <>
       <div className="field">
-        <label htmlFor="pc-code">Code · 4 to 20 letters and numbers</label>
-        <input id="pc-code" name="code" type="text" required minLength={4} maxLength={20} pattern="[A-Za-z0-9]{4,20}" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="WELCOME10" autoCapitalize="characters" spellCheck={false} />
+        <label htmlFor={id("code")}>Code · 4 to 20 letters and numbers</label>
+        {p
+          ? <input id={id("code")} type="text" value={p.code} readOnly />
+          : <input id={id("code")} name="code" type="text" required minLength={4} maxLength={20} pattern="[A-Za-z0-9]{4,20}" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="WELCOME10" autoCapitalize="characters" spellCheck={false} />}
+        {p ? <small className="muted">The code itself cannot change. Make a new one for a different code.</small> : null}
       </div>
-      <div className="field"><label htmlFor="pc-desc">Note · only you see it</label><input id="pc-desc" name="description" type="text" maxLength={120} placeholder="For first-time clients from Instagram" /></div>
+      <div className="field"><label htmlFor={id("desc")}>Note · only you see it</label><input id={id("desc")} name="description" type="text" maxLength={120} defaultValue={p?.description ?? ""} placeholder="For first-time clients from Instagram" /></div>
       <div className="f2">
         <div className="field">
-          <label htmlFor="pc-kind">Kind of discount</label>
-          <select id="pc-kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value)}><option value="percent">A percentage off</option><option value="fixed">A fixed amount off</option></select>
+          <label htmlFor={id("kind")}>Kind of discount</label>
+          <select id={id("kind")} name="kind" value={kind} onChange={(e) => setKind(e.target.value)} disabled={locked}><option value="percent">A percentage off</option><option value="fixed">A fixed amount off</option></select>
         </div>
         {kind === "percent"
-          ? <div className="field"><label htmlFor="pc-val">Percent off</label><input id="pc-val" name="value" type="number" required min={1} max={100} step={1} placeholder="10" /></div>
-          : <div className="field"><label htmlFor="pc-val">Amount off · {currency}</label><input id="pc-val" name="value" type="number" required min={0.01} step="any" inputMode="decimal" /></div>}
-        <div className="field"><label htmlFor="pc-min">Minimum spend · {currency}</label><input id="pc-min" name="min" type="number" min={0} step="any" defaultValue={0} inputMode="decimal" /><small className="muted">0 for none.</small></div>
-        <div className="field"><label htmlFor="pc-uses">Most times it can be used</label><input id="pc-uses" name="max_uses" type="number" min={1} step={1} placeholder="No limit" /></div>
-        <div className="field"><label htmlFor="pc-from">First day</label><input id="pc-from" name="starts_at" type="date" /><small className="muted">Empty starts now.</small></div>
-        <div className="field"><label htmlFor="pc-to">Last day</label><input id="pc-to" name="ends_at" type="date" /><small className="muted">Empty never ends.</small></div>
+          ? <div className="field"><label htmlFor={id("val")}>Percent off</label><input id={id("val")} name="value" type="number" required min={1} max={100} step={1} defaultValue={p && p.kind === "percent" ? p.value : ""} placeholder="10" disabled={locked} /></div>
+          : <div className="field"><label htmlFor={id("val")}>Amount off · {currency}</label><input id={id("val")} name="value" type="number" required min={0.01} step="any" inputMode="decimal" defaultValue={p && p.kind === "fixed" ? p.value / 100 : ""} disabled={locked} /></div>}
+        {locked ? <small className="muted" style={{ gridColumn: "1 / -1" }}>This code has been used {p.used === 1 ? "once" : `${p.used} times`}, so its discount cannot change. Switch it off and make a new one instead.</small> : null}
+        <div className="field"><label htmlFor={id("min")}>Minimum spend · {currency}</label><input id={id("min")} name="min" type="number" min={0} step="any" defaultValue={p ? p.min_cents / 100 : 0} inputMode="decimal" /><small className="muted">0 for none.</small></div>
+        <div className="field"><label htmlFor={id("uses")}>Most times it can be used</label><input id={id("uses")} name="max_uses" type="number" min={1} step={1} defaultValue={p?.max_uses ?? ""} placeholder="No limit" /><small className="muted">Empty for no limit.</small></div>
+        <div className="field"><label htmlFor={id("from")}>First day</label><input id={id("from")} name="starts_at" type="date" defaultValue={p?.starts ?? ""} /><small className="muted">Empty starts now.</small></div>
+        <div className="field"><label htmlFor={id("to")}>Last day</label><input id={id("to")} name="ends_at" type="date" defaultValue={p?.ends ?? ""} /><small className="muted">Empty never ends.</small></div>
       </div>
     </>
   );

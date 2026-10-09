@@ -144,7 +144,7 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
 
         {returnsView ? (
           rts?.error ? <div role="alert" className="flash flash-err">{rts.status === 403 ? "Only a manager or the owner can answer returns." : `Returns could not be loaded: ${rts.error}`}</div>
-            : <ReturnsView rows={returns} reasons={(rts?.data.reasons ?? {}) as Record<string, string>} tz={tz} answer={sp.answer} />
+            : <ReturnsView rows={returns} reasons={(rts?.data.reasons ?? {}) as Record<string, string>} tz={tz} cur={m.currency} answer={sp.answer} />
         ) : (<>
 
         {orders.length ? (

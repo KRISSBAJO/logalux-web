@@ -166,7 +166,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
             </form>
           </Sheet>
           <Sheet trigger={<><Ic name="plus" size={16} stroke={2.4} />New booking</>} triggerClass="btn btn-ink" title="New booking" sub="For a call, a message or a walk-in. Only free times are offered." open={sp.new === "1"} closeHref={here} wide>
-            <NewBookingForm action={createBooking} back={here} services={services} staff={staffPick} currency={cur} date0={date < today ? today : date} client0={client0} />
+            <NewBookingForm action={createBooking} back={here} services={services} staff={staffPick} currency={cur} market={m.market} date0={date < today ? today : date} client0={client0} />
           </Sheet>
         </span>
       </header>
@@ -244,8 +244,8 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                             <div key={"brk" + i} className="brk" style={{ top: ((mins(b[0]) - startH * 60) / 60) * HOUR, height: ((mins(b[1]) - mins(b[0])) / 60) * HOUR }} title={`Break ${b[0]} to ${b[1]}`}><span>Break</span></div>
                           ))}
                           {blocks.filter((b) => b.staff_id === s.id).map((b) => (
-                            <Link key={b.id} href={href({ block: b.id, booking: undefined, panel: undefined })} scroll={false} className={"ev block" + (sp.block === b.id ? " on" : "")} style={place(b, at)}>
-                              <b>{b.reason || "Blocked"}</b><span>Blocked</span>
+                            <Link key={b.id} href={href({ block: b.id, booking: undefined, panel: undefined })} scroll={false} className={"ev block" + (sp.block === b.id ? " on" : "")} style={place(b, at)} title={b.external ? "From your calendar" : undefined}>
+                              <b>{b.reason || (b.external ? "Busy" : "Blocked")}</b><span>{b.external ? "From your calendar" : "Blocked"}</span>
                             </Link>
                           ))}
                           {bookings.filter((b) => b.staff_id === s.id).map((b) => (
@@ -349,11 +349,18 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Avatar text={staffAll.find((s) => s.id === block.staff_id)?.initials} tone={staffAll.find((s) => s.id === block.staff_id)?.tone} size={44} />
-                  <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 600 }}>{block.reason || "Blocked time"}</div><div className="muted" style={{ fontSize: 12.5 }}>{staffAll.find((s) => s.id === block.staff_id)?.name}</div></div>
-                  <Pill tone="wine">Block</Pill>
+                  <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 600 }}>{block.reason || (block.external ? "Busy" : "Blocked time")}</div><div className="muted" style={{ fontSize: 12.5 }}>{staffAll.find((s) => s.id === block.staff_id)?.name}</div></div>
+                  <Pill tone={block.external ? "grey" : "wine"}>{block.external ? "From your calendar" : "Block"}</Pill>
                 </div>
                 <div className="kv"><div><small>Time</small><b>{clock(block.starts_at, tz)} to {clock(block.ends_at, tz)}</b></div><div><small>Day</small><b>{dayShort(block.starts_at, tz)}</b></div></div>
-                <form action={deleteBlock}><input type="hidden" name="id" value={block.id} /><input type="hidden" name="back" value={href({ block: undefined })} /><ConfirmButton message="Remove this block? Clients will be able to book the time again." className="btn btn-out btn-sm" style={{ width: "100%" }}>Remove block</ConfirmButton></form>
+                {block.external ? (
+                  <>
+                    <div className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>This time comes from a calendar you connected, so clients cannot book it. Change or remove it in that calendar; it goes from here at the next sync.</div>
+                    <Link href="/business/settings?tab=account#calendar-sync" className="btn btn-out btn-sm" style={{ width: "100%" }}>Settings, Calendar sync</Link>
+                  </>
+                ) : (
+                  <form action={deleteBlock}><input type="hidden" name="id" value={block.id} /><input type="hidden" name="back" value={href({ block: undefined })} /><ConfirmButton message="Remove this block? Clients will be able to book the time again." className="btn btn-out btn-sm" style={{ width: "100%" }}>Remove block</ConfirmButton></form>
+                )}
               </>
             ) : picked ? (
               <>

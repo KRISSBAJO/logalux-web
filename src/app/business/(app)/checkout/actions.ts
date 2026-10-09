@@ -63,6 +63,25 @@ export async function pay(fd: FormData) {
   }));
 }
 
+export type Quote = { ok: true; quote: Record<string, number> } | { ok: false; error: string };
+
+/**
+ * Asks the API what the ticket comes to, with the same body a sale sends. Nothing is charged or kept.
+ * A refusal (a code that is not valid, a plan without a client) comes back as the API's own sentence.
+ */
+export async function quote(fd: FormData): Promise<Quote> {
+  const body = ticket(fd);
+  if (!body.items.length) return { ok: false, error: "Add at least one service or product." };
+  try {
+    const out = (await mPost("/checkout/quote", body)) as Row;
+    const q = (out.quote ?? {}) as Row, quote: Record<string, number> = {};
+    for (const k of ["subtotal_cents", "discount_cents", "tax_cents", "tip_cents", "deposit_cents", "total_cents", "member_discount_cents", "promo_discount_cents", "points_used", "points_discount_cents", "points_earned"]) quote[k] = Number(q[k] ?? 0);
+    return { ok: true, quote };
+  } catch (e) {
+    return { ok: false, error: sentence((e as Error).message) };
+  }
+}
+
 export type PayLink =
   | { ok: true; reference: string; url: string; amount_cents: number; expires_in: number; qr: string; totals: Record<string, number> }
   | { ok: false; error: string };

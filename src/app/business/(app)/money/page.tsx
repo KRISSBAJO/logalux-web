@@ -130,11 +130,11 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
             return (
               <tr key={t.id}>
                 <td data-sort={t.created_at}>{oneDay ? clock(t.created_at, tz) : `${dayShort(t.created_at, tz)} · ${clock(t.created_at, tz)}`}</td>
-                <td><b>{head || KIND_LABEL[t.kind] || "Ledger line"}</b>{rest.length ? <small>{rest.join(" · ")}</small> : null}{t.kind === "lead_fee" ? <small><Link href="/business/marketing?tab=leads">See this lead</Link></small> : null}{t.kind === "plan_fee" ? <small><Link href="/business/settings?tab=plan">See your plan</Link></small> : null}</td>
-                <td data-filter={t.staff ? firstName(t.staff) : "No staff"}>{t.staff ? firstName(t.staff) : <span className="muted">—</span>}</td>
-                <td>{METHOD_LABEL[t.method] ?? (t.method ? cap(String(t.method)) : "—")}</td>
+                <td><b>{head || KIND_LABEL[t.kind] || "Ledger line"}</b>{rest.length ? <small>{rest.join(" · ")}</small> : null}{t.kind === "lead_fee" ? <small><Link href="/business/marketing?tab=leads">See this lead</Link></small> : null}{t.kind === "plan_fee" ? <small><Link href="/business/settings?tab=billing">See your plan</Link></small> : null}</td>
+                <td data-filter={t.staff ? firstName(t.staff) : "No staff"}>{t.staff ? firstName(t.staff) : <span className="muted">None</span>}</td>
+                <td>{METHOD_LABEL[t.method] ?? (t.method ? cap(String(t.method)) : <span className="muted">None</span>)}</td>
                 <td data-sort={t.amount_cents} className={"r " + (t.amount_cents < 0 ? "neg" : "pos")}>{money(t.amount_cents, cur, { sign: true, exact: true })}</td>
-                <td className="muted" data-filter={KIND_LABEL[t.kind] ?? cap(String(t.kind))}>{t.kind === "plan_fee" ? <Link href="/business/settings?tab=plan">Plan fee</Link> : KIND_LABEL[t.kind] ?? cap(String(t.kind))}</td>
+                <td className="muted" data-filter={KIND_LABEL[t.kind] ?? cap(String(t.kind))}>{t.kind === "plan_fee" ? <Link href="/business/settings?tab=billing">Plan fee</Link> : KIND_LABEL[t.kind] ?? cap(String(t.kind))}</td>
                 <td data-filter={st.label.startsWith("Settles ") ? "Settling" : st.label}><span className={"pill " + st.tone}>{st.label}</span></td>
               </tr>
             );
@@ -218,8 +218,8 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                       <td data-sort={String(p.scheduled_for ?? p.paid_at ?? "")}><b>{payoutDay(p, tz)}</b></td>
                       <td>{payoutKind(p.kind)}</td>
                       <td>{bankOf(p)}</td>
-                      <td className="muted">{p.reference || "—"}</td>
-                      <td data-sort={p.fee_cents} className="r muted">{p.fee_cents > 0 ? money(p.fee_cents, cur, { exact: true }) : "—"}</td>
+                      <td className="muted">{p.reference || "None"}</td>
+                      <td data-sort={p.fee_cents} className="r muted">{p.fee_cents > 0 ? money(p.fee_cents, cur, { exact: true }) : "None"}</td>
                       <td data-sort={p.amount_cents} className="r"><b>{money(p.amount_cents, cur, { exact: true })}</b></td>
                       <td data-filter={cap(String(p.status))}><span className={"pill " + st.tone}>{cap(st.word)}</span>{p.status === "failed" && p.failure_reason ? <small className="why">{cap(String(p.failure_reason))}</small> : null}</td>
                     </tr>
@@ -253,7 +253,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                       <td style={{ whiteSpace: "normal", minWidth: 220 }}><b>{x.description || "Payment"}</b>{x.problem ? <span className="warn" role="note">{cap(String(x.problem))}</span> : null}</td>
                       <td data-sort={x.amount_cents} className="r"><b>{money(x.amount_cents, x.currency ?? cur, { exact: true })}</b></td>
                       <td data-filter={label}><span className={"pill " + tone}>{label}</span>{x.status === "paid" && x.paid_at ? <small>{dayShort(x.paid_at, tz)} · {clock(x.paid_at, tz)}</small> : x.status === "pending" && x.expires_at ? <small>Link ends {dayShort(x.expires_at, tz)} · {clock(x.expires_at, tz)}</small> : null}</td>
-                      <td data-sort={x.refunded_cents} className="r muted">{x.refunded_cents > 0 ? money(x.refunded_cents, x.currency ?? cur, { exact: true }) : "—"}</td>
+                      <td data-sort={x.refunded_cents} className="r muted">{x.refunded_cents > 0 ? money(x.refunded_cents, x.currency ?? cur, { exact: true }) : "None"}</td>
                       <td>{x.status === "pending" && x.url ? <CopyButton text={String(x.url)}>Copy link</CopyButton> : null}</td>
                     </tr>
                   );
@@ -311,7 +311,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                     <tr key={t.id}>
                       <td data-sort={t.created_at}>{dayShort(t.created_at, tz)} · {clock(t.created_at, tz)}</td>
                       <td><b>{rest.join(" · ") || head}</b></td>
-                      <td>{METHOD_LABEL[t.method] ?? (t.method ? cap(String(t.method)) : "—")}</td>
+                      <td>{METHOD_LABEL[t.method] ?? (t.method ? cap(String(t.method)) : <span className="muted">None</span>)}</td>
                       <td data-sort={t.amount_cents} className={"r " + (t.amount_cents < 0 ? "neg" : "pos")}>{money(t.amount_cents, cur, { sign: true, exact: true })}</td>
                       <td><span className={"pill " + st.tone}>{st.label}</span></td>
                     </tr>
@@ -368,7 +368,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                 ))}
               </div>
             ) : <Empty title="Nothing processed this month yet">The split appears with your first sale.</Empty>}
-            {mo.processed_cents > 0 ? <div className="sub">Out of {money(mo.processed_cents, cur)} processed. Commission follows each person&apos;s rate in Staff. A lead fee is charged once, for the first paid visit of a new client LogaLuxe brought you: <Link href="/business/marketing?tab=leads">see your leads</Link>.{planFees > 0 ? <> The plan fee is the monthly price of LogaLuxe Pro, taken from your payout balance: <Link href="/business/settings?tab=plan">see your plan</Link>.</> : null}</div> : null}
+            {mo.processed_cents > 0 ? <div className="sub">Out of {money(mo.processed_cents, cur)} processed. Commission follows each person&apos;s rate in Staff. A lead fee is charged once, for the first paid visit of a new client LogaLuxe brought you: <Link href="/business/marketing?tab=leads">see your leads</Link>.{planFees > 0 ? <> The plan fee is the monthly price of LogaLuxe Pro, taken from your payout balance: <Link href="/business/settings?tab=billing">see your plan</Link>.</> : null}</div> : null}
             {d.tax?.tax_cents > 0 ? (
               <div className="tax">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A5A12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /></svg>

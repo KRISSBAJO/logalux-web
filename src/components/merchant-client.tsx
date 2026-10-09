@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 
 /** One link in the dark side menu. It lights up for its own page and the pages under it. */
 export function MNavLink({ href, exact, count, children }: { href: string; exact?: boolean; count?: number; children: ReactNode }) {
@@ -55,12 +56,22 @@ export function Sheet({ trigger, triggerClass = "btn btn-out", title, sub, child
   );
 }
 
+/** A submit button that shows "Working…" and cannot be pressed again while its form is being sent. */
+export function SubmitButton({ children, working = "Working…", disabled, ...props }: { working?: string } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  const { pending } = useFormStatus();
+  return (
+    <button {...props} disabled={disabled || pending} aria-busy={pending || undefined}>
+      {pending ? working : children}
+    </button>
+  );
+}
+
 /** A submit button that asks first. Use it inside a form for anything that cannot be undone. */
 export function ConfirmButton({ message, children, ...props }: { message: string } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button {...props} onClick={(e) => { if (!window.confirm(message)) e.preventDefault(); }}>
+    <SubmitButton {...props} onClick={(e) => { if (!window.confirm(message)) e.preventDefault(); }}>
       {children}
-    </button>
+    </SubmitButton>
   );
 }
 

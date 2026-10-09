@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Avatar, Empty, Topbar } from "@/components/merchant-ui";
 import { dateOnly, dur, firstName, money } from "@/lib/merchant-format";
-import { makeLink, pay, type PayLink } from "./actions";
+import { makeLink, pay, quote, type PayLink, type Quote } from "./actions";
 import { lineTotal, pointsProblem, ticketTotals, toCents, type Line, type MemberRates, type Points } from "./math";
 
 type Service = { id: string; name: string; category: string; price_cents: number; duration_min: number };
@@ -194,6 +194,32 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
   // Shown in the order they are taken: typed, member, points. All of it is capped at the subtotal.
   const typedShown = Math.min(typed, t.discount), memberShown = Math.min(t.memberDiscount, t.discount - typedShown), pointsShown = Math.min(t.pointsDiscount, t.discount - typedShown - memberShown);
 
+  // The API prices the ticket: the sums above are only the instant estimate while its answer is on the way.
+  // Everything that changes the total is in this key; a change waits 400 ms, then the same body a sale sends is quoted.
+  const pointsSent = points && !pointsWhy ? points.redeem : 0;
+  const quoteKey = lines.length ? JSON.stringify([lines.map((l) => [l.kind, l.service_id, l.product_id, l.package_id, l.membership_id, l.qty, !!l.redeem, l.fixed ? l.unit : null]), t.tip, Math.min(typed, t.subtotal), promo, pointsSent, visit?.id ?? "", clientId ?? "", locationId]) : "";
+  const [quoted, setQuoted] = useState<{ forKey: string; out: Quote } | null>(null);
+  useEffect(() => {
+    if (!quoteKey) return;
+    let open = true;
+    const timer = setTimeout(() => {
+      if (!form.current) return;
+      quote(new FormData(form.current))
+        .then((out) => { if (open) setQuoted({ forKey: quoteKey, out }); })
+        .catch(() => { if (open) setQuoted({ forKey: quoteKey, out: { ok: false, error: "The total could not be checked. Try again." } }); });
+    }, 400);
+    return () => { open = false; clearTimeout(timer); };
+  }, [quoteKey]);
+  const answer = quoted && quoted.forKey === quoteKey ? quoted.out : null;
+  const fig = answer?.ok ? answer.quote : null;
+  const quoteError = answer && !answer.ok ? answer.error : "";
+  const quoting = !!quoteKey && !answer;
+  // The figures shown: the API's when it has answered, the estimate until then.
+  const due = fig ? fig.total_cents : t.due;
+  const promoOff = fig ? fig.promo_discount_cents : 0, memberOff = fig ? fig.member_discount_cents : memberShown, pointsOff = fig ? fig.points_discount_cents : pointsShown;
+  const typedOff = fig ? Math.max(0, fig.discount_cents - promoOff - memberOff - pointsOff) : typedShown;
+  const pointsUsed = fig ? fig.points_used : t.pointsUsed, pointsEarned = fig ? fig.points_earned : t.pointsEarned;
+
   // A pay link: the API prices the sale and opens a payment page. Then ask every few seconds whether it was paid.
   const sendLink = async () => {
     if (!form.current) return;
@@ -284,9 +310,9 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
     qty: l.kind === "package" || l.kind === "membership" || l.redeem ? 1 : l.qty,
     ...(l.redeem ? { redeem: true } : (l.kind === "service" || l.kind === "custom") && (l.fixed || !l.service_id) ? { name: l.name, unit_cents: l.unit } : {}),
   })));
-  const cta = !lines.length ? "Add something to charge" : checking ? "Checking prices…" : t.due === 0 ? "Complete sale"
-    : method === "cash" ? `Record cash ${cash(t.due)}` : live ? `Record ${cash(t.due)} taken` : `Charge ${cash(t.due)}`;
-  const blocked = !lines.length || checking || plansLoading || !!pointsWhy || !canPay;
+  const cta = !lines.length ? "Add something to charge" : checking || quoting ? "Checking the total…" : quoteError ? "Cannot charge yet" : due === 0 ? "Complete sale"
+    : method === "cash" ? `Record cash ${cash(due)}` : live ? `Record ${cash(due)} taken` : `Charge ${cash(due)}`;
+  const blocked = !lines.length || checking || quoting || !!quoteError || plansLoading || !!pointsWhy || !canPay;
   const who = visit ? visit.clientName : chosen ? chosen.name : clientName.trim() || "Walk-in";
   const TABS: [Tab, string][] = [["services", "Services"], ["products", "Products"], ["packages", "Packages"], ["memberships", "Memberships"], ["custom", "Custom amount"]];
 
@@ -546,7 +572,9 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
               )}
               {showPromo && (
                 <label className="fld"><span>Promo code</span><input value={promoText} maxLength={20} autoCapitalize="characters" autoComplete="off" onChange={(e) => setPromoText(e.target.value)} placeholder="CODE" />
-                  <small>{live && method === "link" ? "Checked when you make the link: the link shows the price with the code applied." : "Checked and applied when you charge. If it is not valid, nothing is charged and you are told why."}</small>
+                  <small style={promo && quoteError ? { color: "#9B2C2C" } : undefined}>
+                    {!promo ? "Checked as you type. If it is not valid, you are told here." : quoting ? "Checking the code…" : quoteError ? quoteError : fig ? `Applied: ${cash(promoOff)} off.` : "Checked as you type."}
+                  </small>
                 </label>
               )}
               {points && (
@@ -555,8 +583,8 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
                   <small style={pointsWhy ? { color: "#9B2C2C" } : undefined}>
                     {pointsWhy || [
                       `Each point is worth ${cash(points.pointValue)}.`,
-                      t.pointsUsed > 0 ? `${t.pointsUsed.toLocaleString("en-US")} points take ${cash(t.pointsDiscount)} off${t.pointsUsed < points.redeem ? ": that is all this bill can use" : ""}.` : "",
-                      `This sale earns ${promo ? "about " : ""}${t.pointsEarned.toLocaleString("en-US")} ${t.pointsEarned === 1 ? "point" : "points"}.`,
+                      pointsUsed > 0 ? `${pointsUsed.toLocaleString("en-US")} points take ${cash(pointsOff)} off${pointsUsed < points.redeem ? ": that is all this bill can use" : ""}.` : "",
+                      `This sale earns ${fig ? "" : "about "}${pointsEarned.toLocaleString("en-US")} ${pointsEarned === 1 ? "point" : "points"}.`,
                     ].filter(Boolean).join(" ")}
                   </small>
                 </label>
@@ -576,16 +604,17 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
               ))}
             </div>
 
-            <div className="tots">
-              <div><span>Subtotal</span><span>{cash(t.subtotal)}</span></div>
-              {typedShown > 0 && <div><span className="muted">Discount</span><span className="muted">−{cash(typedShown)}</span></div>}
-              {promo && <div><span className="muted">Promo code {promo}</span><span className="muted">at charge</span></div>}
-              {member && memberShown > 0 && <div><span className="muted">{member.name} member · {rates(member.service, member.retail)}</span><span className="muted">−{cash(memberShown)}</span></div>}
-              {pointsShown > 0 && <div><span className="muted">{t.pointsUsed.toLocaleString("en-US")} loyalty points</span><span className="muted">−{cash(pointsShown)}</span></div>}
-              {taxBp > 0 && <div><span className="muted">Sales tax {taxBp / 100}% · retail only</span><span className="muted">{cash(t.tax)}</span></div>}
-              {(visit?.depositPaid ?? 0) > 0 && <div><span className="muted">Deposit paid</span><span className="muted">−{cash(t.deposit)}</span></div>}
-              <div><span className="muted">Tip</span><span className="muted">{cash(t.tip)}</span></div>
-              <div className="big"><span>{promo ? "Due before the code" : "Due now"}</span><span>{cash(t.due)}</span></div>
+            <div className="tots" aria-live="polite">
+              <div><span>Subtotal</span><span>{cash(fig ? fig.subtotal_cents : t.subtotal)}</span></div>
+              {typedOff > 0 && <div><span className="muted">Discount</span><span className="muted">−{cash(typedOff)}</span></div>}
+              {promo && <div><span className="muted">Promo code {promo}</span><span className="muted">{fig ? `−${cash(promoOff)}` : quoteError ? "not applied" : "checking"}</span></div>}
+              {member && memberOff > 0 && <div><span className="muted">{member.name} member · {rates(member.service, member.retail)}</span><span className="muted">−{cash(memberOff)}</span></div>}
+              {pointsOff > 0 && <div><span className="muted">{pointsUsed.toLocaleString("en-US")} loyalty points</span><span className="muted">−{cash(pointsOff)}</span></div>}
+              {taxBp > 0 && <div><span className="muted">Sales tax {taxBp / 100}% · retail only</span><span className="muted">{cash(fig ? fig.tax_cents : t.tax)}</span></div>}
+              {(visit?.depositPaid ?? 0) > 0 && <div><span className="muted">Deposit paid</span><span className="muted">−{cash(fig ? fig.deposit_cents : t.deposit)}</span></div>}
+              <div><span className="muted">Tip</span><span className="muted">{cash(fig ? fig.tip_cents : t.tip)}</span></div>
+              <div className="big"><span>Due now</span><span>{quoting ? <span className="muted" style={{ fontSize: 13.5, fontWeight: 500 }}>checking · about {cash(t.due)}</span> : cash(due)}</span></div>
+              {quoteError ? <div role="alert" style={{ fontSize: 12.5, color: "#9B2C2C", whiteSpace: "normal" }}><span>{quoteError}</span></div> : null}
             </div>
 
             <div className="foot">
@@ -594,8 +623,8 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
                 <>
                   <label className="fld"><span>Client&rsquo;s email (optional)</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Filled in for them on the payment page" autoComplete="off" /></label>
                   {linkError ? <div role="alert" style={{ fontSize: 13, color: "#9B2C2C" }}>{linkError}</div> : null}
-                  <button type="button" className="btn btn-ink" style={{ width: "100%", minHeight: 50 }} disabled={blocked || orphanPlans || linkBusy || t.due <= 0} onClick={sendLink}>
-                    {!canPay ? "Your sign-in cannot take payments" : linkBusy ? "Making the link…" : !lines.length ? "Add something to charge" : checking ? "Checking prices…" : t.due <= 0 ? "Nothing left to pay by link" : `Make a pay link for ${cash(t.due)}`}
+                  <button type="button" className="btn btn-ink" style={{ width: "100%", minHeight: 50 }} disabled={blocked || orphanPlans || linkBusy || due <= 0} onClick={sendLink}>
+                    {!canPay ? "Your sign-in cannot take payments" : linkBusy ? "Making the link…" : !lines.length ? "Add something to charge" : checking || quoting ? "Checking the total…" : quoteError ? "Cannot make a link yet" : due <= 0 ? "Nothing left to pay by link" : `Make a pay link for ${cash(due)}`}
                   </button>
                 </>
               ) : (

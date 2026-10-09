@@ -3,9 +3,9 @@ import { DataTable } from "@/components/data-table";
 import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
 import { Empty } from "@/components/merchant-ui";
 import { mLoad, qs, type Merchant, type Row } from "@/lib/merchant-api";
-import { dateMed, money, pct, plural, when } from "@/lib/merchant-format";
-import { adjustPoints, createPromo, deletePromo, disputeLead, saveLeadSettings, saveLoyalty, togglePromo } from "./actions";
-import { BoostFields, LoyaltyFields, PromoFields } from "./live";
+import { dateMed, money, pct, plural, when, ymd } from "@/lib/merchant-format";
+import { adjustPoints, createPromo, deletePromo, disputeLead, saveLeadSettings, saveLoyalty, togglePromo, updatePromo } from "./actions";
+import { BoostFields, LoyaltyFields, PromoFields, type PromoValues } from "./live";
 
 // The three tabs that sit beside Automations and Campaigns: new clients from
 // LogaLuxe (and what they cost), loyalty points, and the business's own promo codes.
@@ -69,8 +69,8 @@ export async function LeadsTab({ m, owner, link }: { m: Merchant; owner: boolean
       <div className="kpis">
         <div className="kpi"><small>New clients this month</small><b>{k.month_leads}</b><span>{k.month_charged} charged · {k.month_pending} still to come · {k.month_void} not charged</span></div>
         <div className="kpi"><small>Fees this month</small><b>{money(k.month_fee_cents, cur)}</b><span>{k.month_charged ? `for ${plural(k.month_charged, "new client")}` : "Nothing charged yet this month"}</span></div>
-        <div className="kpi"><small>What they have been worth</small><b>{multiple > 0 ? `${multiple >= 10 ? Math.round(multiple) : multiple.toFixed(1)}×` : "—"}</b><span>{k.all_fee_cents > 0 ? `${money(k.all_fee_cents, cur)} in fees brought ${money(k.all_revenue_cents, cur)}` : "No fees charged so far"}</span></div>
-        <div className="kpi"><small>Came back</small><b>{k.all_charged ? `${pct(k.came_back, k.all_charged)}%` : "—"}</b><span>{k.all_charged ? `${k.came_back} of ${plural(k.all_charged, "new client")} booked again` : "No new clients charged yet"}</span></div>
+        <div className="kpi"><small>What they have been worth</small><b>{multiple > 0 ? `${multiple >= 10 ? Math.round(multiple) : multiple.toFixed(1)}×` : "None"}</b><span>{k.all_fee_cents > 0 ? `${money(k.all_fee_cents, cur)} in fees brought ${money(k.all_revenue_cents, cur)}` : "No fees charged so far"}</span></div>
+        <div className="kpi"><small>Came back</small><b>{k.all_charged ? `${pct(k.came_back, k.all_charged)}%` : "None"}</b><span>{k.all_charged ? `${k.came_back} of ${plural(k.all_charged, "new client")} booked again` : "No new clients charged yet"}</span></div>
       </div>
 
       <div className="wrap">
@@ -141,12 +141,12 @@ export async function LeadsTab({ m, owner, link }: { m: Merchant; owner: boolean
                     <tr key={l.id}>
                       <td data-sort={l.created_at}>{when(l.created_at, tz)}{l.starts_at ? <div className="muted" style={{ fontSize: 12 }}>visit {dateMed(l.starts_at, tz)}</div> : null}</td>
                       <td>{l.client_id ? <Link href={`/business/clients${qs({ client: l.client_id })}`}><b>{l.client_name}</b></Link> : <b>{l.client_name}</b>}</td>
-                      <td style={{ whiteSpace: "normal", minWidth: 150 }}>{l.services ?? "—"}</td>
+                      <td style={{ whiteSpace: "normal", minWidth: 150 }}>{l.services ?? <span className="muted">None</span>}</td>
                       <td>{SOURCE[l.source] ?? l.source}</td>
                       <td data-filter={st.label} style={{ whiteSpace: "normal", minWidth: 150 }}><span className={`pill ${st.tone}`}>{st.label}</span>{st.note ? <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>{st.note}</div> : null}</td>
                       <td data-sort={l.value_cents}>{money(l.value_cents, cur)}</td>
                       <td data-sort={ratePct}>{ratePct}%{l.boosted ? <> <span className="pill pill-gold">Promoted</span><div className="muted" style={{ fontSize: 12 }}>{Number(l.base_pct)}% + {Number(l.boost_pct)}%</div></> : null}</td>
-                      <td data-sort={charged ? l.fee_cents : l.status === "pending" ? estFee : 0}>{charged ? <b>{money(l.fee_cents, cur)}</b> : l.status === "pending" ? <span className="muted">about {money(estFee, cur)}</span> : "—"}{l.status === "refunded" ? <div className="muted" style={{ fontSize: 12 }}>returned</div> : null}</td>
+                      <td data-sort={charged ? l.fee_cents : l.status === "pending" ? estFee : 0}>{charged ? <b>{money(l.fee_cents, cur)}</b> : l.status === "pending" ? <span className="muted">about {money(estFee, cur)}</span> : <span className="muted">None</span>}{l.status === "refunded" ? <div className="muted" style={{ fontSize: 12 }}>returned</div> : null}</td>
                       <td data-sort={l.lifetime_cents}>{money(l.lifetime_cents, cur)}<div className="muted" style={{ fontSize: 12 }}>{plural(l.visits, "visit")}</div></td>
                       <td>
                         {owner && l.status === "charged" && l.can_dispute && !l.resolved_at ? (
@@ -228,7 +228,7 @@ export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
                         <td data-sort={c.points * rules.point_value_cents}>{money(c.points * rules.point_value_cents, cur)}</td>
                         <td data-sort={c.earned}>{n(c.earned)}</td>
                         <td data-sort={c.redeemed}>{n(c.redeemed)}</td>
-                        <td data-sort={c.last_at}>{c.last_at ? when(c.last_at, tz) : "—"}</td>
+                        <td data-sort={c.last_at}>{c.last_at ? when(c.last_at, tz) : <span className="muted">None</span>}</td>
                         <td><AdjustSheet client={c} points={Number(c.points)} back={back} /></td>
                       </tr>
                     ))}
@@ -270,8 +270,8 @@ export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
                         <td><Link href={`/business/clients${qs({ client: r.client_id })}`}><b>{r.client}</b></Link></td>
                         <td data-sort={r.points}><b style={{ color: r.points < 0 ? "#9B2C2C" : "#1F6B3A" }}>{r.points > 0 ? "+" : "−"}{n(Math.abs(r.points))}</b></td>
                         <td>{REASON[r.reason] ?? r.reason}</td>
-                        <td style={{ whiteSpace: "normal" }}>{r.note || "—"}</td>
-                        <td>{r.actor || "—"}</td>
+                        <td style={{ whiteSpace: "normal" }}>{r.note || <span className="muted">None</span>}</td>
+                        <td>{r.actor || <span className="muted">System</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -310,6 +310,11 @@ export async function PromosTab({ m, open }: { m: Merchant; open: boolean }) {
   const now = Date.now();
   const stateOf = (p: Row) => (!p.active ? "Off" : p.ends_at && Date.parse(p.ends_at) < now ? "Ended" : p.starts_at && Date.parse(p.starts_at) > now ? "Not started" : p.max_uses !== null && p.max_uses !== undefined && p.used >= p.max_uses ? "Used up" : "On");
   const tone: Record<string, string> = { On: "pill-ok", Off: "pill-grey", Ended: "pill-grey", "Not started": "pill-gold", "Used up": "pill-grey" };
+  // The saved code as the edit form needs it. Its dates are moments in the business zone, so they are read back as days there.
+  const values = (p: Row): PromoValues => ({
+    code: String(p.code), description: String(p.description ?? ""), kind: String(p.kind), value: Number(p.value), min_cents: Number(p.min_cents ?? 0),
+    max_uses: p.max_uses === null || p.max_uses === undefined ? null : Number(p.max_uses), starts: p.starts_at ? ymd(p.starts_at, tz) : "", ends: p.ends_at ? ymd(p.ends_at, tz) : "", used: Number(p.used ?? 0),
+  });
 
   return (
     <>
@@ -356,6 +361,13 @@ export async function PromosTab({ m, open }: { m: Merchant; open: boolean }) {
                       </td>
                       <td>
                         <div className="rowx" style={{ flexWrap: "nowrap", gap: 6 }}>
+                          <Sheet trigger="Edit" triggerClass="btn btn-out btn-sm" title={`Edit ${p.code}`} sub={p.used > 0 ? `Used ${p.used === 1 ? "once" : `${p.used} times`}. The discount is locked; the rest can change.` : "Not used yet, so everything but the code itself can change."}>
+                            <form action={updatePromo}>
+                              <input type="hidden" name="back" value={back} /><input type="hidden" name="id" value={p.id} />
+                              <PromoFields currency={cur} p={values(p)} idp={`pe-${p.id}`} />
+                              <div className="sheet-ft"><button className="btn btn-ink">Save code</button></div>
+                            </form>
+                          </Sheet>
                           <CopyButton text={`Use code ${p.code} at ${link}`}>Copy share line</CopyButton>
                           {p.used === 0 ? (
                             <form action={deletePromo}><input type="hidden" name="back" value={back} /><input type="hidden" name="id" value={p.id} /><ConfirmButton className="btn btn-danger btn-sm" message={`Delete the code ${p.code}?`}>Delete</ConfirmButton></form>

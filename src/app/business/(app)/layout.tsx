@@ -67,8 +67,9 @@ export default async function MerchantLayout({ children }: { children: ReactNode
           {manager && <MNavLink href="/business/inventory" count={care.returns}><Ic name="inventory" />Inventory</MNavLink>}
           <MNavLink href="/business/staff" count={manager ? badges.time_off : 0}><Ic name="staff" />Staff &amp; rosters</MNavLink>
           <MNavLink href="/business/settings"><Ic name="settings" />Settings</MNavLink>
+          <a href="/help" className="nav" target="_blank" rel="noreferrer" style={{ marginTop: "auto" }}><Ic name="help" />Help and support</a>
 
-          <div className="foot">
+          <div className="foot" style={{ marginTop: 0 }}>
             <Avatar name={m.name} size={32} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <b style={{ display: "block", fontSize: 13, color: "#F4ECE3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</b>

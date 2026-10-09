@@ -2,7 +2,6 @@ import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, Ic, LoadError, NoAccess, Topbar, TopSearch } from "@/components/merchant-ui";
-import { api } from "@/lib/api";
 import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { clock, dateMed, dateOnly, initials, money, pct, plural, ymd } from "@/lib/merchant-format";
 import { orderAction, orderCreate, orderSuggest, productCreate, productDetails, productPhoto, productPhotoRemove, productSave, productStock, productTransfer, productUses, stockCount, supplierCreate, supplierDelete } from "./actions";
@@ -59,7 +58,10 @@ function ProductFields({ p, suppliers, cur, id }: { p?: Row; suppliers: Row[]; c
       </div>
       <div className="field"><label htmlFor={id + "de"}>Description</label><textarea id={id + "de"} name="description" maxLength={2000} defaultValue={p?.description ?? ""} /></div>
       <label className="chk"><input type="checkbox" name="online" defaultChecked={p ? !!p.active && sells(p) : true} />Sell online: in the shop and on the booking page</label>
-      <small className="hint">Stock is changed with Adjust stock, so every change is on record. The reorder level is when it shows as low: 0 switches that off. Full shelf is how many you hold when fully stocked, and sets the scale of the stock meter. A back-bar product has no price and is never sold online.</small>
+      <input type="hidden" name="shipping_set" value="1" />
+      <label className="chk"><input type="checkbox" name="shipping" defaultChecked={p ? !!p.shipping : false} />Can be shipped: shoppers can have it posted to them</label>
+      <div className="field" style={{ maxWidth: 220 }}><label htmlFor={id + "sh"}>Shipping charge ({cur})</label><input id={id + "sh"} name="shipping_charge" type="number" min={0} step="0.01" inputMode="decimal" defaultValue={major(p?.shipping_cents)} placeholder="0" /></div>
+      <small className="hint">Stock is changed with Adjust stock, so every change is on record. The reorder level is when it shows as low: 0 switches that off. Full shelf is how many you hold when fully stocked, and sets the scale of the stock meter. A back-bar product has no price and is never sold online. The shipping charge is added once to a shop order that is posted; leave it empty to keep what is saved.</small>
     </>
   );
 }
@@ -71,11 +73,14 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   if (sp.tab === "orders") return <OnlineOrders sp={sp} m={m} />;
   const q = (sp.q ?? "").trim(), filter = FILTERS.some(([id]) => id && id === sp.filter) ? sp.filter! : "";
   const narrowed = !!(q || filter);
-  const [res, whole, hist] = await Promise.all([
+  const wantId = sp.sel ?? sp.product;
+  const [res, whole, hist, detailsRes] = await Promise.all([
     mLoad("/inventory" + qs({ q, filter, location: /^[0-9a-f-]{36}$/i.test(sp.location ?? "") ? sp.location : "" })),
     narrowed ? mLoad("/inventory") : null,
     sp.product ? mLoad(`/products/${encodeURIComponent(sp.product)}/history`) : null,
+    wantId ? mLoad(`/products/${encodeURIComponent(wantId)}/details`) : null,
   ]);
+  const detailsFor = wantId && detailsRes ? { id: wantId, data: detailsRes.data as Row } : null;
   if (res.status === 403) return <div className="main pg-inventory"><NoAccess title="Inventory" need="manager" /></div>;
   if (res.error) return <div className="main pg-inventory"><LoadError title="Inventory" error={res.error} /></div>;
 
@@ -89,10 +94,9 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   const sel = all.find((p) => p.id === (sp.sel ?? sp.product)) ?? rows[0];
   const shown = all.find((p) => p.id === sp.product);
   // The stock list does not carry a product’s ingredients and directions. The shop’s own product page does,
-  // and only for a product that is on sale there, so that is where the saved text is read from.
-  const listed = !!sel && sells(sel) && !!sel.active && !!sel.slug;
-  const pub: Row | null = sel ? ((await mLoad(`/products/${encodeURIComponent(sel.id)}/details`)).data as Row) : null;
-  void listed;
+  // and only for a product that is on sale there, so that is where the saved text is read from. When the
+  // address named the product, its details were asked for with the list; otherwise they are asked for now.
+  const pub: Row | null = sel ? (detailsFor && detailsFor.id === sel.id ? detailsFor.data : ((await mLoad(`/products/${encodeURIComponent(sel.id)}/details`)).data as Row)) : null;
   // Stock per location only shows when there is more than one location. With one, nothing here changes.
   const locations = (d.locations ?? []) as Row[], multi = locations.length > 1;
   const loc = multi ? locations.find((l) => l.id === sp.location) : undefined, at = loc?.id as string | undefined;

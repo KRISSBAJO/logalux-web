@@ -4,7 +4,7 @@ import { ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Empty, Fld, Ic } from "@/components/merchant-ui";
 import type { Row } from "@/lib/merchant-api";
 import { dateMed, dateOnly, money, plural } from "@/lib/merchant-format";
-import { holderCancel, holderReactivate, planCreate, planDelete, planSave, planToggle, resourceCreate, resourceDelete, resourceSave, ruleCreate, ruleDelete, ruleSave, ruleToggle } from "./menu-actions";
+import { holderCancel, holderReactivate, planCreate, planDelete, planSave, planToggle, resourceCreate, resourceDelete, resourceSave, ruleCreate, ruleDelete, ruleSave, ruleToggle, rulesOrder } from "./menu-actions";
 import { PriceChecker } from "./price-checker";
 
 // The views of the menu that are not the list of services: pricing rules,
@@ -71,16 +71,26 @@ export function RulesView({ rules, services, staff, cur, manager, back, now }: {
           )}
         </div>
         <div className="sub">
-          A rule raises or lowers a price when it matches the service, the day, the time, the level of the person doing it and the date. A person&apos;s own price replaces the menu price first, then every rule that matches adjusts it, oldest rule first. Clients see the final price when they book.
+          A rule raises or lowers a price when it matches the service, the day, the time, the level of the person doing it and the date. A person&apos;s own price replaces the menu price first, then every rule that matches adjusts it, from the top of the list down, each on the price the one above left. Clients see the final price when they book.{manager ? " Use the arrows to change the order; clear any sorting first to see it." : ""}
         </div>
         {rules.length ? (
           <div className="boxed">
             <DataTable id="price-rules" search="Search rules" filters={["Applies to", "Level", "On"]} pageSize={10} noun="rule">
               <table className="tbl">
-                <thead><tr><th>Rule</th><th>Applies to</th><th>Days</th><th>Time</th><th>Level</th><th>Dates</th><th className="num">Change</th><th>On</th>{manager && <th data-nosort><span className="sr">Actions</span></th>}</tr></thead>
+                <thead><tr>{manager && <th style={{ width: 28 }} data-nosort><span className="sr">Order</span></th>}<th>Rule</th><th>Applies to</th><th>Days</th><th>Time</th><th>Level</th><th>Dates</th><th className="num">Change</th><th>On</th>{manager && <th data-nosort><span className="sr">Actions</span></th>}</tr></thead>
                 <tbody>
-                  {rules.map((r) => (
+                  {rules.map((r, i) => (
                     <tr key={r.id}>
+                      {manager && (
+                        <td>
+                          <form action={rulesOrder} className="mv">
+                            <input type="hidden" name="back" value={back} />
+                            <input type="hidden" name="id" value={r.id} />
+                            <button name="dir" value="up" disabled={i === 0} aria-label={`Move ${r.name} up`}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg></button>
+                            <button name="dir" value="down" disabled={i === rules.length - 1} aria-label={`Move ${r.name} down`}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></button>
+                          </form>
+                        </td>
+                      )}
                       <td><b>{r.name}</b></td>
                       <td>{r.service ?? "Every service"}</td>
                       <td>{daysText((r.days ?? []) as string[])}</td>

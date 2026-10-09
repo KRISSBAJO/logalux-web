@@ -51,7 +51,7 @@ export default async function Statement({ params }: { params: Promise<{ month: s
     ["Refunds", "", s.refunds_cents],
     ["LogaLuxe fees", "the fee on each payment", s.fees_cents],
     ["Lead fees", "new clients LogaLuxe brought you, charged once each", s.lead_fees_cents],
-    [<Link key="plan" href="/business/settings?tab=plan">Plan fee</Link>, "the monthly price of LogaLuxe Pro, taken from your payout balance", planFees],
+    [<Link key="plan" href="/business/settings?tab=billing">Plan fee</Link>, "the monthly price of LogaLuxe Pro, taken from your payout balance", planFees],
     ["Payout fees", "instant payouts", s.payout_fees_cents],
     ["Adjustments", "corrections, and payouts that failed and were returned", s.adjustments_cents],
   ];
@@ -116,9 +116,9 @@ export default async function Statement({ params }: { params: Promise<{ month: s
                         <tr key={i}>
                           <td data-sort={p.created_at}>{dayShort(p.paid_at ?? p.created_at, tz)}</td>
                           <td>{p.kind === "instant" ? "Instant" : p.kind === "manual" ? "On request" : "Automatic"}</td>
-                          <td>{p.bank_name ? `${p.bank_name}${p.account_last4 ? ` ···· ${p.account_last4}` : ""}` : "—"}</td>
-                          <td className="muted">{p.reference || "—"}</td>
-                          <td data-sort={p.fee_cents} className="r muted">{p.fee_cents > 0 ? $(p.fee_cents) : "—"}</td>
+                          <td>{p.bank_name ? `${p.bank_name}${p.account_last4 ? ` ···· ${p.account_last4}` : ""}` : <span className="muted">None</span>}</td>
+                          <td className="muted">{p.reference || "None"}</td>
+                          <td data-sort={p.fee_cents} className="r muted">{p.fee_cents > 0 ? $(p.fee_cents) : "None"}</td>
                           <td data-sort={p.amount_cents} className="r"><b>{$(p.amount_cents)}</b></td>
                           <td data-filter={label}><span className={"pill " + tone}>{simulated && p.status === "paid" ? "Recorded as paid, simulated" : label}</span></td>
                         </tr>
@@ -141,9 +141,9 @@ export default async function Statement({ params }: { params: Promise<{ month: s
                       <tr key={i}>
                         <td data-sort={l.created_at}>{dayShort(l.created_at, tz)} · {clock(l.created_at, tz)}</td>
                         <td><b>{l.description || KIND_LABEL[l.kind] || "Ledger line"}</b></td>
-                        <td data-filter={l.staff ? firstName(l.staff) : "No staff"}>{l.staff ? firstName(l.staff) : <span className="muted">—</span>}</td>
-                        <td>{METHOD_LABEL[l.method] ?? (l.method ? cap(String(l.method)) : "—")}</td>
-                        <td data-filter={KIND_LABEL[l.kind] ?? cap(String(l.kind))}>{l.kind === "plan_fee" ? <Link href="/business/settings?tab=plan">Plan fee</Link> : KIND_LABEL[l.kind] ?? cap(String(l.kind))}</td>
+                        <td data-filter={l.staff ? firstName(l.staff) : "No staff"}>{l.staff ? firstName(l.staff) : <span className="muted">None</span>}</td>
+                        <td>{METHOD_LABEL[l.method] ?? (l.method ? cap(String(l.method)) : <span className="muted">None</span>)}</td>
+                        <td data-filter={KIND_LABEL[l.kind] ?? cap(String(l.kind))}>{l.kind === "plan_fee" ? <Link href="/business/settings?tab=billing">Plan fee</Link> : KIND_LABEL[l.kind] ?? cap(String(l.kind))}</td>
                         <td data-sort={l.amount_cents} className={"r " + (l.amount_cents < 0 ? "neg" : "pos")}>{money(l.amount_cents, cur, { sign: true, exact: true })}</td>
                         <td data-filter={l.in_balance ? "Yes" : "Taken outside LogaLuxe"}>{l.in_balance ? (l.status === "pending" ? "Yes · settling" : "Yes") : <span className="pill pill-grey">Taken outside LogaLuxe</span>}</td>
                       </tr>

@@ -82,8 +82,8 @@ export function SlotPicker({ staff, serviceIds, exclude, date0, staff0 = "any", 
 }
 
 /** The new booking form: who, what, then a free time. */
-export function NewBookingForm({ action, back, services, staff, currency, date0, staff0, client0 }: {
-  action: (fd: FormData) => void; back: string; services: Service[]; staff: Staff[]; currency: string; date0: string; staff0?: string;
+export function NewBookingForm({ action, back, services, staff, currency, market = "US", date0, staff0, client0 }: {
+  action: (fd: FormData) => void; back: string; services: Service[]; staff: Staff[]; currency: string; market?: string; date0: string; staff0?: string;
   client0?: { id?: string; name?: string; phone?: string };
 }) {
   const [chosen, setChosen] = useState<string[]>([]);
@@ -127,7 +127,7 @@ export function NewBookingForm({ action, back, services, staff, currency, date0,
           ) : null}
         </label>
         <label className="fld"><span>Phone</span>
-          <input name="client_phone" type="tel" value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} readOnly={!!client.id} placeholder="+1 615 555 0100" />
+          <input name="client_phone" type="tel" value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} readOnly={!!client.id} placeholder={market === "NG" ? "+234 803 555 0100" : "+1 615 555 0100"} />
         </label>
       </div>
       {client.id ? <div className="slot-note">Booking for a client already in your book. <button type="button" className="linkb" onClick={() => setClient({ id: "", name: "", phone: "" })}>Change</button></div> : null}

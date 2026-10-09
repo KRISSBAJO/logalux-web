@@ -54,9 +54,9 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
   const kpis: { name: string; value: string; d: Delta }[] = [
     { name: "Revenue", value: money(now.revenue_cents, cur), d: was.revenue_cents > 0 ? delta(Math.round(((now.revenue_cents - was.revenue_cents) / was.revenue_cents) * 100), (a, s) => `${s}${a} vs the period before`, (n) => `${n}%`) : delta(null, () => "", String) },
     { name: "Bookings", value: String(now.bookings), d: was.bookings > 0 || now.bookings > 0 ? delta(now.bookings - was.bookings, (a, s) => `${s}${a} vs the period before`, String) : delta(null, () => "", String) },
-    { name: "Average ticket", value: avgNow === null ? "—" : money(avgNow, cur), d: delta(avgNow !== null && avgWas !== null ? avgNow - avgWas : null, (a, s) => `${s}${a} per sale`, (n) => money(n, cur)) },
-    { name: "Rebook rate", value: rbNow === null ? "—" : `${Math.round(rbNow)}%`, d: delta(rbNow !== null && rbWas !== null ? Math.round((rbNow - rbWas) * 10) / 10 : null, (a, s) => `${s}${a}`, pts) },
-    { name: "No-show rate", value: nsNow === null ? "—" : `${nsNow}%`, d: delta(nsNow !== null && nsWas !== null ? Math.round((nsNow - nsWas) * 10) / 10 : null, (a, s) => `${s}${a}`, pts, false) },
+    { name: "Average ticket", value: avgNow === null ? "None" : money(avgNow, cur), d: delta(avgNow !== null && avgWas !== null ? avgNow - avgWas : null, (a, s) => `${s}${a} per sale`, (n) => money(n, cur)) },
+    { name: "Rebook rate", value: rbNow === null ? "None" : `${Math.round(rbNow)}%`, d: delta(rbNow !== null && rbWas !== null ? Math.round((rbNow - rbWas) * 10) / 10 : null, (a, s) => `${s}${a}`, pts) },
+    { name: "No-show rate", value: nsNow === null ? "None" : `${nsNow}%`, d: delta(nsNow !== null && nsWas !== null ? Math.round((nsNow - nsWas) * 10) / 10 : null, (a, s) => `${s}${a}`, pts, false) },
     { name: "New clients", value: String(now.new_clients), d: was.new_clients > 0 || now.new_clients > 0 ? delta(now.new_clients - was.new_clients, (a, s) => `${s}${a} vs the period before`, String) : delta(null, () => "", String) },
   ];
 
@@ -192,11 +192,11 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
                         <td><b>{p.name}</b></td>
                         <td data-sort={p.revenue_cents}><b>{money(p.revenue_cents, cur)}</b></td>
                         <td data-sort={p.bookings}>{p.bookings}</td>
-                        <td data-sort={p.booked_min}>{openMin > 0 ? `${pct(p.booked_min, openMin)}%` : "—"}</td>
-                        <td data-sort={p.bookings > 0 ? Math.round(p.revenue_cents / p.bookings) : 0}>{p.bookings > 0 ? money(Math.round(p.revenue_cents / p.bookings), cur) : "—"}</td>
+                        <td data-sort={p.booked_min}>{openMin > 0 ? `${pct(p.booked_min, openMin)}%` : <span className="muted">None</span>}</td>
+                        <td data-sort={p.bookings > 0 ? Math.round(p.revenue_cents / p.bookings) : 0}>{p.bookings > 0 ? money(Math.round(p.revenue_cents / p.bookings), cur) : <span className="muted">None</span>}</td>
                         <td data-sort={p.tips_cents}>{money(p.tips_cents, cur)}</td>
-                        <td data-sort={p.visitors > 0 ? pct(p.rebooked, p.visitors) : -1}>{p.visitors > 0 ? `${pct(p.rebooked, p.visitors)}%` : "—"}</td>
-                        <td data-sort={Number(p.rating ?? 0)}>{p.rating > 0 ? Number(p.rating).toFixed(1) : "—"}</td>
+                        <td data-sort={p.visitors > 0 ? pct(p.rebooked, p.visitors) : -1}>{p.visitors > 0 ? `${pct(p.rebooked, p.visitors)}%` : <span className="muted">None</span>}</td>
+                        <td data-sort={Number(p.rating ?? 0)}>{p.rating > 0 ? Number(p.rating).toFixed(1) : <span className="muted">None</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -243,7 +243,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
             ) : <Empty title="No finished visits in this period" />}
             <div className="sub">
               {mix.visits > 0 ? `Out of ${plural(mix.visits, "finished visit")}. ` : ""}
-              {mix.sales > 0 ? `Retail in ${pct(mix.sales_with_retail, mix.sales)}% of sales · average tip ${mix.sold_cents > 0 ? `${pct(mix.tips_cents, mix.sold_cents)}%` : "—"}` : ""}
+              {mix.sales > 0 ? `Retail in ${pct(mix.sales_with_retail, mix.sales)}% of sales · average tip ${mix.sold_cents > 0 ? `${pct(mix.tips_cents, mix.sold_cents)}%` : "none"}` : ""}
             </div>
           </div>
 

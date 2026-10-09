@@ -10,19 +10,18 @@ import { answerReturn } from "./actions";
 // The business approves (and refunds) or refuses, once.
 
 const STATE: Record<string, [string, string]> = { requested: ["Waiting for you", "pill-gold"], approved: ["Approved", "pill-ok"], refused: ["Refused", "pill-wine"] };
-let cur = "USD"; // set from the orders being shown: a business sells in its own currency
 const amount = (cents: number) => (Number(cents ?? 0) / 100).toFixed(2);
 
 /** Where the refund went: the card, store credit, or some of each. */
-export function refundSplit(refund: number, credit: number): string {
+export function refundSplit(refund: number, credit: number, cur: string): string {
   const card = Math.max(0, Number(refund ?? 0) - Number(credit ?? 0));
   if (card > 0 && credit > 0) return `${money(card, cur)} to the card, ${money(credit, cur)} as store credit`;
   return card > 0 ? "All of it to the card" : "All of it as LogaLuxe store credit";
 }
 
-export function ReturnsView({ rows, reasons, tz, answer }: { rows: Row[]; reasons: Record<string, string>; tz: string; answer?: string }) {
+/** `cur` is the currency of the business: it sells in its own, and every return here is in it. */
+export function ReturnsView({ rows, reasons, tz, cur, answer }: { rows: Row[]; reasons: Record<string, string>; tz: string; cur: string; answer?: string }) {
   const here = "/business/inventory" + qs({ tab: "orders", view: "returns" });
-  cur = String(rows[0]?.currency ?? "USD"); // this component renders in one go, so the value cannot leak between businesses
   const open = answer ? rows.find((r) => r.id === answer && r.status === "requested") : undefined;
 
   if (!rows.length) {
@@ -71,7 +70,7 @@ export function ReturnsView({ rows, reasons, tz, answer }: { rows: Row[]; reason
                       {r.status === "approved" && (
                         <>
                           <b>Refunded {money(r.refund_cents, cur)}</b>
-                          <small className="sub">{refundSplit(r.refund_cents, r.credit_cents)}</small>
+                          <small className="sub">{refundSplit(r.refund_cents, r.credit_cents, cur)}</small>
                           <small className="sub">{r.restocked ? "Items put back in stock" : "Items not put back in stock"}</small>
                         </>
                       )}

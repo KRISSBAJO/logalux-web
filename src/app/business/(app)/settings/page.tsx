@@ -10,8 +10,8 @@ import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Flash, LoadError, Topbar } from "@/components/merchant-ui";
 import { mReadFlash } from "@/lib/merchant-actions";
 import { getMe, mCan, mLoad, qs, type Me, type Row } from "@/lib/merchant-api";
-import { dateMed, dateOnly, money, plural, when } from "@/lib/merchant-format";
-import { channelModes, liveNames, loggedNames } from "@/lib/merchant-channels";
+import { clock, dateMed, dateOnly, money, plural, when } from "@/lib/merchant-format";
+import { channelModes, liveNames, loggedNames, withMail } from "@/lib/merchant-channels";
 import { CalendarSync } from "./calendar-sync";
 import { cancelTwoStepSetup, changePassword, changePlan, dismissRecoveryCodes, finishTwoStep, locationAction, saveAccount, saveLocation, saveProfile, saveRules, setListing, startTwoStep, stopTwoStep } from "./actions";
 import "../../css/settings.css";
@@ -90,7 +90,7 @@ function HoursKept({ hours }: { hours: Hours }) {
 }
 
 /** "Your account": the one part of Settings every person on the team can use. */
-type Security = { twoStep: boolean; left: number; setup?: { secret: string; uri: string }; recovery?: string[]; qr: string };
+type Security = { twoStep: boolean; left: number; setup?: { secret: string; uri: string }; recovery?: string[]; qr: string; sessions: number; lastLogin: string | null };
 
 /** How this person signs in, with the setup key or the new recovery codes when there are some to show. */
 async function loadSecurity(): Promise<Security> {
@@ -100,6 +100,7 @@ async function loadSecurity(): Promise<Security> {
   return {
     twoStep, left: Number(data.recovery_left ?? 0), setup, recovery: twoStep ? flash?.recovery : undefined,
     qr: setup ? await toDataURL(setup.uri, { margin: 1, width: 220, color: { dark: "#1A1513", light: "#FFFFFF" } }) : "",
+    sessions: Number(data.sessions ?? 0), lastLogin: data.last_login_at ? String(data.last_login_at) : null,
   };
 }
 
@@ -120,6 +121,9 @@ function Account({ me, account, back, sec }: { me: Me; account: Row | null; back
       <div className="card">
         <h3>Your account</h3>
         <div className="sub">These are your own details, not the business&apos;s. You are signed in to {m.business} as {ROLE[m.role]?.toLowerCase() ?? m.role}.</div>
+        <div className="row">
+          <div><b>Where you are signed in</b><span>{sec.sessions > 0 ? `${plural(sec.sessions, "device or browser", "devices or browsers")} ${sec.sessions === 1 ? "has" : "have"} a current sign-in` : "No current sign-in is on record"}{sec.lastLogin ? ` · last signed in ${dateMed(sec.lastLogin, m.timezone)} at ${clock(sec.lastLogin, m.timezone)}` : ""}. Changing your password signs the others out.</span></div>
+        </div>
         <form action={saveAccount} id="account-form" className="stack">
           <input type="hidden" name="back" value={back} />
           <div className="two">
@@ -222,9 +226,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const b = d.business as Row, account = d.account as Row, rules = d.rules as Record<string, Row>;
   const locations = (d.locations ?? []) as Row[], logins = (d.logins ?? []) as Row[], plans = (d.plans ?? []) as Row[];
   const cur = String(b.currency ?? m.currency), tz = String(b.timezone ?? m.timezone);
-  const mailLogged = d.mail_mode === "log";
-  // WhatsApp and SMS are switched on by LogaLuxe staff. What is said about them follows what the API reports for this business.
-  const modes = await channelModes();
+  // Email, WhatsApp and SMS are switched on by LogaLuxe staff. What is said about them follows what the API reports for
+  // this business, with one rule for all three: "log" means nothing is sent. This page carries the mail mode itself.
+  const modes = withMail(await channelModes(), d.mail_mode);
+  const mailLogged = modes.email === "log";
   const phoneLive = liveNames(modes), phoneLogged = loggedNames(modes);
   const many = (names: string) => names.includes(" and ");
   const bill = (d.billing ?? {}) as Row;
@@ -479,18 +484,12 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                   <div className="row"><div><b>Online payments</b><span>The owner can see whether online payments are live or simulated, under Money.</span></div><span className="pill pill-grey">Owner only</span></div>
                 )}
                 {owner ? <div className="row"><div><b>Payouts</b><span>The bank account your money is paid into</span></div><Link href="/business/money/payout-account" className="btn btn-out btn-sm">Payout account</Link></div> : null}
+                <div className="row"><div><b>Calendar sync</b><span>Your bookings in Google Calendar, Apple Calendar or Outlook, and busy times from a calendar of yours kept off the booking page</span></div><Link href="/business/settings?tab=account#calendar-sync" className="btn btn-out btn-sm">Calendar sync</Link></div>
               </div>
               <div className="card">
-                <h3>Not available yet</h3>
-                <div className="sub">These are planned. There is nothing to connect today, and LogaLuxe will say here when there is.</div>
-                {[
-                  ...(phoneLogged ? [[phoneLogged === "WhatsApp and SMS" ? "WhatsApp Business and SMS" : phoneLogged === "WhatsApp" ? "WhatsApp Business" : phoneLogged, many(phoneLogged) ? "Messages on these channels are logged, not delivered" : "Messages on this channel are logged, not delivered"]] : []),
-                  ["Google Business Profile", "A book button on your Google listing"],
-                  ["Instagram and Facebook", "A book button on your profile. For now, put your booking link in your bio."],
-                  ["Card readers", "Taking a card in person on a reader"],
-                  ["Calendar sync", "Google Calendar and Apple Calendar"],
-                  ["Accounting and imports", "QuickBooks, and moving over from another booking system"],
-                ].map(([name, what]) => <div key={name} className="row"><div><b>{name}</b><span>{what}</span></div><span className="pill pill-grey">Not available yet</span></div>)}
+                <h3>Not connected yet</h3>
+                {phoneLogged ? <div className="row"><div><b>{phoneLogged === "WhatsApp and SMS" ? "WhatsApp Business and SMS" : phoneLogged === "WhatsApp" ? "WhatsApp Business" : phoneLogged}</b><span>{many(phoneLogged) ? "Messages on these channels are logged, not delivered" : "Messages on this channel are logged, not delivered"}</span></div><span className="pill pill-grey">Not available yet</span></div> : null}
+                <div className="sub">Google Business Profile, Instagram, card readers and accounting are not connected yet. For now, put your booking link in your Instagram bio.</div>
               </div>
             </>
           ) : null}

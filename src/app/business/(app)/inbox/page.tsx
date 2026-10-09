@@ -8,7 +8,7 @@ import { CHANNEL_LABEL, clock, dayShort, firstName, money, STATUS_LABEL, when, y
 import { careCounts } from "../care-counts";
 import { messageClient } from "../clients/actions";
 import { assignThread, replyThread, saveReplies, setThreadStatus } from "./actions";
-import { channelModes, liveNames, loggedNames, loggedOnly, phoneChannelsHint } from "@/lib/merchant-channels";
+import { channelModes, channelsHint, loggedOnly, withMail } from "@/lib/merchant-channels";
 import { deliveryLabel } from "./delivery";
 import { Problems } from "./problems";
 import { DraftReply, InsertText, Messages } from "./reply-tools";
@@ -40,13 +40,15 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   const tz = m.timezone, cur = m.currency;
   const manager = mCan(me, "manager");
   if (sp.tab === "problems") return <Problems sp={sp} m={m} />;
-  const care = await careCounts();
   const filter = FILTERS.some(([id]) => id === sp.filter) ? sp.filter! : "open";
   const listPath = "/inbox" + qs({ filter, q: sp.q });
 
   // Opening a conversation marks it read, so it is loaded before the list when one is named in the address.
   let one = sp.thread ? await mLoad(`/inbox/${encodeURIComponent(sp.thread)}`) : null;
-  const { data: d, error } = await mLoad(listPath);
+  // The rest does not depend on each other: the list, the counts for the menu, the channel switches, and the client picker only when it is open.
+  const [{ data: d, error }, care, modes0, pickClients, h] = await Promise.all([
+    mLoad(listPath), careCounts(), channelModes(), sp.new === "1" ? mLoad("/clients" + qs({ q: sp.cq, sort: "name" })) : null, headers(),
+  ]);
   if (error) return <div className="main pg-inbox"><LoadError title="Inbox" error={error} /></div>;
   const threads = (d.threads ?? []) as Row[], counts = (d.counts ?? {}) as Row;
   // With nothing chosen, show the newest conversation only if it has already been read: looking at the list must not mark anything read.
@@ -61,21 +63,19 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   const href = (over: Record<string, string | number | undefined> = {}) => "/business/inbox" + qs({ ...base, thread: sp.thread, ...over });
   const back = href({ thread: t?.id ?? sp.thread });
 
-  const h = await headers();
-  const bookingLink = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("x-forwarded-host") ?? h.get("host") ?? "localhost"}/b/${m.slug}`;
+  const bookingLink =`${h.get("x-forwarded-proto") ?? "http"}://${h.get("x-forwarded-host") ?? h.get("host") ?? "localhost"}/b/${m.slug}`;
 
   const today = ymd(new Date(), tz), yesterday = ymd(new Date(Date.now() - 864e5), tz);
   const dayName = (v: string) => { const day = ymd(v, tz); return day === today ? "Today" : day === yesterday ? "Yesterday" : dayShort(v, tz); };
   const dayIn = (v: string) => { const day = ymd(v, tz); return day === today ? "today" : day === yesterday ? "yesterday" : dayShort(v, tz); };
 
-  // What this install can really do on the channel of the open conversation. WhatsApp and SMS are
-  // switched on by LogaLuxe staff, so whether they are connected is asked, not assumed.
-  const modes = await channelModes();
-  const phoneLogged = loggedNames(modes), phoneLive = liveNames(modes);
+  // What this install can really do on the channel of the open conversation. Email, WhatsApp and SMS are
+  // switched on by LogaLuxe staff, so whether they are connected is asked, not assumed. One rule for all
+  // three: "log" means nothing is sent. The open conversation carries the mail mode of its own.
+  const modes = withMail(modes0, one?.data.mail_mode);
   let notice = "";
   if (t) {
-    if ((t.channel === "whatsapp" || t.channel === "sms") && modes[t.channel as "whatsapp" | "sms"] === "log") notice = `${label(t.channel)} is not connected on this install. Replies are logged here, not sent to the client.`;
-    else if (t.channel === "email" && one?.data.mail_mode !== "live" && one?.data.mail_mode !== "resend" && one?.data.mail_mode !== "smtp") notice = "No mail provider is set on this install. Email replies are logged here, not sent.";
+    if ((t.channel === "whatsapp" || t.channel === "sms" || t.channel === "email") && modes[t.channel as "whatsapp" | "sms" | "email"] === "log") notice = `${label(t.channel)} is not connected on this install. Replies are logged here, not sent to the client.`;
     else if (t.channel === "in_app" && !t.has_account) notice = "This client has no LogaLuxe account, so in-app replies are logged here and not delivered.";
   }
 
@@ -95,10 +95,8 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   }
   if (notice) flow.push(<div key="notice" className="sys">{notice}</div>);
 
-  // Drafting with AI is offered only when the API says it is switched on.
+  // Drafting with AI is offered only when the API says it is switched on, and only asked about when a conversation is open.
   const ai = t ? ((await mLoad("/ai")).data as Row) : null;
-
-  const pickClients = sp.new === "1" ? await mLoad("/clients" + qs({ q: sp.cq, sort: "name" })) : null;
   const people = (pickClients?.data.clients ?? []) as Row[];
 
   return (
@@ -147,11 +145,11 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
                 ))}
               </div>
               {Number(pickClients?.data.total ?? 0) > people.length ? <div className="muted" style={{ fontSize: 12.5 }}>Showing the first {people.length} of {pickClients?.data.total}. Search to narrow it down.</div> : null}
-              <Fld label="Send by" hint={`In-app reaches clients who have a LogaLuxe account. Email goes out when a mail provider is set. ${phoneChannelsHint(modes)}`}>
+              <Fld label="Send by" hint={`In-app reaches clients who have a LogaLuxe account. ${channelsHint(modes)}`}>
                 <select name="channel" defaultValue="">
                   <option value="">Best way to reach them</option>
                   <option value="in_app">In-app</option>
-                  <option value="email">Email</option>
+                  <option value="email">Email{loggedOnly(modes, "email")}</option>
                   <option value="whatsapp">WhatsApp{loggedOnly(modes, "whatsapp")}</option>
                   <option value="sms">SMS{loggedOnly(modes, "sms")}</option>
                 </select>
@@ -293,7 +291,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
                     </form>
                   </Sheet>
                 )}
-                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>In-app messages reach a client&rsquo;s LogaLuxe account. Email goes out when a mail provider is set.{phoneLive ? ` ${phoneLive} messages go to the client's phone.` : ""}{phoneLogged ? ` ${phoneLogged} ${phoneLogged.includes(" and ") ? "are" : "is"} logged here, not sent.` : ""} Each message shows what happened to it.</div>
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>In-app messages reach a client&rsquo;s LogaLuxe account. {channelsHint(modes)} Each message shows what happened to it.</div>
               </>
             ) : (
               <>

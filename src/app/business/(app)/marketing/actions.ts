@@ -36,7 +36,7 @@ export async function deleteCampaign(fd: FormData) {
 export async function testCampaign(fd: FormData) {
   await mRun(
     fd,
-    (out) => (out.status === "sent" ? `Test sent to ${out.to}.` : `Test recorded for ${out.to}, but not delivered: email is not connected, so it was only logged.`),
+    (out) => (out.status === "queued" ? `Test queued for ${out.to}. Delivery is not yet confirmed.` : out.status === "sent" ? `Test sent to ${out.to}.` : `Test recorded for ${out.to}, but not delivered: email is not connected, so it was only logged.`),
     () => mPost(`/campaigns/${fid(fd)}/test`),
   );
 }
@@ -97,6 +97,28 @@ export async function createPromo(fd: FormData) {
       code, description: str(fd, "description"), kind, value: kind === "fixed" ? cents(fd, "value") : int(fd, "value"),
       min_cents: cents(fd, "min"), max_uses: uses ? int(fd, "max_uses") : null, starts_at: str(fd, "starts_at"), ends_at: str(fd, "ends_at"),
     }));
+}
+
+/**
+ * Changes a saved code. The code itself never changes. The kind and value only travel when the
+ * form offered them (they are locked once the code has been used); an empty limit means no limit.
+ */
+export async function updatePromo(fd: FormData) {
+  const uses = str(fd, "max_uses"), kind = str(fd, "kind");
+  const body: Record<string, unknown> = {
+    description: str(fd, "description"), min_cents: cents(fd, "min"), max_uses: uses ? int(fd, "max_uses") : null, no_limit: !uses,
+    starts_at: str(fd, "starts_at"), ends_at: str(fd, "ends_at"),
+  };
+  if (kind) { body.kind = kind; body.value = kind === "fixed" ? cents(fd, "value") : int(fd, "value"); }
+  await mRun(fd, "Code saved.", async () => {
+    try {
+      return await mPut(`/promos/${fid(fd)}`, body);
+    } catch (e) {
+      // The API answers in a plain sentence; it only needs a capital letter.
+      const m = (e as Error).message || "Something went wrong.";
+      throw new Error(m[0].toUpperCase() + m.slice(1) + (/[.?!]$/.test(m) ? "" : "."));
+    }
+  });
 }
 
 export async function togglePromo(fd: FormData) {

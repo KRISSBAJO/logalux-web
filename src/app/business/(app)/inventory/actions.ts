@@ -15,6 +15,9 @@ function product(fd: FormData) {
     name: str(fd, "name"), sku: str(fd, "sku"), kind, category: str(fd, "category") || "hair", description: str(fd, "description"),
     price_cents: kind === "backbar" ? 0 : cents(fd, "price"), cost_cents: cents(fd, "cost"), reorder_at: int(fd, "reorder_at"),
     supplier_id: str(fd, "supplier_id"), online: kind !== "backbar" && on(fd, "online"),
+    // Shipping only travels when the form offered it; an empty charge keeps what is saved.
+    ...(fd.has("shipping_set") ? { shipping: on(fd, "shipping") } : {}),
+    ...(str(fd, "shipping_charge") === "" ? {} : { shipping_cents: cents(fd, "shipping_charge") }),
   };
 }
 

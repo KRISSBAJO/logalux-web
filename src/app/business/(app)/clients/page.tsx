@@ -3,7 +3,7 @@ import { AutoForm, ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, Ic, LoadError, Pill, Switch, Topbar, TopSearch, type PillTone } from "@/components/merchant-ui";
 import { getMe, mCan, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { CHANNEL_LABEL, clock, dateMed, dateOnly, dayShort, money, plural, STATUS_LABEL, when, ymd } from "@/lib/merchant-format";
-import { channelModes, loggedOnly, phoneChannelsHint } from "@/lib/merchant-channels";
+import { channelModes, channelsHint, loggedOnly } from "@/lib/merchant-channels";
 import { adjustPoints, createClient, importClients, messageClient, planAction, updateClient } from "./actions";
 import "../../css/clients.css";
 
@@ -46,23 +46,22 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const segment = SEGMENTS.some((s) => s.id === sp.segment) ? sp.segment! : "";
   const sort = SORTS.some(([id]) => id === sp.sort) ? sp.sort! : "";
   const filters = { q: sp.q, segment, sort, page: sp.page };
-  const { data: d, error } = await mLoad("/clients" + qs(filters));
-  // Whether WhatsApp and SMS really go out for this business. LogaLuxe staff switch them on, so it is asked, not assumed.
-  const modes = await channelModes();
+  const one = (id: string) => `/clients/${encodeURIComponent(id)}`;
+  // The list, the channel switches (asked, not assumed: LogaLuxe staff switch WhatsApp, SMS and email on), who holds a plan,
+  // and, when the address names a client, that client's detail: none of these depend on another.
+  const [{ data: d, error }, modes, menu, named, namedHeld] = await Promise.all([
+    mLoad("/clients" + qs(filters)), channelModes(), mLoad("/menu"),
+    sp.client ? mLoad(one(sp.client)) : null, sp.client ? mLoad(one(sp.client) + "/plans") : null,
+  ]);
   if (error) return <div className="main pg-clients"><LoadError title="Clients" error={error} /></div>;
 
   const rows = (d.clients ?? []) as Row[], counts = (d.counts ?? {}) as Row;
   const total = Number(d.total ?? 0), page = Number(d.page ?? 1), per = Number(d.per_page ?? 25);
   const pages = Math.max(1, Math.ceil(total / per));
 
-  // The side panel shows the client named in the address, or the first one in the list.
+  // The side panel shows the client named in the address, or the first one in the list, whose detail can only be asked for now.
   const selId = sp.client || rows[0]?.id || "";
-  // One call tells who holds a membership or a package, for the marks in the list. The panel loads the detail of one client.
-  const [detail, held, menu] = await Promise.all([
-    selId ? mLoad(`/clients/${encodeURIComponent(selId)}`) : null,
-    selId ? mLoad(`/clients/${encodeURIComponent(selId)}/plans`) : null,
-    mLoad("/menu"),
-  ]);
+  const [detail, held] = sp.client ? [named, namedHeld] : await Promise.all([selId ? mLoad(one(selId)) : null, selId ? mLoad(one(selId) + "/plans") : null]);
   const holders = ((menu.data.holders ?? []) as Row[]).filter((h) => h.status === "active");
   const members = new Set(holders.filter((h) => h.kind === "membership").map((h) => h.client_id as string));
   const packaged = new Set(holders.filter((h) => h.kind === "package").map((h) => h.client_id as string));
@@ -85,8 +84,8 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
     </th>
   );
   const today = ymd(new Date(), tz);
-  const lastLabel = (v: string | null) => (!v ? "—" : ymd(v, tz) === today ? "Today" : cap(when(v, tz)));
-  const nextLabel = (v: string | null) => (!v ? "—" : ymd(v, tz) === today ? `Today ${clock(v, tz)}` : dayShort(v, tz));
+  const lastLabel = (v: string | null) => (!v ? "None" : ymd(v, tz) === today ? "Today" : cap(when(v, tz)));
+  const nextLabel = (v: string | null) => (!v ? "None" : ymd(v, tz) === today ? `Today ${clock(v, tz)}` : dayShort(v, tz));
   const since = (v: string) => new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", year: "numeric" }).format(new Date(v));
   const birthday = (v: string) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short" }).format(new Date(v.slice(0, 10) + "T12:00:00Z"));
 
@@ -125,7 +124,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
             <form action={importClients}>
               <input type="hidden" name="back" value={href()} />
               <Fld label="One client per line" hint="Name, phone, email, in any order, separated by commas or tabs. You can paste straight from a spreadsheet. Up to 2,000 at a time.">
-                <textarea name="rows" required rows={10} style={{ minHeight: 220, fontFamily: "ui-monospace,monospace", fontSize: 13 }} placeholder={"Kemi Adeyemi, +16155554471, kemi@example.com\nTomi Alade, +16155552210"} />
+                <textarea name="rows" required rows={10} style={{ minHeight: 220, fontFamily: "ui-monospace,monospace", fontSize: 13 }} placeholder={m.market === "NG" ? "Kemi Adeyemi, +2348035550100, kemi@example.com\nTomi Alade, +2348035550101" : "Kemi Adeyemi, +16155554471, kemi@example.com\nTomi Alade, +16155552210"} />
               </Fld>
               <div className="muted" style={{ fontSize: 12.5 }}>Imported clients get the tag &ldquo;imported&rdquo;. A row is skipped when its phone or email is already in your list.</div>
               <div className="sheet-ft"><button className="btn btn-ink">Import</button></div>
@@ -192,7 +191,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
                         <td>{r.visits}</td>
                         <td><b>{money(r.spent_cents, cur)}</b></td>
                         <td>{r.no_show_count}</td>
-                        <td>{pills.length ? <span style={{ display: "inline-flex", gap: 4 }}>{pills.map((p) => <Pill key={p.text} tone={p.tone}>{p.text}</Pill>)}</span> : <span className="muted">—</span>}</td>
+                        <td>{pills.length ? <span style={{ display: "inline-flex", gap: 4 }}>{pills.map((p) => <Pill key={p.text} tone={p.tone}>{p.text}</Pill>)}</span> : <span className="muted">None</span>}</td>
                         <td className="muted">{CHANNEL_LABEL[r.preferred_channel] ?? r.preferred_channel}</td>
                       </tr>
                     );
@@ -244,11 +243,11 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
                     <form action={messageClient}>
                       <input type="hidden" name="back" value={back} />
                       <input type="hidden" name="client_id" value={sel.id} />
-                      <Fld label="Send by" hint={`In-app reaches clients who have a LogaLuxe account. Email goes out when a mail provider is set. ${phoneChannelsHint(modes)}`}>
+                      <Fld label="Send by" hint={`In-app reaches clients who have a LogaLuxe account. ${channelsHint(modes)}`}>
                         <select name="channel" defaultValue="">
                           <option value="">Best way to reach them</option>
                           <option value="in_app">In-app</option>
-                          <option value="email" disabled={!sel.email}>Email{sel.email ? "" : " (no address on file)"}</option>
+                          <option value="email" disabled={!sel.email}>Email{loggedOnly(modes, "email")}{sel.email ? "" : " (no address on file)"}</option>
                           <option value="whatsapp" disabled={!sel.phone}>WhatsApp{loggedOnly(modes, "whatsapp")}{sel.phone ? "" : " (no number on file)"}</option>
                           <option value="sms" disabled={!sel.phone}>SMS{loggedOnly(modes, "sms")}{sel.phone ? "" : " (no number on file)"}</option>
                         </select>

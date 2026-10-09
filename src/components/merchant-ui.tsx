@@ -143,6 +143,7 @@ const P: Record<string, ReactNode> = {
   external: <path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" />,
   bank: <path d="M3 10 12 4l9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18" />,
   shield: <path d="M12 3 4 6v6c0 4.5 3.2 7.9 8 9 4.800-1.100 8-4.500 8-9V6z" />,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.2 1-1.2 1.8M12 17h.01" /></>,
 };
 export type IconName = keyof typeof P;
 export function Ic({ name, size = 18, stroke = 2, color }: { name: string; size?: number; stroke?: number; color?: string }) {

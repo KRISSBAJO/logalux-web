@@ -32,9 +32,10 @@ const AUDIENCE_LABEL = Object.fromEntries(AUDIENCES);
 const CHANNELS: [string, string][] = [["whatsapp", "WhatsApp"], ["sms", "SMS"], ["email", "Email"]];
 const EYEBROW = { fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" } as const;
 
-const sentStat = (sent: number, delivered: number) => {
-  const logged = Math.max(0, sent - delivered);
+const sentStat = (sent: number, delivered: number, queued = 0) => {
+  const logged = Math.max(0, sent - delivered - queued);
   if (!sent) return "None in 30 days";
+  if (queued) return `${delivered} delivered · ${queued} queued · ${logged} logged`;
   if (!logged) return `${delivered} delivered`;
   if (!delivered) return `${logged} logged, not delivered`;
   return `${delivered} delivered · ${logged} logged`;
@@ -115,12 +116,12 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                 <td>{AUDIENCE_LABEL[c.audience] ?? c.audience}</td>
                 <td>{CHANNEL_LABEL[c.channel] ?? c.channel}</td>
                 <td data-sort={c.created_at}>{when(c.created_at, tz)}</td>
-                <td data-sort={c.sent_at ?? ""}>{c.sent_at ? when(c.sent_at, tz) : "—"}</td>
+                <td data-sort={c.sent_at ?? ""}>{c.sent_at ? when(c.sent_at, tz) : <span className="muted">Not sent</span>}</td>
                 <td data-sort={c.recipients}>{c.recipients}</td>
-                <td data-sort={done ? c.delivered : -1}>{done ? c.delivered : "—"}</td>
-                <td data-sort={done ? c.logged : -1}>{done ? c.logged : "—"}</td>
-                <td data-sort={done ? c.booked : -1}>{done ? c.booked : "—"}</td>
-                <td data-sort={done ? c.booked_cents : -1}>{done ? money(c.booked_cents, cur) : "—"}</td>
+                <td data-sort={done ? c.delivered : -1}>{done ? <>{c.delivered}{c.queued ? ` · ${c.queued} queued` : ""}</> : <span className="muted" />}</td>
+                <td data-sort={done ? c.logged : -1}>{done ? c.logged : <span className="muted" />}</td>
+                <td data-sort={done ? c.booked : -1}>{done ? c.booked : <span className="muted" />}</td>
+                <td data-sort={done ? c.booked_cents : -1}>{done ? money(c.booked_cents, cur) : <span className="muted" />}</td>
                 <td data-filter={c.status === "draft" ? "Draft" : c.status === "sending" ? "Sending" : "Sent"}>{c.status === "draft" ? <span className="pill pill-grey">Draft</span> : c.status === "sending" ? <span className="pill pill-gold">Sending</span> : <span className="pill pill-ok">Sent</span>}</td>
               </tr>
             );
@@ -188,7 +189,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                       <span style={{ flex: 1, minWidth: 0 }}><b>{a.name}</b><span>{a.when}{a.marketing ? " · counts toward the cap" : ""}</span></span>
                     </Link>
                     <span className="st">
-                      <span>{sentStat(a.sent_30d, a.delivered_30d)}</span>
+                      <span>{sentStat(a.sent_30d, a.delivered_30d, a.queued_30d)}</span>
                       <form action={saveAutomation}>
                         <input type="hidden" name="back" value={back} />
                         <input type="hidden" name="key" value={a.key} />
@@ -250,7 +251,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                   <span className="tog"><input type="checkbox" name="enabled" defaultChecked={!!sel.enabled} /><span className="sw" aria-hidden="true" /></span>
                 </label>
                 <div className="note">
-                  <b>Last 30 days:</b> {sentStat(sel.sent_30d, sel.delivered_30d).toLowerCase()}.{" "}
+                  <b>Last 30 days:</b> {sentStat(sel.sent_30d, sel.delivered_30d, sel.queued_30d).toLowerCase()}.{" "}
                   {sel.marketing
                     ? `This is a marketing message. It counts toward the cap of ${cap} per client in 30 days, and clients who opted out do not get it.`
                     : `This is not a marketing message, so it does not count toward the cap of ${cap} per client.`}
@@ -312,6 +313,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                   <dl className="kv">
                     <dt>Clients in the audience</dt><dd>{camp.recipients}</dd>
                     <dt>Delivered</dt><dd>{camp.delivered}</dd>
+                    <dt>Queued for delivery</dt><dd>{camp.queued ?? 0}</dd>
                     <dt>Logged, not delivered</dt><dd>{camp.logged}</dd>
                     <dt>Skipped</dt><dd>{camp.skipped}</dd>
                     <dt>Failed</dt><dd>{camp.failed}</dd>

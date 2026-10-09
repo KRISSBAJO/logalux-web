@@ -57,6 +57,20 @@ export async function ruleDelete(fd: FormData) {
   await mRun(fd, "Rule deleted.", () => mDel(`/price-rules/${fid(fd)}`));
 }
 
+/** Moves a rule one place up or down. Rules apply from the top of the list down, so the order changes prices. */
+export async function rulesOrder(fd: FormData) {
+  const id = str(fd, "id"), up = str(fd, "dir") === "up";
+  await mRun(fd, "Order saved. Rules apply from the top of the list down.", async () => {
+    const ids = (((await mFetch("/menu")).price_rules ?? []) as Row[]).map((r) => String(r.id));
+    const i = ids.indexOf(id);
+    if (i < 0) throw new Error("That rule no longer exists.");
+    const j = up ? i - 1 : i + 1;
+    if (j < 0 || j >= ids.length) throw new Error(up ? "It is already first." : "It is already last.");
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    return mPut("/price-rules/order", { ids });
+  });
+}
+
 /** Switches one rule on or off and leaves the rest of it as it is. */
 export async function ruleToggle(fd: FormData) {
   const id = str(fd, "id");
