@@ -18,15 +18,17 @@ const DESCRIPTION_NG = "Beauty products from the professionals you book in Niger
  * ?country=ng or ?country=us says so outright, and is how a person changes it
  * (?market=ng is the older form of the same thing).
  */
-async function whichShop(raw: Params): Promise<{ ng: boolean; explicit: boolean; place: string }> {
+async function whichShop(raw: Params): Promise<{ ng: boolean; explicit: boolean; place: string; homeNg: boolean }> {
   const one = (k: string) => String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim().toLowerCase();
   const asked = one("country") || one("market");
-  if (asked === "ng" || asked === "us") return { ng: asked === "ng", explicit: true, place: "" };
   const where = await whereAmI();
   const served = where.place && (where.place.country === "US" || where.place.country === "NG");
   // Looking from somewhere we do not trade: the country with the most businesses.
   const country = served ? where.place!.country : (await livePlaces()).default?.country ?? "US";
-  return { ng: country === "NG", explicit: false, place: served ? where.place!.label : "" };
+  // The country we think the person is really in, so a shop chosen by hand can say it is the other one.
+  const homeNg = (where.home || country) === "NG";
+  if (asked === "ng" || asked === "us") return { ng: asked === "ng", explicit: true, place: "", homeNg };
+  return { ng: country === "NG", explicit: false, place: served ? where.place!.label : "", homeNg };
 }
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
@@ -102,7 +104,7 @@ function Tile({ p }: { p: ShopProduct }) {
 export default async function Shop({ searchParams }: { searchParams: Promise<Params> }) {
   const raw = await searchParams;
   const sp = Object.fromEntries(KEYS.map((k) => [k, String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim()])) as Record<Key, string>;
-  const { ng, explicit, place: placeLabel } = await whichShop(raw);
+  const { ng, explicit, place: placeLabel, homeNg } = await whichShop(raw);
   const cur: Currency = ng ? "NGN" : "USD";
   const band = BANDS[cur].find((b) => b.key === sp.price);
   const sort = SORTS.some(([k]) => k === sp.sort) ? sp.sort : "recommended";
@@ -180,7 +182,9 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
   if (sp.seller && !sellerOptions.some((o) => o.value === sp.seller)) sellerOptions.push({ value: sp.seller, label: sp.seller === "booked" ? "Professionals I've booked" : sp.seller === "brands" ? "Brands" : sp.seller, n: Number(sellers.find((s) => s.seller_name === sp.seller)?.n) || undefined });
   const categoryKeys = new Set(categories.map((c) => c.category));
   const shownTags = tags.filter((t) => !categoryKeys.has(t.tag) && t.tag !== "bestseller");
-  const goodFor = shownTags.filter((t) => !isValueTag(t.tag)), values = shownTags.filter((t) => isValueTag(t.tag));
+  // "Made in" is offered only for the country this shop is about: the US shop does not filter by made in Nigeria.
+  const foreignOrigin = (t: string) => { const v = t.toLowerCase(); return v.startsWith("made in") && (/nigeria|lagos/.test(v) ? !ng : ng); };
+  const goodFor = shownTags.filter((t) => !isValueTag(t.tag)), values = shownTags.filter((t) => isValueTag(t.tag) && !foreignOrigin(t.tag));
   const canCollect = top.some((p) => p.pickup), shippers = top.filter((p) => p.shipping);
   const shipFrom = shippers.length ? Math.min(...shippers.map((p) => p.shipping_cents)) : 0;
   const bands = BANDS[cur].filter((b) => b === band || top.length >= 60 || top.some((p) => inBand(p.price_cents, b)));
@@ -229,13 +233,18 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
         </section>
 
         <main className="wrap">
-          <div className="market">
-            <nav className="seg" aria-label="Which shop">
-              <Link href={otherShop(false)} className={ng ? "" : "on"} aria-current={ng ? undefined : "true"}>United States · $</Link>
-              <Link href={otherShop(true)} className={ng ? "on" : ""} aria-current={ng ? "true" : undefined}>Nigeria · ₦</Link>
-            </nav>
-            <span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}{!explicit && placeLabel ? ` This shop opened because you are looking in ${placeLabel}.` : ""}</span>
-          </div>
+          {/* The shop for the person's own country. The other country is a deliberate switch, said plainly while it is on. */}
+          {ng !== homeNg ? (
+            <div className="market">
+              <p className="note" role="status">You are browsing the <b>{ng ? "Nigeria" : "United States"}</b> shop. Prices are in {ng ? "naira, paid through Paystack" : "US dollars, paid through Stripe"}, and that is what you pay in.{" "}
+                <Link href={otherShop(homeNg)}>Back to the {homeNg ? "Nigeria" : "United States"} shop</Link></p>
+            </div>
+          ) : (
+            <div className="market">
+              <span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}{!explicit && placeLabel ? ` Showing the shop for ${placeLabel}.` : ""}</span>
+              <Link href={otherShop(!ng)} className="muted" style={{ fontWeight: 600, color: "#7A1F2B" }}>Shopping for someone in {ng ? "the United States" : "Nigeria"}?</Link>
+            </div>
+          )}
           <nav className="cats" aria-label="Categories">
             <Link href={href({ category: "" })} scroll={false} className={`chip ${sp.category ? "" : "on"}`} aria-current={sp.category ? undefined : "true"}>All</Link>
             {categories.filter((c) => c.category !== "gift").map((c) => (
