@@ -24,7 +24,7 @@ export function SearchBar({ initial = {}, where, keep = {} }: {
   return (
     <form
       id="search"
-      className="grid gap-1 rounded-[22px] bg-cream p-1.5 shadow-[0_20px_50px_rgba(0,0,0,.4)] ring-1 ring-white/10 md:grid-cols-[1.4fr_1fr_0.9fr_auto] md:items-center md:rounded-full md:pl-3"
+      className="beauty-search grid gap-1 rounded-[22px] bg-cream p-1.5 shadow-[0_20px_50px_rgba(0,0,0,.4)] ring-1 ring-white/10 md:grid-cols-[1.4fr_1fr_0.9fr_auto] md:items-center md:rounded-full md:pl-3"
       onSubmit={(e) => {
         e.preventDefault();
         const p = new URLSearchParams();

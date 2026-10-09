@@ -34,6 +34,21 @@
 }
 
 html { scroll-behavior: smooth; }
+/* Keep the marketing search comfortable at phone widths, including iOS inputs. */
+@media (max-width: 767px) {
+  .hero-glow { overflow-x: clip; }
+  .landing-hero { padding-top: 32px; padding-bottom: 48px; min-width: 0; }
+  .landing-hero h1 { font-size: clamp(44px, 12vw, 58px); margin-top: 20px; }
+  .landing-hero p { font-size: 16px; margin-top: 20px; margin-bottom: 24px; }
+  .beauty-search { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; padding: 8px; border-radius: 20px; }
+  .beauty-search > label:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--color-line); padding: 12px; }
+  .beauty-search > div { border-right: 1px solid var(--color-line); margin: 8px 0; }
+  .beauty-search > div > button { padding: 8px 12px; min-height: 54px; }
+  .beauty-search > label:nth-of-type(2) { padding: 16px 12px; }
+  .beauty-search input, .beauty-search select { font-size: 16px; min-height: 28px; }
+  .beauty-search > button { grid-column: 1 / -1; width: 100%; border-radius: 14px; min-height: 48px; }
+  .beauty-search :is(input, select, button):focus-visible { outline: 2px solid var(--color-gold-ink); outline-offset: 2px; }
+}
 body { background: var(--color-cream); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
 @layer components {

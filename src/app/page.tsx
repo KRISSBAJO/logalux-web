@@ -66,7 +66,7 @@ export default async function Landing() {
       <Motion />
       <div className="hero-glow text-[#F4ECE3]">
         <SiteHeader transparent />
-        <section className="container-x grid items-center gap-14 pb-24 pt-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16 lg:pb-28 lg:pt-20" id="top">
+        <section className="landing-hero container-x grid items-center gap-14 pb-24 pt-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16 lg:pb-28 lg:pt-20" id="top">
           <div className="min-w-0">
             <div className="eyebrow rise" style={{ "--i": 0 } as React.CSSProperties}>{served.length > 0 ? served.map((c) => c.name).join(" · ") : "Beauty, booked"}</div>
             <h1 style={{ "--i": 1 } as React.CSSProperties} className="rise serif mt-7 text-[58px] leading-[.95] md:text-[104px]">
