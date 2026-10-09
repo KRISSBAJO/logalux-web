@@ -2,7 +2,7 @@
 
 import { fid, mBackTo, mClearFlash, mDel, mPost, mPut, mRun, mSetFlash, num, on, str } from "@/lib/merchant-actions";
 import { locationBody, pinWords } from "@/lib/location-form";
-import { qs } from "@/lib/merchant-api";
+import { mUpload, qs } from "@/lib/merchant-api";
 
 // Settings: the business profile, its locations and hours, the rules clients
 // book under, the plan, and the signed-in person's own account.
@@ -158,3 +158,6 @@ export async function calImportRun(fd: FormData) {
 export async function calImportStop(fd: FormData) {
   await mRun(fd, "Stopped. The busy times from that calendar have been removed.", () => mPut("/calendar-sync/import" + calWho(fd), { url: "" }));
 }
+
+export async function uploadProfilePhoto(fd: FormData) {await mRun(fd,"Your profile photo is saved.",()=>mUpload("/account/photo",fd));}
+export async function removeProfilePhoto(fd: FormData) {await mRun(fd,"Your profile photo is removed.",()=>mDel("/account/photo"));}

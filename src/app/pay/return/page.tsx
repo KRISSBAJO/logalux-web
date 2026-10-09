@@ -6,7 +6,7 @@ export const metadata = { title: "Payment", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 type Payment = {
-  reference: string; purpose: "deposit" | "order" | "sale" | "gift" | "tip"; status: "pending" | "paid" | "failed" | "expired" | "refunded";
+  reference: string; purpose: "deposit" | "order" | "sale" | "gift" | "tip" | "rent"; status: "pending" | "paid" | "failed" | "expired" | "refunded";
   amount_cents: number; currency: string; description: string; business: string | null; business_slug: string | null; url: string; problem: string;
 };
 
@@ -58,6 +58,7 @@ export default async function PayReturn({ searchParams }: { searchParams: Promis
       </AuthCard>
     );
   }
+  if (p.status === "paid" && p.purpose === "rent") return <AuthCard title="Chair rent paid" sub={`Your ${amount} rental payment to ${p.business ?? "the business"} is confirmed.`}><Link href={back} className="btn btn-ink w-full">Back to {p.business ?? "LogaLuxe"}</Link></AuthCard>;
   if (p.status === "paid") {
     return (
       <AuthCard title={p.purpose === "deposit" ? "You're booked" : "Payment received"}

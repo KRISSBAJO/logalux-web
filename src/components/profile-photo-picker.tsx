@@ -1,0 +1,12 @@
+"use client";
+import { useId, useRef } from "react";
+import { useFormStatus } from "react-dom";
+function PhotoButton({ photoId, name, choose }: { photoId?: string | null; name: string; choose: () => void }) {
+ const { pending } = useFormStatus();
+ const initials = name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
+ return <button type="button" onClick={choose} disabled={pending} aria-label={photoId ? "Change profile photo" : "Add profile photo"} style={{display:"flex",alignItems:"center",gap:14,background:"transparent",border:0,padding:0,cursor:pending?"wait":"pointer",textAlign:"left"}}><span style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",width:72,height:72,borderRadius:"50%",background:"#F4ECE2",flexShrink:0}}>{photoId ? <img src={`/media/${photoId}`} alt="" width={72} height={72} style={{borderRadius:"50%",objectFit:"cover",width:72,height:72}} /> : initials}<span aria-hidden="true" style={{position:"absolute",right:-2,bottom:-2,width:25,height:25,borderRadius:"50%",background:"#1A1513",color:"white",display:"grid",placeItems:"center",border:"2px solid white"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h4l2-3h4l2 3h4v13H4z"/><circle cx="12" cy="13" r="4"/></svg></span></span><span><b style={{display:"block",fontSize:13,textDecoration:"underline",textUnderlineOffset:3}}>{pending ? "Uploading…" : photoId ? "Change photo" : "Add photo"}</b><small style={{display:"block",marginTop:5,color:"#756B63"}}>JPEG, PNG or WebP · up to 8 MB</small></span></button>;
+}
+export function ProfilePhotoPicker({photoId,name,back,upload,remove}:{photoId?:string|null;name:string;back:string;upload:(fd:FormData)=>Promise<void>;remove:(fd:FormData)=>Promise<void>}){
+ const input=useRef<HTMLInputElement>(null);const id=useId();
+ return <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap",padding:"16px 0"}}><form action={upload}><input type="hidden" name="back" value={back}/><input ref={input} id={id} type="file" name="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} onChange={event=>{if(event.currentTarget.files?.length)event.currentTarget.form?.requestSubmit();}}/><PhotoButton photoId={photoId} name={name} choose={()=>input.current?.click()}/></form>{photoId && <form action={remove}><input type="hidden" name="back" value={back}/><button className="btn btn-ghost btn-sm">Remove photo</button></form>}</div>;
+}

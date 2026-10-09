@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/password-input";
 import { toDataURL } from "qrcode";
 import { Btn, Content, Field, Flash, Hidden, Panel, Pill, Topbar, ago, inputCls } from "@/components/admin-ui";
 import { load } from "@/lib/admin-api";
@@ -35,9 +36,9 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           <Panel title="Password" sub={res.data.password_changed_at ? `Last changed ${ago(res.data.password_changed_at)}` : "Never changed since the account was made"}>
             <form action={changePassword} className="flex flex-col gap-3">
               <Hidden values={{ back }} />
-              <Field label="Current password"><input type="password" name="current" required autoComplete="current-password" className={inputCls} /></Field>
-              <Field label="New password, 10 characters or more"><input type="password" name="new" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
-              <Field label="New password again"><input type="password" name="again" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
+              <Field label="Current password"><PasswordInput  name="current" required autoComplete="current-password" className={inputCls} /></Field>
+              <Field label="New password, 10 characters or more"><PasswordInput  name="new" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
+              <Field label="New password again"><PasswordInput  name="again" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
               <div><Btn kind="ink">Change password</Btn></div>
               <p className="text-[12.5px] text-muted">Changing it signs you out on every other device.</p>
             </form>
@@ -49,7 +50,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                 <p className="text-[14px] leading-relaxed">Signing in needs your password and a 6-digit code from your authenticator app. You have <b>{res.data.recovery_left}</b> recovery {res.data.recovery_left === 1 ? "code" : "codes"} left.</p>
                 <form action={stopTwoStep} className="flex flex-col gap-3 border-t border-line-2 pt-4">
                   <Hidden values={{ back }} />
-                  <Field label="Your password, to turn it off"><input type="password" name="password" required autoComplete="current-password" className={inputCls} /></Field>
+                  <Field label="Your password, to turn it off"><PasswordInput  name="password" required autoComplete="current-password" className={inputCls} /></Field>
                   <div><Btn kind="danger">Turn off two-step sign-in</Btn></div>
                 </form>
               </div>

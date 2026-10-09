@@ -119,3 +119,7 @@ export async function rentAction(fd: FormData) {
   const action = str(fd, "action");
   await mRun(fd, RENT_DONE[action] ?? "Saved.", () => mPost(`/rent/${fid(fd)}`, { action, method: action === "paid" ? str(fd, "method") : "", note: str(fd, "note") }));
 }
+
+export async function rentPaymentLink(fd: FormData) {
+ await mRun(fd, "Payment link ready. Copy it from the rental period and share it with the renter.", () => mPost(`/rent/${fid(fd)}/link`, {}));
+}

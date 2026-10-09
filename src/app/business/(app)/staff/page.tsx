@@ -1,3 +1,4 @@
+import { CopyButton } from "@/components/merchant-client";
 import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
@@ -6,7 +7,7 @@ import { Avatar, Empty, Flash, Fld, Ic, LoadError, Topbar } from "@/components/m
 import { getMe, mCan, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { addDays, dateMed, dateOnly, dur, firstName, money, pct, plural, ymd } from "@/lib/merchant-format";
 import { timeOffDecide } from "../actions";
-import { rentAction, staffAction, staffCreate, staffHours, staffInvite, staffSave, staffUninvite, timeOffCreate, timeOffReassign } from "./actions";
+import { rentPaymentLink, rentAction, staffAction, staffCreate, staffHours, staffInvite, staffSave, staffUninvite, timeOffCreate, timeOffReassign } from "./actions";
 import { HoursEditor } from "./hours-editor";
 import "../../css/staff.css";
 
@@ -339,7 +340,7 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
                     {isRenter(sel) && (
                       <div style={{ background: "#F6EBD2", color: "#7A5A12", borderRadius: 12, padding: "10px 12px", fontSize: 13 }}>
                         <b>{money(sel.rent_cents, cur)} {sel.rent_period === "monthly" ? "a month" : "a week"}</b> · {owed(sel) > 0 ? `${money(owed(sel), cur)} owed` : "nothing owed"}. <Link href="/business/staff?tab=rent">Chair rental</Link>
-                        <div style={{ marginTop: 4 }}>LogaLuxe records the rent and does not collect it. A renter is not booked through your page and earns no commission.</div>
+                        <div style={{ marginTop: 4 }}>Record cash yourself, or create a Stripe (US) or Paystack (Nigeria) payment link. A renter is not booked through your page and earns no commission.</div>
                       </div>
                     )}
                     {!isRenter(sel) && <div>
@@ -581,7 +582,7 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
           <div className="card">
             <div className="hd"><h3>Chair rental</h3><Link href={"/business/staff" + qs({ new: "1" })}>Add a chair renter</Link></div>
             <div className="sub">
-              Each week or month a rent charge is opened for every chair renter. LogaLuxe records the rent and does not collect it: take the money yourself, then mark the period as paid here. To add a renter, choose Add staff and tick that they rent a chair.
+              Each week or month a rent charge is opened for every chair renter. Record cash or another payment received outside LogaLuxe, or create an online payment link. Online payments are marked paid only after confirmation and enter your payout balance, less the configured processing fee. To add a renter, choose Add staff and tick that they rent a chair.
             </div>
             <MerchantHistoryPagination name="rent" label="Rent charges" pagination={data.rent_pagination} />
 {rent.length ? (
@@ -598,16 +599,17 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
                           <td data-filter={c.status === "due" ? "Owing" : c.status === "paid" ? "Paid" : "Waived"}><span className={"pill " + (c.status === "due" ? "pill-wine" : c.status === "paid" ? "pill-ok" : "pill-grey")}>{c.status === "due" ? "Owing" : c.status === "paid" ? "Paid" : "Waived"}</span></td>
                           <td data-sort={c.paid_at ?? ""}>{c.status === "paid" && c.paid_at ? <>{dateMed(c.paid_at, tz)}{c.method ? ` · ${METHOD[c.method] ?? c.method}` : ""}</> : <span className="muted">{c.note || "Not yet"}</span>}</td>
                           <td>
+                            {c.status === "due" && <form action={rentPaymentLink} className="rowx" style={{justifyContent:"flex-end",marginBottom:8}}><input type="hidden" name="back" value={back} /><input type="hidden" name="id" value={c.id} /><button className="btn btn-out btn-sm">{c.payment_url ? "Reuse payment link" : "Create online payment link"}</button>{c.payment_url && <><a href={c.payment_url} target="_blank" rel="noreferrer" className="btn btn-out btn-sm">Open payment page</a><CopyButton text={c.payment_url}>Copy link</CopyButton><span className="muted">Awaiting online payment</span></>}</form>}
                             <form action={rentAction} className="rowx" style={{ justifyContent: "flex-end", flexWrap: "nowrap" }}>
                               <input type="hidden" name="back" value={back} />
                               <input type="hidden" name="id" value={c.id} />
                               {c.status === "due" ? (
                                 <>
-                                  <select className="inp" name="method" defaultValue="transfer" aria-label={`How ${c.staff} paid`} style={{ width: 132, minHeight: 36 }}>{Object.entries(METHOD).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-                                  <button className="btn btn-ink btn-sm" name="action" value="paid">Mark paid</button>
+                                  <select className="inp" name="method" defaultValue="cash" aria-label={`How ${c.staff} paid`} style={{ width: 132, minHeight: 36 }}>{Object.entries(METHOD).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+                                  <button className="btn btn-ink btn-sm" name="action" value="paid">Record payment received</button>
                                   <ConfirmButton className="btn btn-ghost btn-sm" name="action" value="waive" message={`Waive the rent of ${c.staff} for this period? It will no longer show as owed.`}>Waive</ConfirmButton>
                                 </>
-                              ) : <button className="btn btn-out btn-sm" name="action" value="reopen">Reopen</button>}
+                              ) : c.method === "stripe" || c.method === "paystack" ? <span className="muted">Confirmed online</span> : <button className="btn btn-out btn-sm" name="action" value="reopen">Reopen</button>}
                             </form>
                           </td>
                         </tr>

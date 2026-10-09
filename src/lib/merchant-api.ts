@@ -10,7 +10,7 @@ export const MERCHANT_COOKIE = process.env.LOGALUXE_QA === "1" ? "lx_qa_merchant
 
 export type MRole = "staff" | "manager" | "owner";
 export type Merchant = {
-  id: string; email: string; name: string; role: MRole; staff_id: string;
+  id: string; email: string; name: string; photo_id?: string | null; phone?: string; role: MRole; staff_id: string;
   business_id: string; business: string; slug: string; currency: string; timezone: string; market: "US" | "NG"; plan: string; status: string;
   /** What the owner switched on for a team member. Always all true for managers and the owner. */
   permissions: { see_all_calendars: boolean; take_payments: boolean; see_reports: boolean };

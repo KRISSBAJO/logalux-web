@@ -70,7 +70,7 @@ export default async function MerchantLayout({ children }: { children: ReactNode
           <a href="/help" className="nav" target="_blank" rel="noreferrer" style={{ marginTop: "auto" }}><Ic name="help" />Help and support</a>
 
           <div className="foot" style={{ marginTop: 0 }}>
-            <Avatar name={m.name} size={32} />
+            {m.photo_id ? <img src={`/media/${m.photo_id}`} alt="" width={32} height={32} style={{borderRadius:"50%",objectFit:"cover",width:32,height:32}} /> : <Avatar name={m.name} size={32} />}
             <span style={{ flex: 1, minWidth: 0 }}>
               <b style={{ display: "block", fontSize: 13, color: "#F4ECE3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</b>
               <span style={{ fontSize: 11 }}>{ROLE[m.role]}</span>

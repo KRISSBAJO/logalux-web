@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/password-input";
 import { headers } from "next/headers";
 import { CopyButton } from "@/components/merchant-client";
 import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, Topbar, ago, inputCls, statusPill, inputSm } from "@/components/admin-ui";
@@ -70,7 +71,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
                     <td>
                       <form action={updateAdmin} className="flex items-center gap-1.5">
                         <Hidden values={{ id: t.id, back }} />
-                        <input type="password" name="password" required minLength={10} autoComplete="new-password" placeholder="10 characters or more" aria-label={`New password for ${t.name}`} className={`${inputSm} w-[170px]`} />
+                        <PasswordInput  name="password" required minLength={10} autoComplete="new-password" placeholder="10 characters or more" aria-label={`New password for ${t.name}`} className={`${inputSm} w-[170px]`} />
                         <Btn small>Reset</Btn>
                       </form>
                     </td>
@@ -89,7 +90,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
                 <Field label="Name"><input name="name" required className={inputCls} /></Field>
                 <Field label="Work email"><input type="email" name="email" required autoComplete="off" className={inputCls} /></Field>
                 <Field label="Role"><select name="role" defaultValue="support" className={inputCls}>{roles.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
-                <Field label="First password"><input type="password" name="password" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
+                <Field label="First password"><PasswordInput  name="password" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
               </div>
               <div><Btn kind="ink">Add admin</Btn></div>
             </form>

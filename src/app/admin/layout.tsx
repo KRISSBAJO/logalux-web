@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/password-input";
 import Link from "next/link";
 import { LogoMark } from "@/components/logo-mark";
 import { Icon } from "@/components/icons";
@@ -21,7 +22,7 @@ function SignIn() {
         <Suspense><SignInError /></Suspense>
         <div className="flex flex-col gap-4">
           <label className="field"><span className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted">Work email</span><input name="email" type="email" autoComplete="username" required autoFocus /></label>
-          <label className="field"><span className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted">Password</span><input name="password" type="password" autoComplete="current-password" required /></label>
+          <label className="field"><span className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted">Password</span><PasswordInput name="password"  autoComplete="current-password" required /></label>
           <label className="field"><span className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted">6-digit code, if you use two-step sign-in</span><input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="Leave empty if you do not" /></label>
         </div>
         <button className="btn btn-ink mt-6 w-full">Sign in</button>
@@ -36,7 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await getAdmin();
   if (!admin) return <SignIn />;
 
-  if (admin.must_change_password) return <div className="hero-bg flex min-h-screen items-center justify-center p-6"><form action={changePassword} className="w-full max-w-[440px] rounded-[22px] bg-cream p-8"><h1 className="serif text-[30px]">Choose your own password</h1><p className="my-4">Change your temporary password before accessing the admin console.</p><Suspense><SignInError /></Suspense><input type="hidden" name="back" value="/admin" /><label className="field my-3">Temporary password<input name="current" type="password" required autoComplete="current-password" /></label><label className="field my-3">New password<input name="new" type="password" required minLength={10} maxLength={72} autoComplete="new-password" /></label><label className="field my-3">Confirm new password<input name="again" type="password" required minLength={10} maxLength={72} autoComplete="new-password" /></label><button className="btn btn-ink mt-4 w-full">Save password and continue</button></form></div>;
+  if (admin.must_change_password) return <div className="hero-bg flex min-h-screen items-center justify-center p-6"><form action={changePassword} className="w-full max-w-[440px] rounded-[22px] bg-cream p-8"><h1 className="serif text-[30px]">Choose your own password</h1><p className="my-4">Change your temporary password before accessing the admin console.</p><Suspense><SignInError /></Suspense><input type="hidden" name="back" value="/admin" /><label className="field my-3">Temporary password<PasswordInput name="current"  required autoComplete="current-password" /></label><label className="field my-3">New password<PasswordInput name="new"  required minLength={10} maxLength={72} autoComplete="new-password" /></label><label className="field my-3">Confirm new password<PasswordInput name="again"  required minLength={10} maxLength={72} autoComplete="new-password" /></label><button className="btn btn-ink mt-4 w-full">Save password and continue</button></form></div>;
   const overview = await load("/overview");
   const k = overview.data.kpis ?? {};
   const attention = (k.pending_refunds ?? 0) + (k.stalled_campaigns ?? 0);

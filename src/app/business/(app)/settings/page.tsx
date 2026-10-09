@@ -1,3 +1,5 @@
+import { ProfilePhotoPicker } from "@/components/profile-photo-picker";
+import { uploadProfilePhoto, removeProfilePhoto } from "./actions";
 import { headers } from "next/headers";
 import { LocationFields } from "@/components/location-fields";
 import { LOOKS } from "@/lib/location-form";
@@ -120,6 +122,7 @@ function Account({ me, account, back, sec }: { me: Me; account: Row | null; back
       ) : null}
       <div className="card">
         <h3>Your account</h3>
+        <ProfilePhotoPicker photoId={m.photo_id} name={m.name} back={back} upload={uploadProfilePhoto} remove={removeProfilePhoto} />
         <div className="sub">These are your own details, not the business&apos;s. You are signed in to {m.business} as {ROLE[m.role]?.toLowerCase() ?? m.role}.</div>
         <div className="row">
           <div><b>Where you are signed in</b><span>{sec.sessions > 0 ? `${plural(sec.sessions, "device or browser", "devices or browsers")} ${sec.sessions === 1 ? "has" : "have"} a current sign-in` : "No current sign-in is on record"}{sec.lastLogin ? ` · last signed in ${dateMed(sec.lastLogin, m.timezone)} at ${clock(sec.lastLogin, m.timezone)}` : ""}. Changing your password signs the others out.</span></div>
@@ -130,7 +133,7 @@ function Account({ me, account, back, sec }: { me: Me; account: Row | null; back
             <div className="field"><label htmlFor="ac-name">Your name</label><input id="ac-name" name="name" type="text" required maxLength={80} defaultValue={account?.name ?? m.name} autoComplete="name" /></div>
             <div className="field">
               <label htmlFor="ac-phone">Your phone · with the country code</label>
-              <input id="ac-phone" name="phone" type="tel" maxLength={24} defaultValue={account?.phone ?? ""} placeholder={m.market === "NG" ? "+234 803 123 4567" : "+1 615 555 0144"} autoComplete="tel" />
+              <input id="ac-phone" name="phone" type="tel" maxLength={24} defaultValue={account?.phone ?? m.phone ?? ""} placeholder={m.market === "NG" ? "+234 803 123 4567" : "+1 615 555 0144"} autoComplete="tel" />
               {account ? null : <small className="muted">We cannot show the number we hold for you on this screen. Type it again to keep it: saving with this box empty removes it.</small>}
             </div>
           </div>
