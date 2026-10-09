@@ -249,18 +249,6 @@ export function PlacePicker({ where, look, align = "left", after = "auto" }: {
             {!q && suggested.length === 0 && !own && <p className="px-3 py-2 text-[13.5px] text-muted">Type a city, a state or a country.</p>}
           </div>
 
-          {/* Looking at another country on purpose: a gift for someone there, or a visit. */}
-          {!q && others.length > 0 && (
-            <div className="mt-2 border-t border-line-2 pt-3">
-              {others.map((c) => (
-                <button key={c.code} type="button" onClick={() => choose(placeOf(c.code, c.name))} className="flex w-full items-center justify-between gap-3 rounded-[14px] bg-[#EFE5DA] px-3.5 py-3 text-left transition hover:bg-[#E6DCD2]">
-                  <span><b className="block text-[14px] font-semibold">Shopping or booking for someone in {inCountry(c.code)}?</b><span className="block text-[12.5px] text-muted">Browse {inCountry(c.code)}. Prices are in {moneyName(c.code)}.</span></span>
-                  <Icon.Arrow width={14} height={14} className="flex-none text-wine" />
-                </button>
-              ))}
-            </div>
-          )}
-
           {(source === "chosen" || source === "device" || refused) && !q && (
             <div className="mt-1 border-t border-line-2 pt-1.5">
               <button type="button" onClick={forget} className="w-full rounded-xl px-3 py-2 text-left text-[13.5px] font-semibold text-muted transition hover:bg-cream-2 hover:text-ink">Forget my location</button>
