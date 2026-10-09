@@ -6,9 +6,8 @@ import { ArticleEditor } from "../editor";
 
 export default async function EditArticle({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; err?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  // The admin list carries every field, and the contract has no single read, so the article is picked out of it.
-  const [admin, res] = await Promise.all([getAdmin(), load("/journal")]);
-  const article: Row | undefined = (res.data.articles ?? []).find((a: Row) => a.id === id);
+  const [admin, res] = await Promise.all([getAdmin(), load(`/journal/${encodeURIComponent(id)}`)]);
+  const article: Row | undefined = res.data.article;
   const back = `/admin/journal/${id}`;
 
   if (!article) {

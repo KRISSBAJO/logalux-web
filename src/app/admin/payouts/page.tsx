@@ -1,7 +1,7 @@
 import { AdminPagination } from "@/components/admin-pagination";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
-import { Btn, Content, Empty, Flash, Hidden, Panel, Pill, ReadOnly, Tabs, Topbar, ago, fmtDate, fmtMoney, inputCls, statusPill, inputSm } from "@/components/admin-ui";
+import { Btn, Content, Empty, Flash, Hidden, Panel, Pill, ReadOnly, Tabs, Topbar, ago, fmtDate, fmtMoney, statusPill, inputSm } from "@/components/admin-ui";
 import { can, getAdmin, load, qs, type Row } from "@/lib/admin-api";
 import { payoutAction } from "../actions";
 
@@ -47,7 +47,7 @@ export default async function Payouts({ searchParams }: { searchParams: Promise<
                   <td>{fmtDate(p.scheduled_for)}{p.paid_at && <span className="block text-[12px] text-muted">paid {fmtDate(p.paid_at)}</span>}</td>
                   <td className="capitalize">{p.provider}</td>
                   <td>{statusPill(p.status)}</td>
-                  <td className="max-w-[220px] text-[13px] text-muted">{p.failure_reason || p.reference || "—"}</td>
+                  <td className="max-w-[220px] text-[13px] text-muted">{p.failure_reason || p.reference || "None"}</td>
                   {ops && (
                     <td>
                       {p.status === "paid" ? <span className="text-[12.5px] text-muted">Done</span> : (
@@ -80,7 +80,7 @@ export default async function Payouts({ searchParams }: { searchParams: Promise<
                   <td className="font-semibold">{fmtMoney(e.amount_cents, e.currency)}</td>
                   <td className="capitalize">{e.provider}</td>
                   <td className="font-mono text-[12.5px] text-muted">{e.reference}</td>
-                  <td>{e.booking_id ? <Link href={`/admin/bookings?q=${String(e.booking_id).slice(0, 8)}`} className="font-medium text-wine">Booking</Link> : e.order_id ? <Link href={`/admin/orders?q=${String(e.order_id).slice(0, 8)}`} className="font-medium text-wine">Order</Link> : "—"}</td>
+                  <td>{e.booking_id ? <Link href={`/admin/bookings?q=${String(e.booking_id).slice(0, 8)}`} className="font-medium text-wine">Booking</Link> : e.order_id ? <Link href={`/admin/orders?q=${String(e.order_id).slice(0, 8)}`} className="font-medium text-wine">Order</Link> : "None"}</td>
                   <td>{e.status === "simulated" ? <Pill kind="grey">simulated</Pill> : statusPill(e.status)}</td>
                 </tr>
               ))}

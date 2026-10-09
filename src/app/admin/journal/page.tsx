@@ -49,9 +49,9 @@ export default async function JournalList({ searchParams }: { searchParams: Prom
                       <td data-filter={a.category_label || journalCategoryLabel(a.category)}>{a.category_label || journalCategoryLabel(a.category)}</td>
                       <td data-filter={a.country || "Both"}>{a.country || "Both"}</td>
                       <td data-filter={a.status}>{statusPill(a.status)}</td>
-                      <td data-sort={a.featured ? "1" : "0"} data-filter={a.featured ? "Yes" : "No"}>{a.featured ? <Icon.Star width={15} height={15} className="text-gold" /> : <span className="text-muted-2">—</span>}</td>
+                      <td data-sort={a.featured ? "1" : "0"} data-filter={a.featured ? "Yes" : "No"}>{a.featured ? <Icon.Star width={15} height={15} className="text-gold" /> : <span className="text-muted-2">None</span>}</td>
                       <td data-sort={String(a.view_count ?? 0)} className="font-semibold">{Number(a.view_count ?? 0).toLocaleString("en-US")}</td>
-                      <td data-sort={a.published_at ?? ""} className="text-[13px] text-muted">{a.published_at ? when(a.published_at) + (a.status === "scheduled" ? " (scheduled)" : "") : "—"}</td>
+                      <td data-sort={a.published_at ?? ""} className="text-[13px] text-muted">{a.published_at ? when(a.published_at) + (a.status === "scheduled" ? " (scheduled)" : "") : "None"}</td>
                       <td data-sort={a.updated_at ?? ""} className="text-[13px] text-muted">{ago(a.updated_at)}</td>
                     </tr>
                   ))}

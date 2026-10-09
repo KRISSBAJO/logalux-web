@@ -101,14 +101,14 @@ export default async function BusinessDetail({ params, searchParams }: { params:
             <Panel title={`Services · ${list("services").length}`} flush>
               <table className="data min-w-[560px]">
                 <thead><tr><th>Service</th><th>Category</th><th>Length</th><th>Price</th><th>Deposit</th><th>Online</th></tr></thead>
-                <tbody>{list("services").map((s, i) => <tr key={i}><td className="font-semibold">{s.name}</td><td>{s.category}</td><td>{s.duration_min} min</td><td>{fmtMoney(s.price_cents, cur)}</td><td>{s.deposit_cents ? fmtMoney(s.deposit_cents, cur) : "—"}</td><td>{s.online ? "Yes" : "No"}</td></tr>)}</tbody>
+                <tbody>{list("services").map((s, i) => <tr key={i}><td className="font-semibold">{s.name}</td><td>{s.category}</td><td>{s.duration_min} min</td><td>{fmtMoney(s.price_cents, cur)}</td><td>{s.deposit_cents ? fmtMoney(s.deposit_cents, cur) : "None"}</td><td>{s.online ? "Yes" : "No"}</td></tr>)}</tbody>
               </table>
             </Panel>
 
             <Panel title="Payouts" flush action={<Link href="/admin/payouts" className="text-[13px] font-semibold text-wine">All payouts</Link>}>
               <table className="data min-w-[520px]">
                 <thead><tr><th>Scheduled</th><th>Amount</th><th>Provider</th><th>Status</th><th>Detail</th></tr></thead>
-                <tbody>{list("payouts").map((p) => <tr key={p.id}><td>{fmtDate(p.scheduled_for)}</td><td className="font-semibold">{fmtMoney(p.amount_cents, p.currency)}</td><td className="capitalize">{p.provider}</td><td>{statusPill(p.status)}</td><td className="text-muted">{p.failure_reason || p.reference || "—"}</td></tr>)}</tbody>
+                <tbody>{list("payouts").map((p) => <tr key={p.id}><td>{fmtDate(p.scheduled_for)}</td><td className="font-semibold">{fmtMoney(p.amount_cents, p.currency)}</td><td className="capitalize">{p.provider}</td><td>{statusPill(p.status)}</td><td className="text-muted">{p.failure_reason || p.reference || "None"}</td></tr>)}</tbody>
               </table>
               {list("payouts").length === 0 && <Empty>No payouts yet.</Empty>}
             </Panel>

@@ -2,7 +2,7 @@ import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, ReadOnly, Topba
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
 import { deleteBroadcast, draftBroadcast, sendBroadcast } from "../actions-growth";
 
-const channelName: Record<string, string> = { email: "Email", whatsapp: "WhatsApp", sms: "SMS" };
+const channelName: Record<string, string> = { email: "Email", whatsapp: "WhatsApp", sms: "Texts" };
 
 function who(b: Row) {
   const parts = [b.audience === "businesses" ? "Businesses" : "Clients", b.market === "US" ? "United States" : b.market === "NG" ? "Nigeria" : "all markets"];
@@ -43,13 +43,13 @@ export default async function Messages({ searchParams }: { searchParams: Promise
                 <Field label="Send to"><select name="audience" className={inputCls}><option value="businesses">Businesses</option><option value="clients">Clients</option></select></Field>
                 <Field label="Market"><select name="market" className={inputCls}><option value="">All markets</option><option value="US">United States</option><option value="NG">Nigeria</option></select></Field>
                 <Field label="Plan, businesses only"><select name="plan" className={inputCls}><option value="">All plans</option><option value="free">Free</option><option value="pro">Pro</option></select></Field>
-                <Field label="Channel"><select name="channel" className={inputCls}><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="sms">SMS</option></select></Field>
+                <Field label="Channel"><select name="channel" className={inputCls}><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="sms">Texts</option></select></Field>
                 <Field label="Subject, for email" className="sm:col-span-2 lg:col-span-4"><input name="subject" maxLength={140} className={inputCls} /></Field>
                 <Field label="Message. Write {{name}} where the person's name should go." className="sm:col-span-2 lg:col-span-4">
                   <textarea name="body" required rows={6} minLength={10} maxLength={4000} placeholder={"Hello {{name}},\n\n"} className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[14.5px] leading-relaxed outline-none focus:border-ink" />
                 </Field>
               </div>
-              <div className="flex flex-wrap items-center gap-3"><Btn kind="ink">Save draft</Btn><span className="text-[13px] text-muted">Clients have a phone number but no email, so reach them by WhatsApp or SMS. Blocked numbers are left out.</span></div>
+              <div className="flex flex-wrap items-center gap-3"><Btn kind="ink">Save draft</Btn><span className="text-[13px] text-muted">Some clients have a phone number and no email, so only a text or a WhatsApp message reaches them. Blocked numbers are left out.</span></div>
             </form>
           </Panel>
         )}

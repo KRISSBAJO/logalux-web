@@ -1,5 +1,5 @@
 import { AdminPagination } from "@/components/admin-pagination";
-import { Btn, Content, Empty, FilterSearch, Flash, Hidden, Panel, ReadOnly, Tabs, Topbar, ago, fmtMoney, inputCls, statusPill, inputSm } from "@/components/admin-ui";
+import { Btn, Content, Empty, FilterSearch, Flash, Hidden, Panel, ReadOnly, Tabs, Topbar, ago, fmtMoney, statusPill, inputSm } from "@/components/admin-ui";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
 import { can, getAdmin, load, qs, type Row } from "@/lib/admin-api";
@@ -40,7 +40,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                     <td><b className="block font-semibold">{o.customer_name}</b><span className="text-[12px] text-muted">{o.customer_phone}</span></td>
                     <td className="max-w-[300px]">{o.items}<span className="block text-[12px] text-muted">Sold by {o.sellers}</span></td>
                     <td className="capitalize">{o.fulfilment}</td>
-                    <td><b className="font-semibold">{fmtMoney(o.total_cents)}</b>{o.discount_cents > 0 && <span className="block text-[12px] text-muted">{fmtMoney(o.discount_cents)} off · {o.promo_code}</span>}{o.gift_cents > 0 && <span className="block text-[12px] text-muted">{fmtMoney(o.gift_cents)} by gift card {o.gift_code}</span>}</td>
+                    <td><b className="font-semibold">{fmtMoney(o.total_cents, o.currency)}</b>{o.discount_cents > 0 && <span className="block text-[12px] text-muted">{fmtMoney(o.discount_cents, o.currency)} off · {o.promo_code}</span>}{o.gift_cents > 0 && <span className="block text-[12px] text-muted">{fmtMoney(o.gift_cents, o.currency)} by gift card {o.gift_code}</span>}</td>
                     <td>{statusPill(o.status)}</td>
                     {ops && (
                       <td>

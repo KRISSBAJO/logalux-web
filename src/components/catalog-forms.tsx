@@ -86,7 +86,7 @@ export function ProductFields({ p = {}, creating, howToApart }: { p?: Row; creat
       <Field label="Product name" className="sm:col-span-2"><input name="name" required minLength={2} maxLength={100} defaultValue={p.name} className={inputCls} /></Field>
       <Field label="Category"><select name="category" required defaultValue={p.category ?? ""} className={inputCls}><option value="" disabled>Choose</option>{PRODUCT_CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
       <Field label="Stock"><input name="stock" type="number" min="0" step="1" required defaultValue={p.stock ?? 0} className={inputCls} /></Field>
-      <Field label="Price (USD)"><input name="price" type="number" min="0.01" step="0.01" required defaultValue={p.price_cents != null ? p.price_cents / 100 : ""} className={inputCls} /></Field>
+      <Field label={p.currency ? `Price (${p.currency})` : "Price, in the seller's currency (USD for a brand product)"}><input name="price" type="number" min="0.01" step="0.01" required defaultValue={p.price_cents != null ? p.price_cents / 100 : ""} className={inputCls} /></Field>
       <Field label="Was price, optional"><input name="compare" type="number" min="0" step="0.01" defaultValue={p.compare_cents != null ? p.compare_cents / 100 : ""} className={inputCls} /></Field>
       <Field label="Seller name"><input name="seller_name" defaultValue={p.seller_name} placeholder="A brand, or leave empty" className={inputCls} /></Field>
       <Field label="Sold by this business, optional"><input name="business_slug" defaultValue={p.business_slug ?? ""} placeholder="booking link, like ada" className={inputCls} /></Field>

@@ -19,6 +19,9 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     ["/admin/disputes", k.open_disputes, "Open disputes", `${k.overdue_disputes ?? 0} past the business window`],
     ["/admin/support", k.open_tickets, "Support messages", "From the help page, waiting for a reply"],
     ["/admin/payouts?status=failed", k.payout_failures, "Payout failures", "Bank rejected the transfer"],
+    ["/admin/returns?status=requested", k.brand_returns_requested, "Returns of brand products", "Waiting for a super admin to answer"],
+    ["/admin/attention", k.pending_refunds, "Refunds waiting on the provider", "Reserved in the books, not yet accepted by Stripe or Paystack"],
+    ["/admin/attention#campaigns", k.stalled_campaigns, "Stalled campaigns", "Stopped with unknown delivery outcomes"],
   ];
 
   return (
@@ -49,7 +52,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
               ))}
             </div>
           </Panel>
-          <Panel title="Needs a human">
+          <Panel title="Needs a human" action={<Link href="/admin/attention" className="text-[13px] font-semibold text-wine">Refunds and campaigns</Link>}>
             <div className="flex flex-col gap-2">
               {queue.map(([href, n, title, sub]) => (
                 <Link key={href} href={href} className="flex items-center gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3 transition hover:border-ink">

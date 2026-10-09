@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check } from "@/components/catalog-forms";
+import { ExportLink } from "@/components/export-link";
 import { Btn, Content, Empty, Field, FilterSearch, Flash, Hidden, Panel, Pill, ReadOnly, Topbar, ago, fmtDate, fmtMoney, inputCls, inputSm, statusPill } from "@/components/admin-ui";
 import { can, getAdmin, load, qs, type Row } from "@/lib/admin-api";
 import { issueGiftCard, voidGiftCard } from "../actions-growth";
@@ -12,11 +13,14 @@ export default async function GiftCards({ searchParams }: { searchParams: Promis
   const ops = can(admin, "ops");
   const back = `/admin/gift-cards${qs({ q })}`;
   const emailOn = res.data.mail_mode && res.data.mail_mode !== "log";
+  // The most ops may put on one card, per currency. The API decides; this only prints it.
+  const max: Record<string, number> = res.data.max_cents ?? {};
+  const caps = Object.entries(max).map(([cur, cents]) => fmtMoney(cents, cur)).join(" or ");
 
   return (
     <>
       <Topbar title="Gift cards" sub="Prepaid balance a client spends in the shop. A refund puts the money back on the card.">
-        {ops && <a href="/admin/export/gift-cards" className="inline-flex h-10 items-center rounded-full border border-line bg-white px-4 text-[13.5px] font-semibold hover:border-ink">Export CSV</a>}
+        <ExportLink kind="gift-cards" />
       </Topbar>
       <Content>
         <Flash sp={sp} error={res.error} />
@@ -44,7 +48,7 @@ export default async function GiftCards({ searchParams }: { searchParams: Promis
                 <Field label="Expires, optional"><input name="expires_on" type="date" className={inputCls} /></Field>
                 <div className="flex items-end pb-2.5"><Check name="send_email" label="Email the code to them" defaultChecked={emailOn} /></div>
               </div>
-              <div className="flex flex-wrap items-center gap-3"><Btn kind="ink">Issue card</Btn><span className="text-[13px] text-muted">Cards above $500 or ₦750,000 need a super admin.</span></div>
+              <div className="flex flex-wrap items-center gap-3"><Btn kind="ink">Issue card</Btn><span className="text-[13px] text-muted">{caps ? `Cards above ${caps} need a super admin.` : "Large cards need a super admin."}</span></div>
             </form>
           </Panel>
         )}
@@ -57,7 +61,7 @@ export default async function GiftCards({ searchParams }: { searchParams: Promis
               {cards.map((c) => (
                 <tr key={c.id}>
                   <td><b className="font-mono text-[13.5px] font-semibold tracking-wide">{ops ? c.code : `…${String(c.code).slice(-4)}`}</b><span className="block text-[12px] text-muted">{c.uses} use{c.uses === 1 ? "" : "s"}</span></td>
-                  <td>{c.recipient_name || "—"}<span className="block text-[12px] text-muted">{c.recipient_email}</span></td>
+                  <td>{c.recipient_name || "None"}<span className="block text-[12px] text-muted">{c.recipient_email}</span></td>
                   <td><b className="font-semibold">{fmtMoney(c.balance_cents, c.currency)}</b><span className="text-muted"> of {fmtMoney(c.initial_cents, c.currency)}</span></td>
                   <td className="text-[13px]">{ago(c.created_at)}<span className="block text-[12px] text-muted">{c.issued_by}</span></td>
                   <td>{c.expires_on ? fmtDate(c.expires_on) : "Never"}</td>

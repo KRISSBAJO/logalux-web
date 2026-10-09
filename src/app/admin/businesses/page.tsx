@@ -1,18 +1,21 @@
 import Link from "next/link";
+import { AdminPagination } from "@/components/admin-pagination";
 import { ExportLink } from "@/components/export-link";
 import { Content, Empty, FilterSearch, Flash, Panel, Pill, Tabs, Topbar, fmtMoney, initials, statusPill } from "@/components/admin-ui";
 import { Avatar } from "@/components/icons";
 import { load, qs, type Row } from "@/lib/admin-api";
 
-export default async function Businesses({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; market?: string; ok?: string; err?: string }> }) {
+export default async function Businesses({ searchParams }: { searchParams: Promise<{ [key: string]: string | undefined; q?: string; status?: string; market?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
   const { q = "", status = "", market = "" } = sp;
-  const res = await load(`/businesses${qs({ q, status, market })}`);
+  const paging = { page: sp.page, per_page: sp.per_page, sort: sp.sort, direction: sp.direction };
+  const res = await load(`/businesses${qs({ ...paging, q, status, market })}`);
   const list: Row[] = res.data.businesses ?? [];
+  const total: number = res.data.pagination?.total ?? list.length;
 
   return (
     <>
-      <Topbar title="Businesses" sub={`${list.length} shown, ordered by money processed in the last 30 days`}>
+      <Topbar title="Businesses" sub={`${total} match, ordered by money processed in the last 30 days unless you sort them`}>
         <Tabs items={[["", "All"], ["live", "Live"], ["pending", "Pending"], ["paused", "Paused"], ["suspended", "Suspended"]]} current={status} href={(s) => `/admin/businesses${qs({ q, market, status: s })}`} />
         <ExportLink kind="businesses" filters={{ q, status, market }} />
         <Link href="/admin/businesses/new" className="inline-flex h-10 items-center rounded-full bg-ink px-4 text-[13.5px] font-semibold text-cream hover:bg-ink-3">Add a business</Link>
@@ -41,13 +44,14 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
                   <td>{b.bookings_30d}</td>
                   <td className="font-semibold">{fmtMoney(b.processed_30d_cents, b.currency)}</td>
                   <td>{Number(b.rating).toFixed(1)} <span className="text-muted">({b.review_count})</span></td>
-                  <td><div className="flex flex-wrap gap-1">{b.open_disputes > 0 && <Pill kind="wine">{b.open_disputes} dispute{b.open_disputes > 1 ? "s" : ""}</Pill>}{b.flagged_reviews > 0 && <Pill kind="gold">{b.flagged_reviews} flagged</Pill>}{!b.open_disputes && !b.flagged_reviews && <span className="text-muted-2">—</span>}</div></td>
+                  <td><div className="flex flex-wrap gap-1">{b.open_disputes > 0 && <Pill kind="wine">{b.open_disputes} dispute{b.open_disputes > 1 ? "s" : ""}</Pill>}{b.flagged_reviews > 0 && <Pill kind="gold">{b.flagged_reviews} flagged</Pill>}{!b.open_disputes && !b.flagged_reviews && <span className="text-muted-2">None</span>}</div></td>
                 </tr>
               ))}
             </tbody>
           </table>
           {list.length === 0 && <Empty>No businesses match.</Empty>}
         </Panel>
+        <AdminPagination pagination={res.data.pagination} columns={["created_at", "name", "owner_name", "market", "status", "plan", "rating", "bookings_30d", "processed_30d_cents"]} />
       </Content>
     </>
   );

@@ -299,7 +299,15 @@ export function ArticleEditor({ article, canWrite, canPublish, back }: { article
                 <h2 className="serif mt-3 text-[34px] leading-[1.05]">{title || <span className="text-muted-2">Untitled</span>}</h2>
                 {dek && <p className="mt-3 text-[17px] leading-relaxed text-muted">{dek}</p>}
                 <p className="mt-3 text-[13px] text-muted">{authorName || "LogaLuxe editorial"}{authorRole ? `, ${authorRole}` : ""} · {minutes} min read</p>
-                {(coverId || category) && <div className="relative mt-5 aspect-[16/9] overflow-hidden rounded-[16px]">{coverId ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={`/media/${coverId}`} alt={coverAlt} className="absolute inset-0 h-full w-full object-cover" /> : <CategoryMotif category={category} />}</div>}
+                {(coverId || category) && (
+                  <div className="relative mt-5 aspect-[16/9] overflow-hidden rounded-[16px]">
+                    {coverId ? (
+                      // The picture is the uploaded file itself, served by our own /media route; next/image would re-encode it.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/media/${coverId}`} alt={coverAlt} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : <CategoryMotif category={category} />}
+                  </div>
+                )}
               </div>
               {body.trim() ? <div className="jn-body"><JournalBlocks blocks={blocks} /></div> : <p className="py-10 text-center text-[14px] text-muted">Nothing written yet.</p>}
             </div>
@@ -311,7 +319,7 @@ export function ArticleEditor({ article, canWrite, canPublish, back }: { article
         <Panel title="Write a draft with AI" sub="Fills the editor with a starting point in the house voice. Nothing written by the AI is published without a person: read every line and edit it first.">
           <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
             <Field label="What it is about"><input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={200} placeholder="Knotless braids: what to ask for and how long they last" className={inputCls} /></Field>
-            <Field label="Notes for the writer, optional"><input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} placeholder="Mention aftercare and prices in Nashville" className={inputCls} /></Field>
+            <Field label="Notes for the writer, optional"><input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} placeholder="Mention aftercare and what it usually costs" className={inputCls} /></Field>
             <button type="button" onClick={draft} disabled={drafting} className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white px-4 text-[13.5px] font-semibold transition hover:border-ink disabled:opacity-60"><Icon.Spark width={15} height={15} />{drafting ? "Writing…" : "Write a draft"}</button>
           </div>
           <p className="mt-3 text-[12.5px] text-muted">It uses the category ({cat?.label ?? "none yet"}) and country ({JOURNAL_COUNTRIES.find(([v]) => v === country)?.[1]}) chosen above. Facts, prices and names must be checked by hand.</p>

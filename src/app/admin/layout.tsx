@@ -35,8 +35,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await getAdmin();
   if (!admin) return <SignIn />;
 
-  const [overview, brandReturns] = await Promise.all([load("/overview"), load("/returns?status=requested")]);
+  const overview = await load("/overview");
   const k = overview.data.kpis ?? {};
+  const attention = (k.pending_refunds ?? 0) + (k.stalled_campaigns ?? 0);
   const groups: NavGroup[] = [
     { title: "Home", items: [{ href: "/admin", label: "Overview", icon: <Icon.Grid /> }] },
     {
@@ -46,6 +47,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/moderation", label: "Moderation", icon: <Icon.Star />, count: k.moderation_queue },
         { href: "/admin/disputes", label: "Disputes", icon: <Icon.Warn />, count: k.open_disputes },
         { href: "/admin/support", label: "Support", icon: <Icon.Chat />, count: k.open_tickets },
+        ...(can(admin, "ops") ? [{ href: "/admin/attention", label: "Needs a human", icon: <Icon.Warn />, count: attention }] : []),
       ],
     },
     {
@@ -55,7 +57,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/bookings", label: "Bookings", icon: <Icon.Calendar /> },
         { href: "/admin/clients", label: "Clients", icon: <Icon.Users /> },
         { href: "/admin/orders", label: "Orders", icon: <Icon.Cart /> },
-        { href: "/admin/returns", label: "Returns", icon: <Icon.Back />, count: (brandReturns.data.returns ?? []).length },
+        { href: "/admin/returns", label: "Returns", icon: <Icon.Back />, count: k.brand_returns_requested },
         { href: "/admin/products", label: "Products", icon: <Icon.Pin /> },
       ],
     },

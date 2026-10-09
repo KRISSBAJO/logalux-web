@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Btn, Content, Facts, Field, Flash, Hidden, Panel, Pill, ReadOnly, Topbar, fmtMoney, inputCls } from "@/components/admin-ui";
+import { Btn, Content, Facts, Field, Flash, Hidden, Panel, Pill, ReadOnly, Topbar, fmtMoney } from "@/components/admin-ui";
 import { ProductFields } from "@/components/catalog-forms";
 import { MediaManager } from "@/components/media-manager";
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
-import { api } from "@/lib/api";
 import { saveProduct, saveProductDetails } from "../../actions-catalog";
 
 const area = "w-full rounded-xl border border-line bg-white px-3 py-2.5 text-[14px] text-ink outline-none focus:border-ink";
@@ -13,7 +12,7 @@ const dot = "h-4 w-4 accent-[#1A1513]";
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ ok?: string; err?: string }> }) {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
-  const [admin, products, media] = await Promise.all([getAdmin(), load("/products"), load(`/media?slot=product&ref=${encodeURIComponent(slug)}`)]);
+  const [admin, products, media] = await Promise.all([getAdmin(), load(`/products?slug=${encodeURIComponent(slug)}`), load(`/media?slot=product&ref=${encodeURIComponent(slug)}`)]);
   const p: Row | undefined = (products.data.products ?? []).find((x: Row) => x.slug === slug);
   const ops = can(admin, "ops");
   const back = `/admin/products/${slug}`;
@@ -39,7 +38,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       <Content>
         <Flash sp={sp} error={media.error} />
         <Panel>
-          <Facts items={[["Price", fmtMoney(p.price_cents)], ["Stock", `${p.stock} left`], ["Sold", Number(p.sold).toLocaleString("en-US")], ["Category", p.category], ["Rating", `${Number(p.rating).toFixed(1)} from ${p.review_count}`], ["Shop", p.active ? <Pill key="a" kind="ok">on sale</Pill> : <Pill key="b" kind="grey">off sale</Pill>]]} />
+          <Facts items={[["Price", `${fmtMoney(p.price_cents, p.currency)} ${p.currency}`], ["Stock", `${p.stock} left`], ["Sold", Number(p.sold).toLocaleString("en-US")], ["Category", p.category], ["Rating", `${Number(p.rating).toFixed(1)} from ${p.review_count}`], ["Shop", p.active ? <Pill key="a" kind="ok">on sale</Pill> : <Pill key="b" kind="grey">off sale</Pill>]]} />
         </Panel>
         {!ops && <ReadOnly need="ops" />}
         <Panel title="Photos" sub="Up to 6 show. The first is the picture in the shop grid; shoppers can flick through the rest.">

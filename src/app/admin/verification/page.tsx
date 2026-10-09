@@ -12,9 +12,12 @@ export default async function Verification({ searchParams }: { searchParams: Pro
   const sel = reqs.find((r) => r.id === sp.id) ?? reqs[0];
   const back = `/admin/verification${qs({ status, id: sel?.id })}`;
   const risk = (n: number) => (n < 20 ? "low" : n < 50 ? "medium" : "high");
-  // The papers the selected business uploaded. The files themselves open through /admin/verification/document/[id].
-  const papers = sel ? await load(`/verification/${sel.id}/documents`) : null;
+  // The papers the selected business uploaded. Identity documents are for ops and above; support sees the queue and
+  // the decision. The files themselves open through /admin/verification/document/[id].
+  const ops = can(admin, "ops");
+  const papers = sel && ops ? await load(`/verification/${sel.id}/documents`) : null;
   const docs: Row[] = papers?.data.documents ?? [];
+  const hasID = ops ? docs.some((d) => d.kind === "id") : Number(sel?.documents ?? 0) > 0;
   const kinds: Record<string, string> = papers?.data.kinds ?? {};
   const size = (n: number) => (n < 1024 ? `${n} bytes` : n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -55,7 +58,7 @@ export default async function Verification({ searchParams }: { searchParams: Pro
               <Panel title="Checks">
                 <div className="grid gap-2 sm:grid-cols-2">
                   {([
-                    [docs.some((d) => d.kind === "id"), docs.some((d) => d.kind === "id") ? "Photo ID uploaded" : "No photo ID yet", docs.some((d) => d.kind === "id") ? `${sel.id_type || "Kind not stated"}. Open it below and compare the name with the owner's.` : sel.id_provider ? `Recorded when the business was added: ${sel.id_provider}` : "The business has not uploaded one."],
+                    [hasID, hasID ? (ops ? "Photo ID uploaded" : "Documents uploaded") : "No photo ID yet", hasID ? (ops ? `${sel.id_type || "Kind not stated"}. Open it below and compare the name with the owner's.` : `${sel.documents} on file. Ops and above can open them.`) : sel.id_provider ? `Recorded when the business was added: ${sel.id_provider}` : "The business has not uploaded one."],
                     [!!sel.submitted_at, sel.submitted_at ? "Sent for checking" : "Not sent yet", sel.submitted_at ? "The business pressed Send for checking." : "Documents may be uploaded but the business has not asked for a check."],
                     [sel.licence_status !== "missing", sel.licence_status === "missing" ? "Certificate missing" : sel.licence_status === "not_required" ? "Licence not required" : "Licence valid", sel.licence_status === "missing" ? "Ask before approving regulated services" : "Checked against the local rule"],
                     [!String(sel.portfolio_note).includes("another"), "Portfolio", sel.portfolio_note || "No concerns"],
@@ -69,7 +72,9 @@ export default async function Verification({ searchParams }: { searchParams: Pro
               </Panel>
 
               <Panel title="Documents" sub="Uploaded by the business. Each time a file is opened it is written to the audit log." flush={docs.length > 0}>
-                {papers?.error ? (
+                {!ops ? (
+                  <p className="text-[14px] text-muted">Identity documents are private. Ops and above can open them.</p>
+                ) : papers?.error ? (
                   <p className="text-[13px] text-bad">The documents could not be loaded: {papers.error}</p>
                 ) : docs.length === 0 ? (
                   <p className="text-[14px] text-muted">This business has not uploaded any documents.</p>

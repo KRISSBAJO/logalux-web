@@ -13,7 +13,7 @@ const summary = "flex cursor-pointer list-none items-center gap-3 px-5 py-3.5 ho
 
 export default async function EditBusiness({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; err?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [admin, res] = await Promise.all([getAdmin(), load(`/businesses/${encodeURIComponent(id)}`)]);
+  const [admin, res, states] = await Promise.all([getAdmin(), load(`/businesses/${encodeURIComponent(id)}`), allStates()]);
   const b: Row | undefined = res.data.business;
   const back = `/admin/businesses/${id}/edit`;
 
@@ -28,7 +28,6 @@ export default async function EditBusiness({ params, searchParams }: { params: P
   const staff: Row[] = res.data.staff ?? [];
   const services: Row[] = res.data.services ?? [];
   const locations: Row[] = res.data.locations ?? [];
-  const states = await allStates();
   const cur = b.currency;
   const nameOf = (sid: string) => staff.find((p) => p.id === sid)?.name;
 

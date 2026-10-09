@@ -10,8 +10,8 @@ const roles: [string, string, string][] = [
 ];
 
 export default async function Team({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
-  const sp = await searchParams;
-  const admin = await getAdmin();
+  // The team list is loaded alongside the sign-in check; the API refuses it to anyone below super admin anyway.
+  const [sp, admin, res] = await Promise.all([searchParams, getAdmin(), load("/team")]);
   const back = "/admin/team";
 
   if (!can(admin, "super_admin")) {
@@ -22,7 +22,6 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
       </>
     );
   }
-  const res = await load("/team");
   const team: Row[] = res.data.team ?? [];
 
   return (
@@ -55,7 +54,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
                       </form>
                     </td>
                     <td>
-                      {me ? <span className="text-[12.5px] text-muted">—</span> : (
+                      {me ? <span className="text-[12.5px] text-muted">None</span> : (
                         <form action={updateAdmin}>
                           <Hidden values={{ id: t.id, active: t.active ? "0" : "1", back }} />
                           {t.active ? <Btn small kind="danger">Disable</Btn> : <Btn small kind="ok">Enable</Btn>}
@@ -77,7 +76,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
         </Panel>
 
         <div className="grid items-start gap-5 lg:grid-cols-2">
-          <Panel title="Add an admin" sub="Give them the password yourself. They cannot reset it on their own yet.">
+          <Panel title="Add an admin" sub="Give them the password yourself. They can set their own with Forgot your password on the sign-in page.">
             <form action={inviteAdmin} className="flex flex-col gap-3">
               <Hidden values={{ back }} />
               <div className="grid gap-3 sm:grid-cols-2">

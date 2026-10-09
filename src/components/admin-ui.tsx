@@ -112,10 +112,10 @@ export const fmtMoney = (cents: number | null | undefined, currency = "USD") => 
 
 /** Date and time in the business's own time zone. */
 export const fmtWhen = (iso: string | null | undefined, timeZone = "UTC") =>
-  iso ? new Date(iso).toLocaleString("en-US", { timeZone, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "—";
+  iso ? new Date(iso).toLocaleString("en-US", { timeZone, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "None";
 
 export const fmtDate = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "None";
 
 export const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -164,7 +164,7 @@ export function Facts({ items, narrow }: { items: [string, ReactNode][]; narrow?
       {items.map(([k, v]) => (
         <div key={k} className="min-w-0 rounded-xl bg-cream-2 px-3.5 py-2.5">
           <small className="block text-[11px] font-semibold uppercase tracking-[.05em] text-muted">{k}</small>
-          <b className="block break-words text-[14px] font-semibold">{v || "—"}</b>
+          <b className="block break-words text-[14px] font-semibold">{v || "None"}</b>
         </div>
       ))}
     </div>

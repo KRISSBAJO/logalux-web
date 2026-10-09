@@ -9,7 +9,7 @@ import { decideBrandReturn } from "../actions-care";
 
 const STATE: Record<string, ["ok" | "gold" | "wine" | "grey", string]> = { requested: ["gold", "Waiting for an answer"], approved: ["ok", "Approved"], refused: ["wine", "Refused"] };
 const amount = (cents: number) => (Number(cents ?? 0) / 100).toFixed(2);
-const stamp = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Chicago", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+const stamp = (iso: string) => `${new Date(iso).toLocaleString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} UTC`;
 
 export default async function Returns({ searchParams }: { searchParams: Promise<{ [key: string]: string | undefined; status?: string; answer?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
@@ -40,10 +40,10 @@ export default async function Returns({ searchParams }: { searchParams: Promise<
                 <Hidden values={{ id: open.id, back }} />
                 <h3 className="text-[14px] font-semibold">Approve and refund</h3>
                 {open.note && <p className="rounded-xl bg-cream-2 px-3.5 py-2.5 text-[13.5px]">The customer wrote: &ldquo;{open.note}&rdquo;</p>}
-                <Field label="Refund amount, in US dollars">
+                <Field label={`Refund amount, in ${open.currency}`}>
                   <input type="number" name="refund" required min="0.01" max={amount(Number(open.items_cents) + Number(open.shipping_cents))} step="0.01" defaultValue={amount(open.items_cents)} className={inputCls} />
                 </Field>
-                <p className="text-[12.5px] text-muted">The items came to {fmtMoney(open.items_cents)}. The most you can refund is {fmtMoney(Number(open.items_cents) + Number(open.shipping_cents))}{Number(open.shipping_cents) > 0 ? ", which includes the shipping" : ""}.</p>
+                <p className="text-[12.5px] text-muted">The items came to {fmtMoney(open.items_cents, open.currency)}. The most you can refund is {fmtMoney(Number(open.items_cents) + Number(open.shipping_cents), open.currency)}{Number(open.shipping_cents) > 0 ? ", which includes the shipping" : ""}.</p>
                 <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="restock" className="h-4 w-4 accent-ink" />Put the items back in stock</label>
                 <Field label="Message to the customer, optional"><textarea name="reply" maxLength={1000} rows={3} className={`${inputCls} h-auto py-2`} /></Field>
                 <p className="text-[12.5px] leading-relaxed text-muted">The money goes back to the customer&rsquo;s card where a card paid, otherwise as LogaLuxe store credit. LogaLuxe sold these items, so no business balance changes.</p>
@@ -77,7 +77,7 @@ export default async function Returns({ searchParams }: { searchParams: Promise<
                       <td><b className="block font-semibold">{r.customer_name}</b><span className="block text-[12px] text-muted">{r.customer_email}</span><span className="block text-[12px] text-muted">{r.customer_phone}</span></td>
                       <td className="max-w-[260px]">{itemsOf(r).map((t, i) => <span key={i} className="block">{t}</span>)}<span className="block text-[12px] text-muted">Sold by {r.seller_name}</span></td>
                       <td className="max-w-[240px]"><b className="block font-semibold">{reasons[r.reason] ?? r.reason}</b>{r.note && <span className="block text-[12.5px] text-muted">&ldquo;{r.note}&rdquo;</span>}</td>
-                      <td className="whitespace-nowrap"><b className="font-semibold">{fmtMoney(Number(r.items_cents) + Number(r.shipping_cents))}</b><span className="block text-[12px] text-muted">Items {fmtMoney(r.items_cents)}{Number(r.shipping_cents) > 0 ? `, shipping ${fmtMoney(r.shipping_cents)}` : ""}</span></td>
+                      <td className="whitespace-nowrap"><b className="font-semibold">{fmtMoney(Number(r.items_cents) + Number(r.shipping_cents), r.currency)}</b><span className="block text-[12px] text-muted">Items {fmtMoney(r.items_cents, r.currency)}{Number(r.shipping_cents) > 0 ? `, shipping ${fmtMoney(r.shipping_cents, r.currency)}` : ""}</span></td>
                       <td><Pill kind={kind}>{label}</Pill></td>
                       <td className="max-w-[280px] text-[13px]">
                         {r.status === "requested" && (boss
@@ -85,14 +85,15 @@ export default async function Returns({ searchParams }: { searchParams: Promise<
                           : <span className="text-muted">Waiting for a super admin</span>)}
                         {r.status === "approved" && (
                           <>
-                            <b className="block font-semibold">{r.provider_refund_status === "pending" ? "Refund reserved" : "Refunded"} {fmtMoney(r.refund_cents)}</b>
-                            <span className="block text-muted">{card > 0 && r.credit_cents > 0 ? `${fmtMoney(card)} to the card, ${fmtMoney(r.credit_cents)} as store credit` : card > 0 ? "All of it to the card" : "All of it as LogaLuxe store credit"}</span>
+                            <b className="block font-semibold">{r.provider_refund_status === "pending" ? "Refund reserved" : "Refunded"} {fmtMoney(r.refund_cents, r.currency)}</b>
+                            <span className="block text-muted">{card > 0 && r.credit_cents > 0 ? `${fmtMoney(card, r.currency)} to the card, ${fmtMoney(r.credit_cents, r.currency)} as store credit` : card > 0 ? "All of it to the card" : "All of it as LogaLuxe store credit"}</span>
                             <span className="block text-muted">{r.restocked ? "Items put back in stock" : "Items not put back in stock"}</span>
                           </>
                         )}
                         {r.status === "refused" && <b className="block font-semibold">Refused, nothing refunded</b>}
                         {r.status !== "requested" && r.reply && <span className="block">&ldquo;{r.reply}&rdquo;</span>}
-                        {r.decided_at && <span className="block text-[12px] text-muted">Answered by {r.decided_by || "staff"} · {stamp(r.decided_at)} Central</span>}
+                        {r.provider_refund_status === "pending" && <span className="block text-[12.5px] text-bad">{r.refund_problem ? `The provider has not accepted it yet: ${r.refund_problem}` : "Waiting for the provider to accept it. The worker asks again on its own."}</span>}
+                        {r.decided_at && <span className="block text-[12px] text-muted">Answered by {r.decided_by || "staff"} · {stamp(r.decided_at)}</span>}
                       </td>
                     </tr>
                   );

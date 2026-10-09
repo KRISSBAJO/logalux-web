@@ -3,7 +3,7 @@ import { Btn, Content, Empty, Field, Flash, Hidden, Panel, ReadOnly, Tabs, Topba
 import { can, getAdmin, load, qs, type Row } from "@/lib/admin-api";
 import { resolveDispute } from "../actions";
 
-const outcomeName: Record<string, string> = { full: "Full refund", partial: "Partial refund", credit: "LogaLuxe credit", decline: "Declined", out_of_scope: "Out of scope" };
+const outcomeName: Record<string, string> = { full: "Full refund", partial: "Partial refund", credit: "LogaLuxe store credit", decline: "Declined", out_of_scope: "Out of scope" };
 
 export default async function Disputes({ searchParams }: { searchParams: Promise<{ status?: string; id?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
@@ -63,7 +63,7 @@ export default async function Disputes({ searchParams }: { searchParams: Promise
                     <div className="flex flex-wrap gap-2">
                       <Btn kind="ok" name="decision" value="full">Full refund</Btn>
                       <Btn kind="ink" name="decision" value="partial">Partial refund</Btn>
-                      <Btn name="decision" value="credit">LogaLuxe credit</Btn>
+                      <Btn name="decision" value="credit">LogaLuxe store credit</Btn>
                       <Btn kind="danger" name="decision" value="decline">Decline</Btn>
                       <Btn name="decision" value="out_of_scope">Out of scope</Btn>
                     </div>

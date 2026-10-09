@@ -62,7 +62,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
                         <td className="px-3 py-2.5"><Pill kind={kind}>{label}</Pill>{l.boosted && <span className="ml-1.5 text-[11px] font-semibold uppercase tracking-[.05em] text-muted">Promoted</span>}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums">{fmtMoney(l.value_cents, l.currency)}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums">{pct(l.base_pct)}{l.boost_pct > 0 ? ` + ${pct(l.boost_pct)}` : ""}</td>
-                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{l.status === "pending" || l.status === "void" ? "—" : fmtMoney(l.fee_cents, l.currency)}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{l.status === "pending" || l.status === "void" ? "None" : fmtMoney(l.fee_cents, l.currency)}</td>
                       </tr>
                     );
                   })}

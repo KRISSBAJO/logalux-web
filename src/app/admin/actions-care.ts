@@ -30,6 +30,19 @@ export async function removeTaxRate(fd: FormData) {
   });
 }
 
+/** Asks the payment provider again for a refund it has not accepted yet. The worker keeps trying on its own; this is for a human who does not want to wait. */
+export async function retryRefund(fd: FormData) {
+  let out: Record<string, unknown> = {}, error = "";
+  try {
+    out = await post(`/attention/refunds/${id(fd)}/retry`, {});
+  } catch (e) {
+    error = sentence((e as Error).message);
+  }
+  if (error) backTo(fd, "err", error);
+  if (out.ok) backTo(fd, "ok", "The provider accepted the refund. The books are settled.");
+  backTo(fd, "err", `The provider still has not accepted it: ${sentence(String(out.problem ?? "no reason given"))} The worker keeps trying.`);
+}
+
 /** Approves (and refunds) or refuses a return of a brand product. On a failure the form opens again; nothing has changed then. */
 export async function decideBrandReturn(fd: FormData) {
   const refuse = str(fd, "decision") === "refuse", reply = str(fd, "reply");
