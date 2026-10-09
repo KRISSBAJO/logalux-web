@@ -1,16 +1,17 @@
 // Server-only helpers for the signed-in customer. The session token lives in
 // an httpOnly cookie, so scripts in the browser can never read it.
-import { cookies } from "next/headers";
+import { cookies, headers as requestHeaders } from "next/headers";
 import { cache } from "react";
 import { visitorHeaders } from "./visitor";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
-export const USER_COOKIE = "lx_user";
+export const USER_COOKIE = process.env.LOGALUXE_QA === "1" ? "lx_qa_user" : "lx_user";
 
 export type Customer = {
   id: string; email: string; first_name: string; last_name: string; phone: string; email_verified?: boolean;
   /** True once they typed a code sent to their number. */
   phone_verified?: boolean;
+  has_password?: boolean;
   /** How they want to hear about bookings. */
   preferred_channel?: "whatsapp" | "sms" | "email" | "";
 };
@@ -31,6 +32,7 @@ export async function userToken(): Promise<string | undefined> {
 /** Calls the API. With `auth`, the customer's token is attached when there is one. */
 export async function customerApi<T = Row>(path: string, init: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json", ...(await visitorHeaders()) };
+  headers["User-Agent"] = (await requestHeaders()).get("user-agent") || "LogaLuxe web";
   if (init.auth !== false) {
     const token = await userToken();
     if (token) headers.Authorization = `Bearer ${token}`;

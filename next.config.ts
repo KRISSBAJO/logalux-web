@@ -2,9 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Isolated QA previews must never overwrite the running development preview.
+  distDir: process.env.LOGALUXE_QA === "1" ? ".next-qa" : ".next",
   // Image uploads from the admin console pass through a server action.
   experimental: { serverActions: { bodySizeLimit: "10mb" } },
   env: {
+    NEXT_PUBLIC_LOGALUXE_QA: process.env.LOGALUXE_QA === "1" ? "1" : "0",
     // Public base URL of the Go API, used by server components and route handlers.
     LOGALUXE_API_URL: process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080",
   },

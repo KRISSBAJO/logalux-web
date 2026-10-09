@@ -1,9 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { toDataURL } from "qrcode";
-import { cents, fid, int, mBackTo, mPost, mRun, on, str } from "@/lib/merchant-actions";
-import { qs, type Row } from "@/lib/merchant-api";
+import { cents, fid, int, mPost, mRun, on, str } from "@/lib/merchant-actions";
+import { getMe, MerchantApiError, qs, type Row } from "@/lib/merchant-api";
 
 type Item = { kind: string; service_id?: string; product_id?: string; package_id?: string; membership_id?: string; name?: string; qty: number; unit_cents?: number; redeem?: boolean };
 
@@ -46,21 +45,37 @@ const ticket = (fd: FormData) => ({
 const sentence = (m: string) => (m ? m[0].toUpperCase() + m.slice(1) + (/[.?!]$/.test(m) ? "" : ".") : "Something went wrong.");
 
 /** Takes payment for a visit, or makes a quick sale. Then shows the receipt with the figures the API returned. */
-export async function pay(fd: FormData) {
-  const body = ticket(fd);
-  if (!body.items.length) mBackTo(fd, "err", "Add at least one service or product.");
-  let out: Row = {}, error = "";
+export type PayResult = { ok: true; url: string } | { ok: false; error: string; status: number };
+
+// Resolve the scope from the authenticated session, never from client assertions.
+export async function checkoutScope() {
+  const me = await getMe();
+  if (!me) throw new Error("You are signed out.");
+  return { business: me.merchant.business_id, merchant: me.merchant.id };
+}
+
+export async function pay(fd: FormData): Promise<PayResult> {
+  const request_id = str(fd, "request_id");
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(request_id)) return { ok: false, status: 400, error: "Save a checkout request before submitting." };
+  const replay = str(fd, "replay_only") === "1";
+  const body = replay ? { request_id, replay_only: true } : { ...ticket(fd), request_id };
+  if (!replay && !("items" in body && body.items.length)) return { ok: false, status: 400, error: "Add at least one service or product." };
+  let out: Row;
   try {
+    // A stale tab must not submit into a different business after switching sessions.
+    const scope = await checkoutScope();
+    if (str(fd, "business_scope") !== scope.business || str(fd, "merchant_scope") !== scope.merchant)
+      return { ok: false, status: 409, error: "Your business session changed. Reload checkout before submitting." };
     out = (await mPost("/checkout", body)) as Row;
   } catch (e) {
-    error = sentence((e as Error).message);
+    return { ok: false, error: sentence((e as Error).message), status: e instanceof MerchantApiError ? e.status : 503 };
   }
-  if (error) mBackTo(fd, "err", error);
-  redirect("/business/checkout" + qs({
+  if (!out.sale_id) return { ok: false, status: 503, error: "The receipt response was interrupted. Retry the same ticket." };
+  return { ok: true, url: "/business/checkout" + qs({
     receipt: out.sale_id, sub: out.subtotal_cents, disc: out.discount_cents, tax: out.tax_cents, tip: out.tip_cents, dep: out.deposit_cents, total: out.total_cents,
     member: out.member_discount_cents || undefined, promo: out.promo_discount_cents || undefined, pts: out.points_used || undefined, ptsd: out.points_discount_cents || undefined,
     earned: out.points_earned || undefined, lead: out.lead_fee_cents || undefined,
-  }));
+  }) };
 }
 
 export type Quote = { ok: true; quote: Record<string, number> } | { ok: false; error: string };
@@ -111,8 +126,8 @@ export async function refundSale(fd: FormData) {
   const simulated = str(fd, "simulated") === "1";
   await mRun(
     fd,
-    (out) => (out.status === "refunded" ? "Sale refunded in full." : "Part of the sale refunded.")
+    (out) => (out.status === "refund_pending" ? "Refund reserved. Provider confirmation is pending." : out.status === "refunded" ? "Sale refunded in full." : "Part of the sale refunded.")
       + (out.provider_refund ? ` Refund ${out.provider_refund}.` : simulated ? " Payments are simulated, so no money moved." : ""),
-    () => mPost(`/sales/${fid(fd)}/refund`, { amount_cents: cents(fd, "amount"), reason: str(fd, "reason"), restock: on(fd, "restock") }),
+    () => mPost(`/sales/${fid(fd)}/refund`, { request_id: str(fd,"request_id"), amount_cents: cents(fd, "amount"), reason: str(fd, "reason"), restock: on(fd, "restock") }),
   );
 }

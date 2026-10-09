@@ -211,8 +211,8 @@ export default async function BusinessPage({ params, searchParams }: { params: P
         <main className="wrap">
           {display.notice ? <div role="status" className="notice">{display.notice}</div> : null}
 
-          <div className="gallery">
-            {[photos[0], photos[1], photos[2], photos[3], photos[4]].map((ph, i) => {
+          <div className="gallery" data-count={Math.min(photos.length, 5)}>
+            {(photos.length ? photos.slice(0, 5) : [undefined]).map((ph, i) => {
               const cls = `g${i === 0 ? " big" : ""}${i > 2 ? " extra" : ""}`;
               const tone = i === 0 ? b.tone : TILE_TONES[i - 1];
               return ph
@@ -221,6 +221,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
             })}
             {photos.length > 0 ? <Link href={`/b/${b.slug}?photos=1${src ? `&src=${src}` : ""}`} className="btn btn-out btn-sm all">All {photos.length} photo{photos.length === 1 ? "" : "s"}</Link> : null}
           </div>
+          {photos.some((ph) => ph.alt.startsWith("AI-generated sample")) && <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Sample gallery · AI-generated imagery for this demo business.</p>}
 
           <div className="head">
             <div style={{ flex: 1, minWidth: 280 }}>

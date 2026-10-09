@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin-pagination";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
 import { Btn, Content, Empty, Facts, Field, FilterSearch, Flash, Hidden, Panel, Tabs, Topbar, fmtMoney, fmtWhen, inputCls, statusPill } from "@/components/admin-ui";
@@ -11,12 +12,14 @@ const localInput = (iso: string, timeZone: string) => new Date(iso).toLocaleStri
 
 export default async function Bookings({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  const pageParams = sp as Record<string,string|undefined>;
+  const paging = {page:pageParams.page,per_page:pageParams.per_page,sort:pageParams.sort,direction:pageParams.direction};
   const { q = "", status = "", business = "", from = "", to = "" } = sp;
   const filters = { q, status, business, from, to };
-  const res = await load(`/bookings${qs(filters)}`);
+  const res = await load(`/bookings${qs({ ...filters, ...paging })}`);
   const list: Row[] = res.data.bookings ?? [];
   const sel = list.find((b) => b.id === sp.id);
-  const here = (extra: Record<string, string | undefined>) => `/admin/bookings${qs({ ...filters, ...extra })}`;
+  const here = (extra: Record<string, string | undefined>) => `/admin/bookings${qs({ ...filters, ...paging, ...extra })}`;
   const back = here({ id: sel?.id });
   const active = sel && ["requested", "confirmed", "checked_in", "in_progress"].includes(sel.status);
 
@@ -91,6 +94,7 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
             </Panel>
           )}
         </div>
+      <AdminPagination pagination={res.data.pagination} columns={["starts_at","client_name","business","total_cents","status"]} />
       </Content>
     </>
   );

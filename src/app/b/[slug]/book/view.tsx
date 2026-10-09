@@ -81,7 +81,7 @@ export async function BookView({ slug, sp, embed = false }: { slug: string; sp: 
   if (sp.booking) {
     let bk: Booking | null = null;
     if (UUID.test(sp.booking)) {
-      try { bk = (await api.get<{ booking: Booking }>(`/v1/bookings/${sp.booking}`)).booking; } catch {}
+      try { bk = (await customerApi<{ booking: Booking }>(`/bookings/${sp.booking}`)).booking; } catch {}
     }
     if (!bk || bk.business_slug !== b.slug) notFound();
     // Only the person whose account holds the booking can make it repeat.

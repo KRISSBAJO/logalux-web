@@ -78,7 +78,7 @@ export default async function MerchantLayout({ children }: { children: ReactNode
             <span className="pill pill-gold">{m.plan === "pro" ? "Pro" : "Free"}</span>
           </div>
         </aside>
-        {children}
+        <div key={m.business_id} style={{ display: "contents" }}>{children}</div>
       </div>
     </div>
   );

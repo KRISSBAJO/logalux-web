@@ -69,7 +69,7 @@ export function CodeSignIn({ mode, next, invite = "", whatsapp }: { mode: "signi
         <input type="hidden" name="next" value={next} />
         <label className="field">
           <span className={cap}>Mobile number, with the country code</span>
-          <input name="phone" type="tel" required autoFocus autoComplete="tel" inputMode="tel" placeholder="+1 615 555 0100" defaultValue={state.phone} />
+          <input name="phone" type="tel" required autoFocus autoComplete="tel" inputMode="tel" placeholder="Include country code, such as +234 or +1" defaultValue={state.phone} />
         </label>
         {whatsapp ? (
           <fieldset className="flex flex-wrap gap-2">

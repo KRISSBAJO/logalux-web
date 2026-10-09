@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { AutoForm, ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Avatar, Empty, Flash, Fld, Ic, LoadError, Pill, Switch, Topbar, TopSearch, type PillTone } from "@/components/merchant-ui";
@@ -9,7 +10,7 @@ import "../../css/clients.css";
 
 export const metadata = { title: "Clients" };
 
-type SP = { q?: string; segment?: string; sort?: string; page?: string; client?: string; new?: string; ok?: string; err?: string };
+type SP = { [key: string]: string | undefined; q?: string; segment?: string; sort?: string; page?: string; client?: string; new?: string; ok?: string; err?: string };
 
 const SEGMENTS: { id: string; name: string; count?: string }[] = [
   { id: "", name: "All", count: "all" },
@@ -49,9 +50,9 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const one = (id: string) => `/clients/${encodeURIComponent(id)}`;
   // The list, the channel switches (asked, not assumed: LogaLuxe staff switch WhatsApp, SMS and email on), who holds a plan,
   // and, when the address names a client, that client's detail: none of these depend on another.
-  const [{ data: d, error }, modes, menu, named, namedHeld] = await Promise.all([
-    mLoad("/clients" + qs(filters)), channelModes(), mLoad("/menu"),
-    sp.client ? mLoad(one(sp.client)) : null, sp.client ? mLoad(one(sp.client) + "/plans") : null,
+  const [{ data: d, error }, modes, named, namedHeld] = await Promise.all([
+    mLoad("/clients" + qs(filters)), channelModes(),
+    sp.client ? mLoad(one(sp.client) + qs(sp)) : null, sp.client ? mLoad(one(sp.client) + "/plans" + qs(sp)) : null,
   ]);
   if (error) return <div className="main pg-clients"><LoadError title="Clients" error={error} /></div>;
 
@@ -61,10 +62,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
 
   // The side panel shows the client named in the address, or the first one in the list, whose detail can only be asked for now.
   const selId = sp.client || rows[0]?.id || "";
-  const [detail, held] = sp.client ? [named, namedHeld] : await Promise.all([selId ? mLoad(one(selId)) : null, selId ? mLoad(one(selId) + "/plans") : null]);
-  const holders = ((menu.data.holders ?? []) as Row[]).filter((h) => h.status === "active");
-  const members = new Set(holders.filter((h) => h.kind === "membership").map((h) => h.client_id as string));
-  const packaged = new Set(holders.filter((h) => h.kind === "package").map((h) => h.client_id as string));
+  const [detail, held] = sp.client ? [named, namedHeld] : await Promise.all([selId ? mLoad(one(selId) + qs(sp)) : null, selId ? mLoad(one(selId) + "/plans" + qs(sp)) : null]);
   const plans = (held && !held.error ? held.data.plans ?? [] : []) as Row[];
   const loyalty = (held && !held.error ? held.data.loyalty ?? null : null) as Row | null;
   const pointsHeld = Number(held?.data.points ?? 0);
@@ -177,7 +175,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
                 <thead><tr>{sortHead("Client", "name", "ascending")}{sortHead("Last visit", "", "descending")}<th>Next</th>{sortHead("Visits", "visits", "descending")}{sortHead("Spent", "spent", "descending")}<th>No-shows</th><th>Tags</th><th>Channel</th></tr></thead>
                 <tbody>
                   {rows.map((r) => {
-                    const pills = [...(members.has(r.id) ? [{ tone: "gold" as PillTone, text: "Member" }] : []), ...(packaged.has(r.id) ? [{ tone: "ok" as PillTone, text: "Package" }] : []), ...tagPills(r)].slice(0, 3);
+                    const pills = [...(r.active_membership ? [{ tone: "gold" as PillTone, text: "Member" }] : []), ...(r.active_package ? [{ tone: "ok" as PillTone, text: "Package" }] : []), ...tagPills(r)].slice(0, 3);
                     return (
                       <tr key={r.id} className={"row" + (sel?.id === r.id ? " on" : "")}>
                         <td>
@@ -293,6 +291,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
               ) : null}
               <div>
                 <div className="muted" style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 6 }}>Packages and memberships</div>
+<MerchantHistoryPagination name="plans" label="Client plans" selection={selId ? {client:String(selId)} : undefined} pagination={held?.data.plans_pagination} />
                 {held?.error ? <div className="muted" style={{ fontSize: 13 }}>{held.error}</div> : plans.length ? plans.map((p) => {
                   const live = p.status === "active" || p.status === "past_due";
                   const expired = !!p.expires_at && Date.parse(p.expires_at) < Date.now();
@@ -328,7 +327,8 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
                 <Link href={"/business/checkout" + qs({ sale: "new", client: sel.id })} style={{ fontSize: 13, fontWeight: 600, display: "inline-block", marginTop: 6 }}>Sell a package or membership</Link>
               </div>
               <div>
-                <div className="muted" style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 6 }}>Recent visits</div>
+                <div className="muted" style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 6 }}>Visit history</div>
+      <MerchantHistoryPagination name="visits" label="Client visits" selection={selId ? {client: String(selId)} : undefined} pagination={detail?.data.visits_pagination} />
                 {visits.length ? visits.map((v) => {
                   const ahead = Date.parse(v.starts_at) > Date.now() && (v.status === "requested" || v.status === "confirmed");
                   const gone = String(v.status).startsWith("cancelled") || v.status === "no_show" || v.status === "rescheduled";

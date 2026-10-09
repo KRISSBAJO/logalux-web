@@ -8,7 +8,7 @@ import { signIn } from "../account/actions";
 
 export const metadata = { title: "Sign in" };
 
-export default async function SignIn({ searchParams }: { searchParams: Promise<{ next?: string; ok?: string; err?: string; how?: string }> }) {
+export default async function SignIn({ searchParams }: { searchParams: Promise<{ next?: string; ok?: string; err?: string; how?: string; deleted?: string }> }) {
   const sp = await searchParams;
   const next = safeNext(sp.next);
   if (await getCustomer()) redirect(next);
@@ -19,6 +19,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
   return (
     <AuthCard title="Welcome back" sub={byCode ? "We send a 6-digit code to your phone. No password needed." : "Sign in to see your bookings and rebook in a tap."} sp={sp}
       footer={<>New to LogaLuxe? <Link href={`/signup?${byCode ? "how=code&" : ""}${q}`} className="font-semibold text-wine">Create an account</Link></>}>
+      {sp.deleted === "1" && <p role="status" className="mb-4 rounded-xl bg-ok-bg p-3 text-sm text-ok">Your account profile has been deleted and all devices signed out.</p>}
       {features.sms_login ? <AuthWays label="How to sign in" current={byCode ? "code" : "password"} passwordHref={`/signin?${q}`} codeHref={`/signin?how=code&${q}`} /> : null}
       {byCode ? <CodeSignIn mode="signin" next={next} whatsapp={features.whatsapp} /> : (
         <form action={signIn} className="flex flex-col gap-4">

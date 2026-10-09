@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
@@ -10,7 +11,7 @@ import "../../css/inventory.css";
 
 export const metadata = { title: "Inventory" };
 
-type SP = { ok?: string; err?: string; q?: string; filter?: string; sel?: string; product?: string; new?: string; location?: string; tab?: string; status?: string; view?: string; answer?: string };
+type SP = { [key: string]: string | undefined; ok?: string; err?: string; q?: string; filter?: string; sel?: string; product?: string; new?: string; location?: string; tab?: string; status?: string; view?: string; answer?: string };
 
 const KIND: Record<string, string> = { retail: "Retail", backbar: "Back-bar", both: "Retail and back-bar" };
 const CATEGORY: Record<string, string> = { hair: "Hair", styling: "Styling", tools: "Tools", skin: "Skin", nails: "Nails", gift: "Gifts" };
@@ -75,9 +76,9 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   const narrowed = !!(q || filter);
   const wantId = sp.sel ?? sp.product;
   const [res, whole, hist, detailsRes] = await Promise.all([
-    mLoad("/inventory" + qs({ q, filter, location: /^[0-9a-f-]{36}$/i.test(sp.location ?? "") ? sp.location : "" })),
+    mLoad("/inventory" + qs({ ...sp, q, filter, location: /^[0-9a-f-]{36}$/i.test(sp.location ?? "") ? sp.location : "" })),
     narrowed ? mLoad("/inventory") : null,
-    sp.product ? mLoad(`/products/${encodeURIComponent(sp.product)}/history`) : null,
+    sp.product ? mLoad(`/products/${encodeURIComponent(sp.product)}/history` + qs(sp)) : null,
     wantId ? mLoad(`/products/${encodeURIComponent(wantId)}/details`) : null,
   ]);
   const detailsFor = wantId && detailsRes ? { id: wantId, data: detailsRes.data as Row } : null;
@@ -90,7 +91,7 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   const count: Record<string, number> = { "": all.length, retail: all.filter((p) => p.kind !== "backbar").length, backbar: all.filter((p) => p.kind !== "retail").length, low: all.filter(isLow).length, online: all.filter((p) => p.active && p.kind !== "backbar").length, off: all.filter((p) => !p.active).length };
   const low = all.filter(isLow);
   const onOrder = new Set(orders.filter((o) => o.status === "ordered").flatMap((o) => ((o.items ?? []) as Row[]).map((i) => i.product_id as string)));
-  const draft = orders.find((o) => o.status === "draft");
+  const draft = d.draft_order as Row | null;
   const sel = all.find((p) => p.id === (sp.sel ?? sp.product)) ?? rows[0];
   const shown = all.find((p) => p.id === sp.product);
   // The stock list does not carry a product’s ingredients and directions. The shop’s own product page does,
@@ -102,7 +103,7 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   const loc = multi ? locations.find((l) => l.id === sp.location) : undefined, at = loc?.id as string | undefined;
   const main = locations.find((l) => l.is_primary) ?? locations[0];
   const shelf = (p: Row, id: string | undefined) => Number((((p.by_location ?? []) as Row[]).find((x) => x.location_id === id)?.qty) ?? 0);
-  const href = (extra: Record<string, string | undefined> = {}) => "/business/inventory" + qs({ q, filter, location: at, sel: sp.sel, ...extra });
+  const href = (extra: Record<string, string | undefined> = {}) => "/business/inventory" + qs({ ...sp, q, filter, location: at, sel: sp.sel, ...extra });
   const back = href({ sel: sel?.id });
   const top = Math.max(1, ...all.map((p) => p.stock as number));
   // The meter fills to a full shelf when one is set; otherwise to three times the reorder level, or the fullest product.
@@ -428,7 +429,7 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
                         <Fld label="Supplier"><select name="supplier_id" defaultValue=""><option value="">No supplier</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Fld>
                         <Fld label="Expected on"><input type="date" name="expected_on" min={today} /></Fld>
                       </div>
-                      <DataTable id="new-order" search="Search products" filters={["Supplier"]} pageSize={25} noun="product">
+<DataTable id="new-order" search="Search products" filters={["Supplier"]} pageSize={25} noun="product">
                         <table className="tbl">
                           <thead><tr><th>Product</th><th>Supplier</th><th className="num">In stock</th><th className="num">Cost</th><th className="num" data-nosort>Order</th></tr></thead>
                           <tbody>
@@ -449,6 +450,7 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
                   </Sheet>
                 )}
               </div>
+                            <MerchantHistoryPagination name="orders" label="Purchase orders" pagination={res.data.orders_pagination} />
               {orders.length ? orders.map((o) => {
                 const items = (o.items ?? []) as Row[], [label, cls] = PO[o.status] ?? [o.status, "pill-grey"];
                 const whenText = o.status === "received" && o.received_at ? `received ${dateMed(o.received_at, tz)}`
@@ -477,15 +479,16 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
                   </div>
                 );
               }) : <Empty title="No orders yet">{all.length ? "Draft one from low stock, or start a new order." : "Add products first, then order them here."}</Empty>}
-              <div className="muted" style={{ fontSize: 12 }}>Orders are your own record. LogaLuxe does not send them to suppliers or pay for them. The last 12 are shown.</div>
+              <div className="muted" style={{ fontSize: 12 }}>Orders are your own record. LogaLuxe does not send them to suppliers or pay for them.</div>
             </div>
           </aside>
         </div>
 
         {sp.product && (
           <Sheet title="Stock history" sub={shown ? `${shown.name} · ${shown.stock} in stock` : undefined} open closeHref={href({ sel: sp.sel ?? shown?.id })} wide>
+            <MerchantHistoryPagination name="history" label="Stock history" pagination={hist?.data.history_pagination} />
             {hist?.error ? <div role="alert" className="flash flash-err">{hist.error}</div> : !shown ? <Empty title="Product not found">It may have been removed.</Empty> : history.length ? (
-              <DataTable id="stock-history" search="Search history" filters={multi ? ["Why", "Location", "By"] : ["Why", "By"]} pageSize={10} noun="change">
+              <div className="dt">
                 <table className="tbl">
                   <thead><tr><th>When</th><th className="num">Change</th><th>Why</th>{multi && <th>Location</th>}<th>Note</th><th>By</th></tr></thead>
                   <tbody>
@@ -501,9 +504,9 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
                     ))}
                   </tbody>
                 </table>
-              </DataTable>
+              </div>
             ) : <Empty title="No stock changes yet">Deliveries, counts, corrections and back-bar use are listed here as they happen.</Empty>}
-            <div className="muted" style={{ fontSize: 12.5 }}>The last 40 changes are shown, newest first.</div>
+            <div className="muted" style={{ fontSize: 12.5 }}>Use the history controls to reach every stock change.</div>
           </Sheet>
         )}
       </div>

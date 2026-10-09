@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { Sheet, SubmitButton } from "@/components/merchant-client";
@@ -12,6 +13,7 @@ import "../../css/checkout.css";
 export const metadata = { title: "Checkout" };
 
 type SP = {
+  sales_page?: string; sales_per_page?: string; sales_q?: string; sales_sort?: string; sales_direction?: string;
   booking?: string; sale?: string; client?: string; day?: string;
   receipt?: string; sub?: string; disc?: string; tax?: string; tip?: string; dep?: string; total?: string; member?: string; promo?: string; pts?: string; ptsd?: string; earned?: string; lead?: string;
   ok?: string; err?: string;
@@ -37,7 +39,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   // The queue and the day's figures, plus the visit or the client the address names: none depends on another.
   // A visit is only put on the ticket if it is in the queue, which is checked once the queue is here.
   const [{ data: d, error }, dayRes, namedVisit, namedClient] = await Promise.all([
-    mLoad("/checkout"), mLoad("/checkout/day" + qs({ date: dayParam })),
+    mLoad("/checkout" + qs({ sales_page: sp.sales_page, sales_per_page: sp.sales_per_page, sales_q: sp.sales_q, sales_sort: sp.sales_sort, sales_direction: sp.sales_direction, receipt: sp.receipt })), mLoad("/checkout/day" + qs({ date: dayParam })),
     !quick && sp.booking ? mLoad(`/bookings/${encodeURIComponent(sp.booking)}`) : null,
     sp.client ? mLoad(`/clients/${encodeURIComponent(sp.client)}`) : null,
   ]);
@@ -77,7 +79,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   if (!visit && namedClient && !namedClient.error && namedClient.data.client) client = { id: namedClient.data.client.id, name: namedClient.data.client.name };
 
   const here = "/business/checkout" + qs(visit ? { booking: visit.id } : quick ? { sale: "new", client: client?.id } : {});
-  const receipt = sp.receipt ? sales.find((s) => s.id === sp.receipt) : undefined;
+  const receipt = sp.receipt ? (d.receipt ?? sales.find((s) => s.id === sp.receipt)) as Row | undefined : undefined;
   // The breakdown comes from the API's answer to the payment. Use it only when it adds up to the sale on record.
   const n = (v?: string) => Math.max(0, Math.round(Number(v) || 0));
   const parts = receipt && n(sp.total) === receipt.total_cents && n(sp.sub) - n(sp.disc) + n(sp.tax) + n(sp.tip) - n(sp.dep) === receipt.total_cents
@@ -201,13 +203,14 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
         <h3>Sales today</h3>
         <span className="muted" style={{ fontSize: 12.5 }}>{sales.length ? `${plural(sales.length, "sale")} · ${cash(sales.reduce((a, s) => a + s.total_cents - s.refunded_cents, 0))} after refunds` : ""}</span>
       </div>
+      <MerchantHistoryPagination name="sales" label="Sales today" pagination={d.sales_pagination} selection={visit ? { booking: visit.id } : { sale: "new" }} />
       {sales.length ? (
         <DataTable id="sales" search="Search sales" filters={["Paid by", "Status"]} pageSize={10} noun="sale" sort={{ col: "Time", dir: "desc" }}>
           <table className="tbl">
             <thead><tr><th>Time</th><th>Client</th><th>For</th><th>Paid by</th><th className="num">Tip</th><th className="num">Total</th><th>Status</th>{manager && <th data-nosort><span className="sr">Refund</span></th>}</tr></thead>
             <tbody>
               {sales.map((s) => {
-                const left = s.total_cents - s.refunded_cents, st = SALE[s.status] ?? { text: s.status, tone: "grey" as PillTone };
+                const left = s.total_cents - s.refunded_cents, st = s.provider_refund_status === "pending" ? { text: "Provider refund pending", tone: "gold" as PillTone } : SALE[s.status] ?? { text: s.status, tone: "grey" as PillTone };
                 return (
                   <tr key={s.id} style={s.id === receipt?.id ? { background: "#F1E8DD" } : undefined}>
                     <td style={{ whiteSpace: "nowrap" }} data-sort={s.created_at}>{clock(s.created_at, tz)}</td>
@@ -215,13 +218,14 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
                     <td>{s.items ?? <span className="muted">None</span>}</td>
                     <td style={{ whiteSpace: "nowrap" }}>{paidBy(s.method)}</td>
                     <td className="num" data-sort={s.tip_cents}>{s.tip_cents ? cash(s.tip_cents) : <span className="muted">None</span>}</td>
-                    <td className="num" data-sort={s.total_cents}><b>{cash(s.total_cents)}</b>{s.refunded_cents > 0 ? <div className="muted" style={{ fontSize: 12 }}>−{cash(s.refunded_cents)} refunded</div> : null}</td>
-                    <td data-filter={st.text}><Pill tone={st.tone}>{st.text}</Pill></td>
+                    <td className="num" data-sort={s.total_cents}><b>{cash(s.total_cents)}</b>{s.refunded_cents > 0 ? <div className="muted" style={{ fontSize: 12 }}>−{cash(s.refunded_cents)} {s.provider_refund_status === "pending" ? "reserved for refund" : "refunded"}</div> : null}</td>
+                    <td data-filter={st.text}><Pill tone={st.tone}>{st.text}</Pill>{s.provider_refund_status === "pending" && s.refund_problem ? <small className="muted" style={{display:"block",maxWidth:240}}>Recovery pending: {s.refund_problem}</small> : null}</td>
                     {manager && (
                       <td style={{ textAlign: "right" }}>
-                        {left > 0 ? (
+                        {left > 0 && s.provider_refund_status !== "pending" ? (
                           <Sheet trigger="Refund" triggerClass="btn btn-out btn-sm" title="Refund a sale" sub={`${s.client_name} · ${cash(s.total_cents)} by ${(paidBy(s.method)).toLowerCase()}${s.refunded_cents > 0 ? ` · ${cash(s.refunded_cents)} already refunded` : ""}`}>
                             <form action={refundSale}>
+                              <input type="hidden" name="request_id" value={crypto.randomUUID()} />
                               <input type="hidden" name="back" value={here} />
                               <input type="hidden" name="id" value={s.id} />
                               <input type="hidden" name="simulated" value={simulated && s.method !== "cash" ? "1" : "0"} />
@@ -229,7 +233,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
                                 <input name="amount" inputMode="decimal" defaultValue={(left / 100).toString()} required />
                               </Fld>
                               <Fld label="Reason"><input name="reason" required maxLength={200} placeholder="Why the money is going back" /></Fld>
-                              <label className="chk"><input type="checkbox" name="restock" />Put the products from this sale back in stock</label>
+                              <label className="chk"><input type="checkbox" name="restock" />Return all products to the original location (first full refund only)</label>
                               <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
                                 {s.method === "link" ? `This sale was paid online, so the refund is sent back to the client's card through ${provider}.`
                                   : s.method === "cash" ? "Hand the cash back yourself. This records it."
@@ -248,7 +252,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
             </tbody>
           </table>
         </DataTable>
-      ) : <Empty title="No sales yet today">{`Each payment you take shows here${manager ? ", with a way to refund it" : ""}.`}</Empty>}
+      ) : <Empty title={sp.sales_q ? "No sales match this search" : "No sales yet today"}>{`Each payment you take shows here${manager ? ", with a way to refund it" : ""}.`}</Empty>}
     </div>
   );
 

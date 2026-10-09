@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton } from "@/components/merchant-client";
@@ -83,14 +84,14 @@ function PolicyCard({ p, back }: { p: Row; back: string }) {
   );
 }
 
-export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string; status?: string; view?: string; answer?: string }; m: Merchant }) {
+export async function OnlineOrders({ sp, m }: { sp: { [key: string]: string | undefined; ok?: string; err?: string; status?: string; view?: string; answer?: string }; m: Merchant }) {
   const returnsView = sp.view === "returns";
   const status = TABS.some(([id]) => id === sp.status) ? sp.status! : "open";
   // The Returns view needs the orders only for the counts on the chips.
   const [res, policy, rts, care] = await Promise.all([
-    mLoad("/orders" + qs({ status: returnsView ? "new" : status === "all" ? "" : status })),
+    mLoad("/orders" + qs({ ...sp, status: returnsView ? "new" : status === "all" ? "" : status })),
     returnsView ? null : mLoad("/shop-policy"),
-    returnsView ? mLoad("/returns") : null,
+    returnsView ? mLoad("/returns" + qs({ ...sp, status: undefined })) : null,
     careCounts(),
   ]);
   if (res.status === 403) return <div className="main pg-inventory"><NoAccess title="Online orders" need="manager" /></div>;
@@ -104,7 +105,7 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
   const back = "/business/inventory" + qs({ tab: "orders", status: status === "open" ? "" : status });
   const returnsHref = "/business/inventory" + qs({ tab: "orders", view: "returns" });
   const returns = (rts?.data.returns ?? []) as Row[];
-  const waiting = returnsView && !rts?.error ? returns.filter((r) => r.status === "requested").length : care.returns;
+  const waiting = returnsView && !rts?.error ? Number(rts?.data.counts?.requested ?? 0) : care.returns;
 
   return (
     <div className="main pg-inventory">
@@ -144,11 +145,12 @@ export async function OnlineOrders({ sp, m }: { sp: { ok?: string; err?: string;
 
         {returnsView ? (
           rts?.error ? <div role="alert" className="flash flash-err">{rts.status === 403 ? "Only a manager or the owner can answer returns." : `Returns could not be loaded: ${rts.error}`}</div>
-            : <ReturnsView rows={returns} reasons={(rts?.data.reasons ?? {}) as Record<string, string>} tz={tz} cur={m.currency} answer={sp.answer} />
+            : <ReturnsView sp={sp} pagination={rts?.data.returns_pagination} selected={rts?.data.selected_return} rows={returns} reasons={(rts?.data.reasons ?? {}) as Record<string, string>} tz={tz} cur={m.currency} answer={sp.answer} />
         ) : (<>
 
         {orders.length ? (
           <div className="tablebox oo">
+            <MerchantHistoryPagination name="orders" label="Online orders" pagination={res.data.orders_pagination} />
             <DataTable id="online-orders" search="Search orders" filters={["How", "Status"]} pageSize={25} noun="order">
               <table>
                 <thead><tr><th>When</th><th>Customer</th><th>Items</th><th>How</th><th>Items total</th><th>You receive</th><th>Status</th><th data-nosort>Next step</th></tr></thead>

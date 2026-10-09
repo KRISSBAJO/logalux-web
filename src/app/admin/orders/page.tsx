@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin-pagination";
 import { Btn, Content, Empty, FilterSearch, Flash, Hidden, Panel, ReadOnly, Tabs, Topbar, ago, fmtMoney, inputCls, statusPill, inputSm } from "@/components/admin-ui";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
@@ -8,8 +9,10 @@ const statuses = ["paid", "ready", "shipped", "delivered", "cancelled", "refunde
 
 export default async function Orders({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
+  const pageParams = sp as Record<string,string|undefined>;
+  const paging = {page:pageParams.page,per_page:pageParams.per_page,sort:pageParams.sort,direction:pageParams.direction};
   const { q = "", status = "" } = sp;
-  const [admin, res] = await Promise.all([getAdmin(), load(`/orders${qs({ q, status })}`)]);
+  const [admin, res] = await Promise.all([getAdmin(), load(`/orders${qs({ ...paging, q, status })}`)]);
   const list: Row[] = res.data.orders ?? [];
   const back = `/admin/orders${qs({ q, status })}`;
   const ops = can(admin, "ops");
@@ -57,6 +60,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
           </table>
           {list.length === 0 && <Empty>No orders match.</Empty>}
         </Panel>
+      <AdminPagination pagination={res.data.pagination} columns={["created_at","customer_name","total_cents","status"]} />
       </Content>
     </>
   );

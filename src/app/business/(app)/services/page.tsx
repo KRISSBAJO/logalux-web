@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { Fragment } from "react";
@@ -13,7 +14,7 @@ import "../../css/services.css";
 
 export const metadata = { title: "Services" };
 
-type SP = { ok?: string; err?: string; cat?: string; view?: string; s?: string; new?: string };
+type SP = { [key: string]: string | undefined; ok?: string; err?: string; cat?: string; view?: string; s?: string; new?: string };
 
 const major = (cents: number | null | undefined) => (cents === null || cents === undefined ? "" : String(cents / 100));
 const cut = (text: string, n = 64) => (text.length > n ? text.slice(0, n - 1).trimEnd() + "…" : text);
@@ -82,7 +83,7 @@ export default async function Services({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const me = (await getMe())!;
   const { merchant: m } = me;
-  const [{ data, error }, menuRes, intake] = await Promise.all([mLoad("/services"), mLoad("/menu"), mCan(me, "manager") ? mLoad("/intake") : null]);
+  const [{ data, error }, menuRes, intake] = await Promise.all([mLoad("/services"), mLoad("/menu" + qs({ ...sp, holders_kind: sp.view === "packages" ? "package" : sp.view === "memberships" ? "membership" : undefined })), mCan(me, "manager") ? mLoad("/intake") : null]);
   if (error) return <div className="main pg-services"><LoadError title="Services & pricing" error={error} /></div>;
 
   const cur = m.currency, manager = mCan(me, "manager");
@@ -138,7 +139,8 @@ export default async function Services({ searchParams }: { searchParams: Promise
 
   return (
     <div className="main pg-services">
-      <Topbar title="Services & pricing">
+      {(page === "packages" || page === "memberships") && <MerchantHistoryPagination name="holders" label="Plan holders" pagination={menu.holders_pagination} />}
+<Topbar title="Services & pricing">
         <span className="muted" style={{ fontSize: 13 }}>
           {plural(active.length, "service")} · {plural(packages.filter((x) => x.active).length, "package")} · {plural(memberships.filter((x) => x.active).length, "membership")}
         </span>

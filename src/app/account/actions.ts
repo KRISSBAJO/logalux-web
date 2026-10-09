@@ -10,6 +10,20 @@ import { USER_COOKIE, CustomerApiError, cookieOptions, customerApi, customerUplo
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const enc = encodeURIComponent;
 
+export async function revokeDevice(fd: FormData) {
+  let error = "";
+  try { await customerApi(`/auth/sessions/${enc(v(fd,"id"))}`, { method: "DELETE" }); } catch(e) { error = (e as Error).message; }
+  await back(error ? "err" : "ok", error || "Other sign-in access has been removed.", "details");
+}
+
+export async function deleteMyAccount(fd: FormData) {
+  let error = "";
+  try { await customerApi("/auth/delete", {method:"POST",body:{password:String(fd.get("password") ?? ""),confirm:v(fd,"confirm")}}); } catch(e) { error=(e as Error).message; }
+  if(error) await back("err",error,"details");
+  (await cookies()).delete({name:USER_COOKIE,path:"/"});
+  redirect("/signin?deleted=1");
+}
+
 type Session = { token: string; expires_in: number };
 
 /** A friend's invitation code as it arrives in a link: letters and digits only, twelve at most. */
@@ -112,7 +126,8 @@ export async function cancelMySeries(fd: FormData) {
   type B = { id: string; status: string; starts_at: string; ends_at: string; timezone: string; series_id?: string | null; deposit_paid?: boolean };
   let list: B[] = [];
   try {
-    list = (await customerApi<{ bookings: B[] }>("/auth/me")).bookings ?? [];
+    let page=1,pages=1;
+    do {const data=await customerApi<{bookings:B[];booking_page:{pages:number}}>(`/auth/me?paged=1&scope=upcoming&page=${page}`);list.push(...(data.bookings??[]));pages=data.booking_page.pages;page++;} while(page<=pages);
   } catch (e) {
     await back("err", (e as Error).message);
   }
@@ -369,7 +384,7 @@ export async function codeStep(prev: CodeState, fd: FormData): Promise<CodeState
   if (intent === "send") {
     const phone = v(fd, "phone") || prev.phone;
     const channel = v(fd, "channel") === "whatsapp" ? "whatsapp" : "sms";
-    if (!phone) return { ...prev, error: "Enter your mobile number with the country code, like +1 615 555 0100." };
+    if (!phone) return { ...prev, error: "Enter your mobile number with its country code, such as +234 for Nigeria or +1 for the US." };
     try {
       const out = await customerApi<{ sent?: string }>("/auth/code/send", { method: "POST", auth: false, body: { phone, channel } });
       return { stage: "code", phone, channel, code: "", sent: out.sent ?? "", error: "", sends: prev.sends + 1 };

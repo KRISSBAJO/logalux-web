@@ -29,7 +29,7 @@ export default async function Messages({ searchParams }: { searchParams: Promise
           {["email", "whatsapp", "sms"].map((ch) => (
             <div key={ch} className="card flex items-center gap-3 p-4">
               <i className={`block h-2.5 w-2.5 flex-none rounded-full ${live(ch) ? "bg-ok" : "bg-gold"}`} />
-              <span><b className="block text-[14.5px] font-semibold">{channelName[ch]}</b><span className="text-[12.5px] text-muted">{live(ch) ? "Connected. Messages are delivered." : "Not connected. A send is recorded but nobody receives it."}</span></span>
+              <span><b className="block text-[14.5px] font-semibold">{channelName[ch]}</b><span className="text-[12.5px] text-muted">{live(ch) ? "Connected. Delivery is handled by the provider." : "Not connected. A send is recorded but nobody receives it."}</span></span>
             </div>
           ))}
         </div>
@@ -67,7 +67,7 @@ export default async function Messages({ searchParams }: { searchParams: Promise
                 <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[14px] leading-relaxed text-muted">{b.body}</p>
                 <p className="mt-2 text-[12px] text-muted-2">
                   Written by {b.created_by}, {ago(b.created_at)}
-                  {b.status !== "draft" && <> · sent by {b.sent_by}, {ago(b.sent_at)} · {b.delivered} delivered, {b.logged} recorded only, {b.skipped} with no contact, {b.failed} failed</>}
+                  {b.status !== "draft" && <> · sent by {b.sent_by}, {ago(b.sent_at)} · {b.delivered} delivered, {b.queued ?? 0} queued, {b.logged} recorded only, {b.skipped} with no contact, {b.failed} failed</>}
                 </p>
               </div>
               {b.status === "draft" && (

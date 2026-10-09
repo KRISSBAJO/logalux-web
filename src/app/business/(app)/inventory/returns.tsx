@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DataTable } from "@/components/data-table";
+import { MerchantHistoryPagination, type HistoryPage } from "@/components/merchant-history-pagination";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
 import { Empty, Fld } from "@/components/merchant-ui";
 import { qs, type Row } from "@/lib/merchant-api";
@@ -20,27 +20,31 @@ export function refundSplit(refund: number, credit: number, cur: string): string
 }
 
 /** `cur` is the currency of the business: it sells in its own, and every return here is in it. */
-export function ReturnsView({ rows, reasons, tz, cur, answer }: { rows: Row[]; reasons: Record<string, string>; tz: string; cur: string; answer?: string }) {
-  const here = "/business/inventory" + qs({ tab: "orders", view: "returns" });
-  const open = answer ? rows.find((r) => r.id === answer && r.status === "requested") : undefined;
+export function ReturnsView({ rows, reasons, tz, cur, answer, pagination, selected, sp }: { pagination?: HistoryPage; selected?: Row; sp: Record<string,string | undefined>; rows: Row[]; reasons: Record<string, string>; tz: string; cur: string; answer?: string }) {
+  const here = "/business/inventory" + qs({ ...sp, answer: undefined, tab: "orders", view: "returns" });
+  const open = answer ? (selected?.id === answer && selected.status === "requested" ? selected : rows.find((r) => r.id === answer && r.status === "requested")) : undefined;
 
-  if (!rows.length) {
+  if (!rows.length && !open) {
     return (
-      <Empty title="No return requests">
+      <>
+<MerchantHistoryPagination name="returns" label="Returns" pagination={pagination} />
+<Empty title="No return requests">
         When a customer asks to send back something they bought from you in the shop, it shows here for you to answer. Customers can only ask while your returns policy allows it. You set that under <Link href="/business/inventory?tab=orders#policy">What shoppers are told</Link>.
       </Empty>
+</>
     );
   }
 
   return (
     <>
-      <div className="tablebox oo">
-        <DataTable id="shop-returns" search="Search returns" filters={["Reason", "Status"]} pageSize={25} noun="return">
+      <MerchantHistoryPagination name="returns" label="Returns" pagination={pagination} />
+<div className="tablebox oo">
+        <div className="dt">
           <table>
             <thead><tr><th>Asked</th><th>Customer</th><th>Items</th><th>Reason</th><th>Paid to you</th><th>Status</th><th data-nosort>Answer</th></tr></thead>
             <tbody>
               {rows.map((r) => {
-                const [label, cls] = STATE[r.status] ?? [r.status, "pill-grey"];
+                const [label, cls] = r.provider_refund_status === "pending" ? ["Provider refund pending", "pill-gold"] : STATE[r.status] ?? [r.status, "pill-grey"];
                 const items = (r.items ?? []) as Row[], reason = reasons[r.reason] ?? r.reason;
                 const paid = Number(r.items_cents ?? 0) + Number(r.shipping_cents ?? 0);
                 const by = r.decided_at ? `${r.decided_by || "Someone on your team"} · ${dateMed(r.decided_at, tz)} ${clock(r.decided_at, tz)}` : "";
@@ -66,10 +70,10 @@ export function ReturnsView({ rows, reasons, tz, cur, answer }: { rows: Row[]; r
                     </td>
                     <td data-filter={label} data-sort={label}><span className={"pill " + cls}>{label}</span></td>
                     <td className="wrapc">
-                      {r.status === "requested" && <Link href={here + "&answer=" + encodeURIComponent(r.id)} className="btn btn-ink btn-sm">Answer</Link>}
+                      {r.status === "requested" && <Link href={here + (here.includes("?") ? "&" : "?") + "answer=" + encodeURIComponent(r.id)} className="btn btn-ink btn-sm">Answer</Link>}
                       {r.status === "approved" && (
                         <>
-                          <b>Refunded {money(r.refund_cents, cur)}</b>
+                          <b>{r.provider_refund_status === "pending" ? "Refund reserved" : "Refunded"} {money(r.refund_cents, cur)}</b>
                           <small className="sub">{refundSplit(r.refund_cents, r.credit_cents, cur)}</small>
                           <small className="sub">{r.restocked ? "Items put back in stock" : "Items not put back in stock"}</small>
                         </>
@@ -83,9 +87,9 @@ export function ReturnsView({ rows, reasons, tz, cur, answer }: { rows: Row[]; r
               })}
             </tbody>
           </table>
-        </DataTable>
+        </div>
       </div>
-      <div className="muted" style={{ fontSize: 12.5 }}>You answer each request once. The customer is emailed your answer. The last 300 are shown.</div>
+      <div className="muted" style={{ fontSize: 12.5 }}>You answer each request once. The customer is emailed your answer.</div>
 
       {answer && !open ? <div role="alert" className="flash flash-err">That return has already been answered, or it is not one of yours.</div> : null}
       {open ? (() => {

@@ -267,7 +267,7 @@ export function PlansView({ kind, plans, holders, services, cur, tz, manager, ba
         <h3>{pkg ? "Clients with a package" : "Members"}</h3>
         {mine.length ? (
           <div className="boxed">
-            <DataTable id={"holders-" + kind} search="Search clients" filters={["Plan", "Status"]} pageSize={10} noun={pkg ? "package" : "membership"}>
+            <div className="dt">
               <table className="tbl">
                 <thead><tr><th>Client</th><th data-col="Plan">{pkg ? "Package" : "Membership"}</th><th>Status</th><th className="num">{pkg ? "Visits left" : "Included visits left"}</th><th>Started</th><th>{pkg ? "Use by" : "Renews"}</th>{manager && <th data-nosort><span className="sr">Actions</span></th>}</tr></thead>
                 <tbody>
@@ -299,7 +299,7 @@ export function PlansView({ kind, plans, holders, services, cur, tz, manager, ba
                   })}
                 </tbody>
               </table>
-            </DataTable>
+            </div>
           </div>
         ) : <Empty title={pkg ? "No client holds a package yet" : "No members yet"}>Sell one at Checkout and it shows here.</Empty>}
       </div>

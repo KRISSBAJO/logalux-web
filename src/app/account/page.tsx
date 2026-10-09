@@ -1,8 +1,11 @@
+import { whereAmI } from "@/lib/places";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/api";
-import { customerApi, getCustomer, type Customer } from "@/lib/customer";
+import { customerApi, userToken, CustomerApiError, type Customer } from "@/lib/customer";
+import { AccountPhoto } from "./account-photo";
+import { Privacy } from "./privacy";
 import { myCards } from "@/lib/cards";
 import { getFeatures } from "@/lib/features";
 import { NO_PAY, WalletNote, cardExpiry, cardLabel, cardsFor, type PayFeatures } from "@/components/pay-bits";
@@ -14,11 +17,11 @@ export const metadata = { title: "Your account" };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
-type SP = { ok?: string; err?: string; to?: string; thread?: string; tab?: string; move?: string; day?: string; reviewed?: string };
+type SP = { ok?: string; err?: string; to?: string; thread?: string; tab?: string; move?: string; day?: string; reviewed?: string; page?: string; order_page?: string; scope?: string; q?: string; status?: string; sort?: string };
 /** A product the client saved in the shop. */
 type SavedProduct = { slug: string; name: string; seller_name: string; price_cents: number; stock: number; tone: string; sizes?: { label: string; price_cents: number }[] | null; photo_id?: string | null; currency?: string };
 /** Store credit and the invitation that earns it. `on` is false until LogaLuxe staff set an amount. */
-type Referral = { on: boolean; credit_cents: number; currency: string; balance_cents: number; code?: string; link?: string; friends_joined: number; friends_paid: number; history?: { amount_cents: number; reason: string; created_at: string }[] | null };
+type Referral = { on: boolean; credit_cents: number; currency: string; balance_cents: number; code?: string; link?: string; friends_joined: number; friends_paid: number; history?: { amount_cents: number; currency?: string; reason: string; created_at: string }[] | null };
 
 const TABS: [string, string][] = [["bookings", "Bookings"], ["orders", "Orders"], ["saved", "Saved"], ["wallet", "Wallet"], ["messages", "Messages"], ["details", "Details and password"]];
 const TAB_IDS = TABS.map(([id]) => id);
@@ -57,6 +60,7 @@ function progress(s: Row): string {
 function returnState(rt: Row, seller: string, currency: string): string {
   const reply = String(rt.reply ?? "").trim();
   const said = reply ? ` ${seller} wrote: "${reply}"` : "";
+  if (rt.provider_refund_status === "pending") return "Return approved. The card refund is awaiting provider confirmation; you do not need to request it again.";
   if (rt.status === "approved") {
     const refund = Number(rt.refund_cents) || 0, credit = Math.min(Number(rt.credit_cents) || 0, refund), card = refund - credit;
     const how = card > 0 && credit > 0 ? `${money(card, currency)} back to your card and ${money(credit, currency)} as store credit` : credit > 0 ? `${money(credit, currency)} as store credit` : `${money(card, currency)} back to your card`;
@@ -84,19 +88,24 @@ function Booking({ b, past, sp, series = [], pay: payf = NO_PAY }: { b: Row; pas
   const wallets = payf.wallets && b.currency !== "NGN";
   const guest = String(b.guest_name ?? "").trim();
   const canRepeat = ["requested", "confirmed", "completed", "paid"].includes(b.status);
-  const [label, pill] = bookingState[b.status] ?? [b.status, "pill-grey"];
+  const awaiting = past && ["requested", "confirmed", "checked_in", "in_progress"].includes(b.status);
+  const [label, pill] = awaiting ? ["Awaiting an update", "pill-gold"] : bookingState[b.status] ?? [b.status, "pill-grey"];
   const more = b.more as Row | undefined, pay = b.payment as Row | undefined;
   const moving = !past && sp.move === b.id && !!more;
   const freeUntil = more?.free_until ? when(more.free_until, b.timezone) : "";
   const depositDue = b.deposit_cents > 0 && !b.deposit_paid;
   return (
     <div id={`b-${b.id}`} className={`card flex scroll-mt-6 flex-wrap items-center gap-x-5 gap-y-3 rounded-[20px] p-5 ${past ? "opacity-90" : ""}`}>
-      <span aria-hidden className="h-14 w-14 flex-none rounded-2xl" style={{ background: b.tone }} />
+      <AccountPhoto id={b.photo_id} name={b.business} tone={b.tone} />
       <div className="min-w-0 flex-[1_1_260px]">
         <div className="flex flex-wrap items-center gap-2"><Link href={`/b/${b.slug}`} className="text-[17px] font-semibold hover:text-wine">{b.business}</Link><span className={`pill ${pill}`}>{label}</span>{b.series_id ? <span className="pill pill-info">Repeats</span> : null}</div>
         <div className="mt-0.5 text-[14.5px]">{when(b.starts_at, b.timezone)}</div>
         {guest ? <div className="text-[14px] [overflow-wrap:anywhere]">For <b className="font-semibold">{guest}</b></div> : null}
         <div className="text-[13.5px] text-muted">{b.services} · with {b.staff}{b.address ? ` · ${b.address}, ${b.city}` : ""}</div>
+        {awaiting && <p className="mt-1 text-[13px] text-gold-ink">The scheduled time has passed. The business hasn’t updated this visit yet.</p>}
+        {b.refund_state==="refunded" && <p className="mt-1 text-[13px] text-ok">Deposit refund accepted by the payment provider. Your bank may take a few days to show it.</p>}
+        {b.refund_state==="pending" && <p className="mt-1 text-[13px] text-gold-ink">Your deposit refund is being processed. Contact support if you need help.</p>}
+        {b.detail_failed && <p role="alert" className="mt-1 text-sm text-bad">Some appointment details couldn’t load. Refresh this page to retry.</p>}
       </div>
       <div className="text-right">
         <b className="block text-[17px] font-semibold">{money(b.total_cents, b.currency)}</b>
@@ -226,35 +235,44 @@ function Booking({ b, past, sp, series = [], pay: payf = NO_PAY }: { b: Row; pas
 
 export default async function Account({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  if (!(await getCustomer())) redirect("/signin?next=/account");
-  let data: { user: Customer; bookings: Row[]; orders: Row[] };
+  if (!(await userToken())) redirect("/signin?next=/account");
+  let data: { user: Customer; bookings: Row[]; orders: Row[]; summary: Row; booking_page: Row; order_page: Row };
+  const query = new URLSearchParams({ paged: "1" });
+  for (const key of ["page","order_page","scope","q","status","sort"] as const) if(sp[key]) query.set(key,sp[key]!);
   try {
-    data = await customerApi("/auth/me");
-  } catch {
-    redirect("/signin?next=/account");
+    data = await customerApi(`/auth/me?${query}`);
+  } catch(e) {
+    if(e instanceof CustomerApiError && e.status===401) redirect("/signin?next=/account");
+    return <><SiteHeader/><main className="container-x py-16"><h1 className="serif text-4xl">Your account is temporarily unavailable</h1><p role="alert" className="mt-4">We couldn’t load your activity. Your bookings haven’t changed.</p><Link href="/account" className="btn btn-ink mt-5">Try again</Link></main><SiteFooter/></>;
   }
   const { user } = data;
+  const where = await whereAmI();
+  const creditCurrency = where.scope === "NG" ? "NGN" : "USD";
+  const summaryCredit = Math.max(0, Number(creditCurrency === "NGN" ? data.summary.credit_ngn_cents : data.summary.credit_cents) || 0);
+  const otherCredit = Math.max(0, Number(creditCurrency === "NGN" ? data.summary.credit_cents : data.summary.credit_ngn_cents) || 0);
+  const otherCurrency = creditCurrency === "NGN" ? "USD" : "NGN";
   const bookings = data.bookings ?? [], orders = data.orders ?? [];
   // A link to a conversation opens Messages, whatever else it says.
   const tab = TAB_IDS.includes(sp.tab ?? "") ? sp.tab! : sp.to || sp.thread ? "messages" : "bookings";
 
   // Messages with businesses. A failure here should not hide the rest of the account.
   let threads: Row[] = [], open: { thread: Row; messages: Row[] } | null = null, toBiz: Row | null = null;
-  try { threads = (await customerApi<{ threads: Row[] }>("/auth/threads")).threads ?? []; } catch {}
+  let messageError = "";
+  if(tab==="messages") try { threads = (await customerApi<{ threads: Row[] }>("/auth/threads")).threads ?? []; } catch { messageError="We couldn’t load your conversations."; }
   if (tab === "messages") {
-    if (sp.thread) { try { open = await customerApi(`/auth/threads/${encodeURIComponent(sp.thread)}`); } catch {} }
+    if (sp.thread) { try { open = await customerApi(`/auth/threads/${encodeURIComponent(sp.thread)}`); } catch { messageError="We couldn’t open this conversation."; } }
     if (!open && sp.to) {
       const had = threads.find((t) => t.slug === sp.to);
-      if (had) { try { open = await customerApi(`/auth/threads/${encodeURIComponent(had.id)}`); } catch {} }
-      else { try { toBiz = (await customerApi<{ business: Row }>(`/businesses/${encodeURIComponent(sp.to)}`, { auth: false })).business; } catch {} }
+      if (had) { try { open = await customerApi(`/auth/threads/${encodeURIComponent(had.id)}`); } catch { messageError="We couldn’t open this conversation."; } }
+      else { try { toBiz = (await customerApi<{ business: Row }>(`/businesses/${encodeURIComponent(sp.to)}`, { auth: false })).business; } catch { messageError="We couldn’t load this business. Please retry."; } }
     }
   }
-  const unread = threads.reduce((n, t) => n + (Number(t.unread_client) || 0), 0);
+  const unread = Number(data.summary.unread) || 0;
   const stamp = (iso: string) => new Date(iso).toLocaleString("en-US", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
 
   const now = Date.now();
   const active = (b: Row) => ["requested", "confirmed", "checked_in", "in_progress"].includes(b.status) && new Date(b.ends_at).getTime() > now;
-  const upcoming = bookings.filter(active).reverse();
+  const upcoming = bookings.filter(active).sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const past = bookings.filter((b) => !active(b));
 
   // What each section needs beyond the account itself. Each is loaded only when its section is open.
@@ -262,18 +280,18 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   let savedProducts: SavedProduct[] = [], productsError = false, referral: Referral | null = null, creditCents = 0;
   if (tab === "bookings") {
     // What may still be done to each upcoming booking, and where to pay a deposit that is still owed.
-    await Promise.all(upcoming.slice(0, 20).map(async (b) => {
+    await Promise.all(upcoming.map(async (b) => {
       const [more, pub] = await Promise.all([
-        customerApi<{ booking: Row }>(`/auth/bookings/${b.id}`).catch(() => null),
-        b.deposit_cents > 0 && !b.deposit_paid ? customerApi<{ booking: Row }>(`/bookings/${b.id}`, { auth: false }).catch(() => null) : null,
+        customerApi<{ booking: Row }>(`/auth/bookings/${b.id}`).catch(() => {b.detail_failed=true;return null;}),
+        b.deposit_cents > 0 && !b.deposit_paid ? customerApi<{ booking: Row }>(`/bookings/${b.id}`).catch(() => {b.detail_failed=true;return null;}) : null,
       ]);
       b.more = more?.booking;
       b.payment = pub?.booking?.payment;
     }));
   } else if (tab === "orders") {
     // The lines of each order, grouped by who sells them.
-    await Promise.all(orders.slice(0, 30).map(async (o) => {
-      const full = (await customerApi<{ order: Row }>(`/orders/${o.id}`, { auth: false }).catch(() => null))?.order;
+    await Promise.all(orders.map(async (o) => {
+      const full = (await customerApi<{ order: Row }>(`/orders/${o.id}`).catch(() => {o.detail_failed=true;return null;}))?.order;
       o.lines = full?.items; o.shipping_cents = full?.shipping_cents ?? 0; o.tax_cents = full?.tax_cents ?? 0;
       // The same answer says, seller by seller, whether the items can be sent back and what became of a return.
       o.parts = full?.shipments ?? []; o.return_reasons = full?.return_reasons ?? {}; o.credit_cents = full?.credit_cents ?? o.credit_cents ?? 0;
@@ -288,18 +306,18 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     saved = biz?.favourites ?? [];
     savedProducts = prods?.products ?? [];
     // The saved list does not say what each product is priced in, so each product is asked. A price is shown only once its currency is known.
-    await Promise.all(savedProducts.slice(0, 60).map(async (p) => {
+    await Promise.all(savedProducts.map(async (p) => {
       p.currency = (await customerApi<{ product: { currency?: string } }>(`/products/${encodeURIComponent(p.slug)}`, { auth: false }).catch(() => null))?.product?.currency;
     }));
   } else if (tab === "wallet") {
     const [w, r] = await Promise.all([
-      customerApi<{ wallet: Row[]; credit_cents?: number }>("/auth/wallet").catch((e) => { sectionError = (e as Error).message; return null; }),
+      customerApi<{ wallet: Row[]; credit_cents?: number; credit_balances?: Record<string,number> }>("/auth/wallet").catch((e) => { sectionError = (e as Error).message; return null; }),
       // The invitation is an extra: if it cannot be read, the wallet still shows.
-      customerApi<Referral>("/auth/referral").catch(() => null),
+      customerApi<Referral>("/auth/referral").catch(() => {sectionError="Referral details could not be loaded.";return null;}),
     ]);
     wallet = w?.wallet ?? [];
     referral = r;
-    creditCents = Number(w?.credit_cents ?? r?.balance_cents) || 0;
+    creditCents = Number(w?.credit_balances?.[creditCurrency] ?? (creditCurrency === "USD" ? w?.credit_cents ?? r?.balance_cents : 0)) || 0;
   }
   // What LogaLuxe staff have switched on. Anything that is off is left out of the page altogether.
   const features = await getFeatures();
@@ -312,8 +330,11 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const creditHistory = referral?.history ?? [];
   const inviting = !!referral?.on && !!referral.link && !!referral.code && referral.credit_cents > 0;
 
-  const count: Record<string, number> = { bookings: upcoming.length, messages: unread };
+  const count: Record<string, number> = { bookings: Number(data.summary.upcoming), messages: unread };
   const h2 = "serif mb-4 text-[28px]";
+  const linkTo = (patch: Record<string,string>) => { const p=new URLSearchParams();for(const k of ["tab","scope","q","status","page","order_page","sort"] as const) if(sp[k]) p.set(k,sp[k]!);for(const [k,v] of Object.entries(patch)) p.set(k,v);return `/account?${p}`; };
+  const paging = (meta:Row,key:string) => meta.pages>1 ? <nav aria-label={`${key==="page"?"Booking":"Order"} history pages`} className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm"><span>Page {meta.page} of {meta.pages} · {meta.total} results</span><div className="flex gap-2">{meta.page>1 && <Link className="btn btn-out btn-sm" href={linkTo({[key]:String(meta.page-1)})}>Previous</Link>}{meta.page<meta.pages && <Link className="btn btn-out btn-sm" href={linkTo({[key]:String(meta.page+1)})}>Next</Link>}</div></nav> : null;
+  const next = data.summary.next_booking as Row | null;
 
   return (
     <>
@@ -321,7 +342,14 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       <HashTab current={tab} tabs={TAB_IDS.join(",")} />
       <main className="container-x max-w-[1040px] py-12 pb-20">
         <div className="eyebrow !text-wine">Your account</div>
-        <h1 className="serif mt-3 text-[44px] leading-[1.05] md:text-[56px]">Hello, {user.first_name}.</h1>
+        <h1 className="serif mt-3 text-[36px] leading-[1.1] md:text-[44px]">Hello, {user.first_name}.</h1>
+
+        <section aria-label="Account overview" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/account?tab=bookings&scope=upcoming" className="card rounded-2xl p-4"><span className={cap}>Next appointment</span><b className="mt-2 block">{next?.business || "A little time for you"}</b><span className="mt-1 block text-sm text-muted">{next ? when(next.starts_at,next.timezone) : "Find your next beauty appointment"}</span></Link>
+          <Link href="/account?tab=orders" className="card rounded-2xl p-4"><span className={cap}>Active orders</span><b className="serif mt-2 block text-3xl">{data.summary.active_orders}</b><span className="text-sm text-muted">Track your purchases</span></Link>
+          <Link href="/account?tab=messages" className="card rounded-2xl p-4"><span className={cap}>Unread messages</span><b className="serif mt-2 block text-3xl">{unread}</b><span className="text-sm text-muted">Keep in touch with your professional</span></Link>
+          <Link href="/account?tab=wallet" className="card rounded-2xl p-4"><span className={cap}>Store credit · {creditCurrency}</span><b className="serif mt-2 block text-3xl">{money(summaryCredit,creditCurrency)}</b>{otherCredit > 0 ? <span className="block text-sm">Also {money(otherCredit,otherCurrency)} in {otherCurrency}</span> : null}<span className="text-sm text-muted">View credit, points and plans</span></Link>
+        </section>
 
         <nav aria-label="Sections of your account" className="-mx-4 mt-8 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
           {TABS.map(([id, label]) => (
@@ -341,34 +369,44 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         )}
         {sp.err && <div role="alert" className="mt-6 whitespace-pre-line rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{sp.err}</div>}
         {sp.ok && !sp.err && <div role="status" className="mt-6 whitespace-pre-line rounded-xl border border-ok/25 bg-ok-bg px-4 py-3 text-[14.5px] font-medium text-ok">{sp.ok}</div>}
-        {sectionError && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">We could not load this just now. Try again in a moment.</div>}
+        {(sectionError || messageError) && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{messageError || "Some details couldn’t load. Your records haven’t changed."} <Link className="underline" href={`/account?${new URLSearchParams(Object.entries(sp).filter(([,v])=>v!==undefined) as [string,string][])}`}>Retry</Link></div>}
 
         {tab === "bookings" && (
           <>
-            <section className="mt-8 scroll-mt-6" id="bookings">
+            <form className="mt-6 flex flex-wrap items-end gap-3" role="search" aria-label="Search booking history">
+              <input type="hidden" name="tab" value="bookings"/>
+              <label className="field flex-1"><span>Business or service</span><input type="search" name="q" defaultValue={sp.q} maxLength={100} placeholder="Search your visits"/></label>
+              <label className="field"><span>Show</span><select name="scope" defaultValue={sp.scope || "all"}><option value="all">All visits</option><option value="upcoming">Upcoming</option><option value="past">Past and cancelled</option></select></label>
+              <label className="field"><span>Order</span><select name="sort" defaultValue={sp.sort || "newest"}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
+              <button className="btn btn-ink">Apply</button><Link href="/account" className="btn btn-out">Reset</Link>
+            </form>
+            {sp.scope !== "past" && <section className="mt-8 scroll-mt-6" id="bookings">
               <h2 className={h2}>Upcoming</h2>
               <div className="flex flex-col gap-3">
                 {upcoming.map((b) => <Booking key={b.id} b={b} sp={sp} pay={pay} series={b.series_id ? upcoming.filter((x) => x.series_id === b.series_id && x.can_cancel) : []} />)}
                 {upcoming.length === 0 && (
                   <div className="card flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-6">
-                    <p className="text-[15.5px] text-muted">Nothing booked yet. Bookings you make while signed in appear here.</p>
+                    <p className="text-[15.5px] text-muted">No upcoming visits on this page. Use the Upcoming filter to see your next appointments.</p>
                     <Link href="/search" className="btn btn-ink">Find a professional</Link>
                   </div>
                 )}
               </div>
-            </section>
-            {past.length > 0 && (
+            </section>}
+            {(past.length > 0 || sp.scope === "past") && (
               <section className="mt-12">
                 <h2 className={h2}>Past visits</h2>
                 <div className="flex flex-col gap-3">{past.map((b) => <Booking key={b.id} b={b} past sp={sp} pay={pay} />)}</div>
+                {past.length === 0 && <p className="text-muted">No past visits match these filters.</p>}
               </section>
             )}
+            {paging(data.booking_page,"page")}
           </>
         )}
 
         {tab === "orders" && (
           <section className="mt-8 scroll-mt-6" id="orders">
             <h2 className={h2}>Orders</h2>
+            <form className="mb-5 flex flex-wrap items-end gap-3"><input type="hidden" name="tab" value="orders"/><label className="field"><span>Order status</span><select name="status" defaultValue={sp.status || ""}><option value="">All orders</option>{Object.entries(orderState).map(([v,[label]])=><option key={v} value={v}>{label}</option>)}</select></label><button className="btn btn-ink">Apply</button><Link href="/account?tab=orders" className="btn btn-out">Reset</Link></form>
             <div className="flex flex-col gap-3">
               {orders.map((o) => {
                 const [label, pill] = orderState[o.status] ?? [o.status, "pill-grey"];
@@ -379,6 +417,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                 const oc = String(o.currency ?? "USD");
                 return (
                   <div key={o.id} id={`o-${o.id}`} className="card flex scroll-mt-6 flex-col gap-3 rounded-[20px] p-5">
+                    {o.detail_failed && <p role="alert" className="text-sm text-bad">The full receipt couldn’t load. <Link href={linkTo({tab:"orders"})} className="underline">Retry</Link></p>}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2"><b className="text-[15px] font-semibold uppercase tracking-wide">Order {String(o.id).slice(0, 8)}</b><span className={`pill ${pill}`}>{label}</span></div>
@@ -435,6 +474,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
               })}
               {orders.length === 0 && <div className="card flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-6"><p className="text-[15.5px] text-muted">No orders yet.</p><Link href="/shop" className="btn btn-out">Visit the shop</Link></div>}
             </div>
+            {paging(data.order_page,"order_page")}
           </section>
         )}
 
@@ -445,8 +485,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {saved.map((f) => (
                 <div key={f.slug} className="card flex flex-col overflow-hidden rounded-[20px]">
-                  <Link href={`/b/${f.slug}`} aria-hidden tabIndex={-1} className="flex h-[92px] items-center justify-center" style={{ background: `linear-gradient(150deg, ${f.tone}, #120e0d 140%)` }}>
-                    <span className="serif text-[44px] leading-none text-white/85">{String(f.name).slice(0, 1)}</span>
+                  <Link href={`/b/${f.slug}`} aria-hidden tabIndex={-1} className="relative flex h-[92px] items-center justify-center" style={{ background: `linear-gradient(150deg, ${f.tone}, #120e0d 140%)` }}>
+                    <AccountPhoto id={f.photo_id} name={f.name} tone={f.tone}/>
                   </Link>
                   <div className="flex flex-1 flex-col gap-1 p-4">
                     <Link href={`/b/${f.slug}`} className="serif text-[21px] leading-tight hover:text-wine">{f.name}</Link>
@@ -511,20 +551,22 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         {tab === "wallet" && (
           <section className="mt-8 scroll-mt-6" id="wallet">
             <h2 className={h2}>Wallet</h2>
+            {!user.phone_verified && <p className="mb-5 rounded-xl border border-line-2 bg-white p-4 text-sm text-muted">Confirm your phone number to see packages, memberships, and loyalty points held by your beauty professionals. <Link href="/account?tab=details" className="font-semibold text-wine underline">Confirm your number</Link></p>}
             {(creditCents !== 0 || creditHistory.length > 0 || inviting) && (
               <div className="mb-8 grid items-start gap-4 md:grid-cols-2">
                 <div className="card flex flex-col gap-3 rounded-[20px] p-5">
                   <div>
                     <div className={cap}>Store credit</div>
-                    <b className="mt-1 block text-[30px] font-semibold leading-none">{money(creditCents, "USD")}</b>
+                    <b className="mt-1 block text-[30px] font-semibold leading-none">{money(creditCents, creditCurrency)}</b>
+                    {otherCredit > 0 && <p className="text-sm mt-2">Also {money(otherCredit, otherCurrency)} in {otherCurrency}.</p>}
                   </div>
-                  <p className="text-[13.5px] text-muted">Credit is in US dollars. It comes off your next shop order in dollars by itself, after any promo code or gift card. It is not used on an order in naira.</p>
+                  <p className="text-[13.5px] text-muted">Credit stays in the currency it was issued in. Matching-currency credit comes off your shop order automatically. Dollar and naira balances are kept separate.</p>
                   {creditHistory.length > 0 && (
                     <ul className="border-t border-line-2 text-[14px]">
                       {creditHistory.map((c, i) => (
                         <li key={i} className="flex items-baseline justify-between gap-3 border-b border-line-2 py-2 last:border-0">
                           <span className="min-w-0">{c.reason}<span className="block text-[12.5px] text-muted">{day(c.created_at)}</span></span>
-                          <b className={`flex-none font-semibold ${c.amount_cents < 0 ? "text-muted" : "text-ok"}`}>{c.amount_cents < 0 ? `-${money(-c.amount_cents, "USD")}` : `+${money(c.amount_cents, "USD")}`}</b>
+                          <b className={`flex-none font-semibold ${c.amount_cents < 0 ? "text-muted" : "text-ok"}`}>{c.amount_cents < 0 ? `-${money(-c.amount_cents, c.currency || "USD")}` : `+${money(c.amount_cents, c.currency || "USD")}`}</b>
                         </li>
                       ))}
                     </ul>
@@ -645,7 +687,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                   </form>
                 </div>
               ) : (
-                <div className="card rounded-[20px] p-6 text-[15px] text-muted">{sp.to ? "We could not find that business." : threads.length ? "Choose a conversation to read it." : "Replies from businesses appear here."}</div>
+                <div className="card rounded-[20px] p-6 text-[15px] text-muted">{messageError ? "Your conversation history is temporarily unavailable. Use Retry above." : sp.to ? "We could not find that business." : threads.length ? "Choose a conversation to read it." : "Replies from businesses appear here."}</div>
               )}
             </div>
           </section>
@@ -654,6 +696,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         {tab === "details" && (
           <section className="mt-8 scroll-mt-6" id="details">
             <h2 className={h2}>Details and password</h2>
+            <Privacy user={user}/>
             <div className="grid items-start gap-5 md:grid-cols-2">
               <form action={saveDetails} className="card flex flex-col gap-4 rounded-[20px] p-6">
                 <div className="grid grid-cols-2 gap-3">
@@ -661,7 +704,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                   <label className="field"><span className={cap}>Last name</span><input name="last_name" maxLength={60} defaultValue={user.last_name} autoComplete="family-name" /></label>
                 </div>
                 <label className="field"><span className={cap}>Email</span><input value={user.email} disabled readOnly className="!bg-cream-2 !text-muted" /></label>
-                <label className="field"><span className={cap}>Mobile, for reminders</span><input name="phone" type="tel" defaultValue={user.phone} autoComplete="tel" placeholder="+1 615 555 0100" /></label>
+                <label className="field"><span className={cap}>Mobile, for reminders</span><input name="phone" type="tel" defaultValue={user.phone} autoComplete="tel" placeholder={where.scope === "NG" ? "+234 800 000 0000" : "+1 615 555 0100"} /></label>
                 <div><button className="btn btn-ink">Save details</button></div>
                 <p className="text-[12.5px] text-muted">To change your email, <Link href="/help" className="font-semibold text-wine">write to us</Link>.</p>
               </form>

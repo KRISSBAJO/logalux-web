@@ -17,9 +17,11 @@ export async function signOutMerchant() {
 }
 
 export async function switchBusiness(fd: FormData) {
+  let error = "";
   try {
     await mPost("/switch", { business_id: str(fd, "business_id") });
-  } catch {}
+  } catch (e) { error = (e as Error).message || "The business could not be switched. Please try again."; }
+  if (error) redirect("/business?err=" + encodeURIComponent(error));
   redirect("/business");
 }
 
@@ -49,4 +51,3 @@ export async function timeOffDecide(fd: FormData) {
   const decision = str(fd, "decision");
   await mRun(fd, decision === "approve" ? "Time off approved." : decision === "decline" ? "Time off declined." : "Time off removed.", () => mPost(`/time-off/${encodeURIComponent(str(fd, "id"))}`, { decision }));
 }
-

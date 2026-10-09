@@ -35,8 +35,8 @@ export async function SiteHeader({ active, transparent = false, placePage = fals
     <header className={`relative z-40 text-[#F4ECE3] ${transparent ? "" : "bg-ink-2"}`}>
       <nav className="container-x flex h-[76px] items-center gap-4 md:gap-6" aria-label="Main">
         <Logo />
-        <div className="max-md:hidden">{picker("left")}</div>
-        <div className="ml-auto flex items-center gap-5 max-md:hidden">
+        <div className="max-lg:hidden">{picker("left")}</div>
+        <div className="ml-auto flex items-center gap-5 max-lg:hidden">
           {link("/search", "Book a service", "book")}
           {link("/shop", "Shop", "shop")}
           {link("/journal", "Journal", "journal")}
@@ -46,13 +46,13 @@ export async function SiteHeader({ active, transparent = false, placePage = fals
           <Link href="/#search" className="btn btn-gold btn-sm">Book now</Link>
           {me && <AccountMenu firstName={me.first_name} email={me.email} signOut={signOut} />}
         </div>
-        <div className="ml-auto flex items-center gap-3 md:hidden">
+        <div className="ml-auto flex items-center gap-3 lg:hidden">
           {me ? <AccountMenu firstName={me.first_name} email={me.email} signOut={signOut} /> : <Link href="/signin" className="text-[14px] font-medium text-[#E9DED3]">Sign in</Link>}
           <Link href="/#search" className="btn btn-gold btn-sm">Book</Link>
         </div>
       </nav>
       {/* On a phone the place has a line of its own under the bar. */}
-      <div className="container-x -mt-2 flex pb-3 md:hidden">{picker("left")}</div>
+      <div className="container-x -mt-2 flex pb-3 lg:hidden">{picker("left")}</div>
     </header>
     {/* Browsing a country other than their own, on purpose: say so on every page, with the way back. */}
     {where.abroad && <BrowsingBanner scope={where.scope} home={where.home} />}

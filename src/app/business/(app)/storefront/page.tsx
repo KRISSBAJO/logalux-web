@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
@@ -11,7 +12,7 @@ import "../../css/storefront.css";
 
 export const metadata = { title: "Storefront" };
 
-type SP = { ok?: string; err?: string; tab?: string };
+type SP = { [key: string]: string | undefined; ok?: string; err?: string; tab?: string };
 
 const FORM = "sf-form";
 const TABS: [string, string][] = [["basics", "Basics"], ["photos", "Photos"], ["services", "Services & reviews"], ["hours", "Hours & location"], ["found", "Being found"]];
@@ -44,7 +45,7 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const me = (await getMe())!;
   const { merchant: m } = me;
-  const [{ data: d, error, status }, menu] = await Promise.all([mLoad("/storefront"), mLoad("/services")]);
+  const [{ data: d, error, status }, menu] = await Promise.all([mLoad("/storefront" + qs(sp)), mLoad("/services")]);
   if (status === 403) return <div className="main pg-storefront"><NoAccess title="Storefront" need="manager" /></div>;
   if (error) return <div className="main pg-storefront"><LoadError title="Storefront" error={error} /></div>;
 
@@ -62,8 +63,8 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
   const logoId = b.logo_id ? String(b.logo_id) : "";
   const tone = /^#[0-9a-f]{6}$/i.test(b.tone ?? "") ? String(b.tone) : "#3B1D22";
   const shown = photos.filter((p) => p.active);
-  const unreplied = reviews.filter((r) => r.status === "published" && !r.reply).length;
-  const pinned = reviews.find((r) => r.pinned);
+  const unreplied = Number(d.review_stats?.unreplied ?? 0);
+  const pinned = d.pinned_review as Row | null;
 
   // Is the business open at this moment, by its own hours and clock?
   const dayKey = new Intl.DateTimeFormat("en-US", { timeZone: m.timezone, weekday: "short" }).format(new Date()).toLowerCase();
@@ -331,7 +332,8 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
                 <div className="row"><div><b>Pinned review</b><span>{pinned ? `"${String(pinned.body).slice(0, 70)}${String(pinned.body).length > 70 ? "…" : ""}" · ${pinned.author_name}` : "None. A pinned review shows first on your page."}</span></div></div>
                 <div className="rowx"><button className="btn btn-out btn-sm" form={FORM}>Save changes</button><span className="sub">Saves the switch above. Replies and pins below save straight away.</span></div>
 
-                {reviews.length ? reviews.map((r) => (
+                <MerchantHistoryPagination name="reviews" label="Reviews" pagination={d.reviews_pagination} />
+{reviews.length ? reviews.map((r) => (
                   <div key={r.id} className="rv" id={`review-${r.id}`}>
                     <div className="rv-hd">
                       <Avatar name={r.author_name} tone="#5A4A3A" />

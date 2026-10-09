@@ -1,3 +1,5 @@
+import { PlacePicker } from "@/components/place-picker";
+import { pickerWhere } from "@/lib/places";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthCard, AuthField, AuthWays } from "@/components/auth-card";
@@ -16,12 +18,14 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<{
   const ref = typeof sp.ref === "string" && /^[A-Za-z0-9]{1,12}$/.test(sp.ref) ? sp.ref : "";
   // Making an account with a code is offered only while LogaLuxe staff have it switched on.
   const features = await getFeatures();
+  const where = await pickerWhere();
   const byCode = features.sms_login && sp.how === "code";
   const q = `next=${encodeURIComponent(next)}${ref ? `&ref=${ref}` : ""}`;
   const invited = ref ? <p className="rounded-xl bg-cream-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-muted">You were invited by a friend. You each get credit after your first purchase.</p> : null;
   return (
     <AuthCard title="Create your account" sub="Keep every booking and order in one place. You can still book as a guest." sp={sp}
       footer={<>Already have an account? <Link href={`/signin?${byCode ? "how=code&" : ""}next=${encodeURIComponent(next)}`} className="font-semibold text-wine">Sign in</Link></>}>
+      <div className="mb-5 rounded-xl border border-line-2 bg-white px-3 py-3"><span className="block text-[12px] text-muted mb-2">Browsing near you · change anytime</span><PlacePicker where={where} look="pill" /><p className="text-[12px] text-muted mt-2">Country and city help find nearby beauty services. A street address is only needed for delivery.</p></div>
       {features.sms_login ? <AuthWays label="How to create your account" current={byCode ? "code" : "password"} passwordHref={`/signup?${q}`} codeHref={`/signup?how=code&${q}`} /> : null}
       {byCode ? (
         <div className="flex flex-col gap-4">
@@ -38,7 +42,7 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<{
             <AuthField label="Last name" name="last_name" maxLength={60} autoComplete="family-name" />
           </div>
           <AuthField label="Email" name="email" type="email" required autoComplete="email" />
-          <AuthField label="Mobile, for reminders (optional)" name="phone" type="tel" autoComplete="tel" placeholder="+1 615 555 0100" />
+          <AuthField label="Mobile, for reminders (optional)" name="phone" type="tel" autoComplete="tel" placeholder={where.scope === "NG" ? "+234 800 000 0000" : "+1 615 555 0100"} />
           <AuthField label="Password, 8 characters or more" name="password" type="password" required minLength={8} autoComplete="new-password" />
           <AuthField label="Password again" name="again" type="password" required minLength={8} autoComplete="new-password" />
           <button className="btn btn-ink mt-1 min-h-[50px] w-full">Create account</button>

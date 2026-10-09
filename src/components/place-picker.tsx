@@ -276,7 +276,7 @@ export function BrowsingBanner({ scope, home }: { scope: string; home: string })
   return (
     <div role="status" className="border-b border-gold/30 bg-warn-bg text-ink">
       <div className="container-x flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 py-2.5 text-[13.5px]">
-        <span>You are browsing <b className="font-semibold">{inCountry(scope)}</b>. Prices are in {moneyName(scope)}, and that is what you pay in.</span>
+        <span>You are browsing <b className="font-semibold">{inCountry(scope)}</b>. Local listings are priced in {moneyName(scope)}. Existing bookings, orders and credit keep their own currency.</span>
         <button type="button" onClick={back} className="font-semibold text-wine underline underline-offset-2">Back to {inCountry(home)}</button>
       </div>
     </div>

@@ -36,10 +36,9 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
   const cur = m.currency;
   const range = RANGES.some(([id]) => id === sp.range) ? sp.range! : "30d";
 
-  const { data: d, error, status } = await mLoad("/reports" + qs({ range }));
+  const [{ data: d, error, status }, pay] = await Promise.all([mLoad("/reports" + qs({ range })), mLoad("/payroll" + qs({ range }))]);
   if (status === 403) return <div className="main pg-reports"><NoAccess title="Reports" need="manager" /></div>;
   if (error) return <div className="main pg-reports"><LoadError title="Reports" error={error} /></div>;
-  const pay = await mLoad("/payroll" + qs({ from: d.from, to: d.to }));
   const payroll = (pay.data.payroll ?? []) as Row[];
 
   const now = d.now as Row, was = d.before as Row, mix = d.mix as Row;
@@ -139,6 +138,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
 
       <div className="content">
         <Flash sp={sp} />
+        {pay.error && <div role="alert" className="flash flash-err">Payroll could not be loaded: {pay.error} Reload this page to try again. Revenue figures are still shown.</div>}
         <div className="kpis">
           {kpis.map((k) => <div key={k.name} className="kpi"><small>{k.name}</small><b>{k.value}</b><span className={k.d.cls}>{k.d.text}</span></div>)}
         </div>

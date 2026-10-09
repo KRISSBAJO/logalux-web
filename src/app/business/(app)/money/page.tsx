@@ -1,6 +1,6 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { DataTable } from "@/components/data-table";
 import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
 import { Empty, Flash, Ic, LoadError, NoAccess, Topbar } from "@/components/merchant-ui";
 import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
@@ -10,7 +10,7 @@ import "../../css/money.css";
 
 export const metadata = { title: "Money" };
 
-type SP = { tab?: string; from?: string; to?: string; kind?: string; staff?: string; ok?: string; err?: string };
+type SP = { [key: string]: string | undefined; tab?: string; from?: string; to?: string; kind?: string; staff?: string; ok?: string; err?: string };
 
 const TABS = [["overview", "Overview"], ["tx", "Transactions"], ["payouts", "Payouts"], ["deposits", "Deposits & holds"], ["online", "Online payments"], ["statements", "Statements"]] as const;
 const KIND_LABEL: Record<string, string> = { charge: "Sale", deposit: "Deposit", tip: "Tip", fee: "LogaLuxe fee", lead_fee: "Lead fee", plan_fee: "Plan fee", refund: "Refund", payout: "Payout", payout_fee: "Instant payout fee", adjustment: "Adjustment" };
@@ -56,15 +56,15 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
   const tab = TABS.some(([id]) => id === sp.tab) ? sp.tab! : "overview";
   const today = ymd(new Date(), tz);
 
-  // What the ledger is asked for. The deposits tab looks back as far as the API allows.
+  // What the ledger is asked for. Deposits include all history by default.
   const from = isDay(sp.from), to = isDay(sp.to);
-  const filter = tab === "deposits" ? { from: addDays(today, -98), to: today, kind: "deposit" }
+  const filter = tab === "deposits" ? { from: from ?? "0001-01-01", to: to ?? today, kind: "deposit" }
     : tab === "payouts" || tab === "online" || tab === "statements" ? {}
     : { from, to: from ? to : undefined, kind: sp.kind, staff: sp.staff };
 
   const [{ data: d, error, status }, settings, stm, online] = await Promise.all([
-    mLoad("/money" + qs(filter)), mLoad("/settings"), mLoad("/statements"),
-    tab === "online" ? mLoad("/payments") : Promise.resolve(null),
+    mLoad("/money" + qs({ ...sp, ...filter })), mLoad("/settings"), mLoad("/statements" + qs(sp)),
+    tab === "online" ? mLoad("/payments" + qs(sp)) : Promise.resolve(null),
   ]);
   if (status === 403) return <div className="main pg-money"><NoAccess title="Money" need="owner" /></div>;
   if (error) return <div className="main pg-money"><LoadError title="Money" error={error} /></div>;
@@ -77,8 +77,8 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
   // An account recorded in simulation cannot receive a real payout: the API refuses.
   const blocked = live && !!account && account.mode !== "live";
   const statements = (stm.data.statements ?? []) as Row[];
-  const leadFees = Math.abs(Number(statements.find((x) => x.month === today.slice(0, 7))?.lead_fees_cents ?? 0));
-  const planFees = Math.abs(Number(statements.find((x) => x.month === today.slice(0, 7))?.plan_fees_cents ?? 0));
+  const leadFees = Math.abs(Number(mo.lead_fees_cents ?? 0));
+  const planFees = Math.abs(Number(mo.plan_fees_cents ?? 0));
   const payments = ((online?.data.payments ?? []) as Row[]);
   const month = String(d.month_label ?? "This month"), mon = month.slice(0, 3);
 
@@ -120,7 +120,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
   ];
 
   const txTable = (rows: Row[], size: number) => (
-    <DataTable id="ledger" search="Search the ledger" filters={["Staff", "Method", "Type", "Status"]} pageSize={size} noun="line" sort={{ col: "Time", dir: "desc" }}>
+    <div className="dt">
       <table>
         <thead><tr><th>Time</th><th>Client · item</th><th>Staff</th><th>Method</th><th className="r">Amount</th><th>Type</th><th>Status</th></tr></thead>
         <tbody>
@@ -141,7 +141,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
           })}
         </tbody>
       </table>
-    </DataTable>
+    </div>
   );
 
   const filters = (
@@ -197,8 +197,8 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
         {quickLinks}
         {tx.length ? txTable(tx, 25) : <Empty title="No ledger lines for this choice">Try a longer range or clear the filters.</Empty>}
         <div className="sub">
-          {tx.length >= 300 ? "Showing the newest 300 lines. Narrow the dates, or export the CSV for everything. " : tx.length ? `${plural(tx.length, "line")}. ` : ""}
-          Every sale, tip, refund, fee and payout is a line in the ledger. A range can cover up to 100 days.
+          {tx.length ? `${plural(tx.length, "line")} on this page. ` : ""}
+          Every sale, tip, refund, fee and payout is a line in the ledger.
         </div>
       </div>
     );
@@ -207,7 +207,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
       <div className="card">
         <h3>Payouts</h3>
         {payouts.length ? (
-          <DataTable id="payouts" search="Search payouts" filters={["Kind", "Sent to", "Status"]} pageSize={10} noun="payout" sort={{ col: "Date", dir: "desc" }}>
+          <div className="dt">
             <table className="fit">
               <thead><tr><th>Date</th><th>Kind</th><th>Sent to</th><th>Reference</th><th className="r">Fee</th><th className="r">Amount</th><th>Status</th></tr></thead>
               <tbody>
@@ -227,10 +227,9 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                 })}
               </tbody>
             </table>
-          </DataTable>
+          </div>
         ) : <Empty title="No payouts yet">The first one is made once money has settled and a payout account is set up.</Empty>}
         <div className="sub">
-          {payouts.length >= 8 ? "These are the 8 most recent payouts. The CSV export lists every payout line. " : ""}
           {simulated ? "Payments are in simulation on this install: a payout is recorded as paid without a real bank transfer." : `A payout is really sent to your default payout account through ${prov}. Scheduled means it is not sent yet, being sent means the bank has it, paid means it arrived. If one fails, the money is returned to your balance as an adjustment line.`}
         </div>
       </div>
@@ -240,7 +239,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
       <div className="card">
         <h3>Online payments</h3>
         {online?.error ? <div role="alert" className="flash flash-err">{online.error}</div> : payments.length ? (
-          <DataTable id="online" search="Search online payments" filters={["For", "Status"]} pageSize={25} noun="payment" sort={{ col: "When", dir: "desc" }}>
+          <div className="dt">
             <table>
               <thead><tr><th>When</th><th>For</th><th>Description</th><th className="r">Amount</th><th>Status</th><th className="r">Refunded</th><th data-nosort data-col="Link"><span className="sr">Link</span></th></tr></thead>
               <tbody>
@@ -260,10 +259,10 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                 })}
               </tbody>
             </table>
-          </DataTable>
+          </div>
         ) : <Empty title="No online payments yet">{live ? `Deposits clients pay when they book, and pay links you send from Checkout, show here. They are taken through ${prov}.` : "Online payments are switched off on this install, so deposits and pay links are simulated."}</Empty>}
         <div className="sub">
-          {live ? `The client pays on ${prov}'s own page, so card details never reach LogaLuxe. A paid payment counts toward your payouts two days later.` : "Payments are in simulation on this install."} The newest 300 are listed.
+          {live ? `The client pays on ${prov}'s own page, so card details never reach LogaLuxe. A paid payment counts toward your payouts two days later.` : "Payments are in simulation on this install."} Use the history controls to reach earlier payments.
         </div>
       </div>
     );
@@ -272,7 +271,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
       <div className="card">
         <h3>Monthly statements</h3>
         {stm.error ? <div role="alert" className="flash flash-err">{stm.error}</div> : statements.length ? (
-          <DataTable id="statements" search="Search months" filters={["Year"]} pageSize={12} pageSizes={[12, 24, 36]} noun="month" sort={{ col: "Month", dir: "desc" }}>
+          <div className="dt">
             <table>
               <thead><tr><th>Month</th><th>Year</th><th className="r">Sales</th><th className="r">Charges</th><th className="r">Tips</th><th className="r">Deposits</th><th className="r">Refunds</th><th className="r">LogaLuxe fees</th><th className="r">Lead fees</th><th className="r">Plan fees</th><th className="r">Payout fees</th><th className="r">Adjustments</th><th className="r">Net toward payouts</th><th className="r">Paid out</th><th className="r">Taken outside LogaLuxe</th></tr></thead>
               <tbody>
@@ -289,7 +288,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                 })}
               </tbody>
             </table>
-          </DataTable>
+          </div>
         ) : <Empty title="No statements yet">A month appears here once any money has moved in it.</Empty>}
         <div className="sub">Open a month for a statement you can print or save as a PDF. Plan fees are the monthly price of LogaLuxe Pro: see your plan in Settings. Net toward payouts is what the month added to your payout balance. Money taken outside LogaLuxe (cash, a transfer, your own card machine) is recorded but never part of a payout. Up to 36 months are kept here.</div>
       </div>
@@ -298,9 +297,9 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
     const held = tx.filter((t) => t.status === "held");
     body = (
       <div className="card">
-        <h3>Deposits · last 99 days</h3>
+        <h3>Deposits history</h3>
         {tx.length ? (
-          <DataTable id="deposits" search="Search deposits" filters={["Method", "Status"]} pageSize={25} noun="deposit" sort={{ col: "Taken", dir: "desc" }}>
+          <div className="dt">
             <table className="fit">
               <thead><tr><th>Taken</th><th>Client</th><th>Method</th><th className="r">Amount</th><th>Status</th></tr></thead>
               <tbody>
@@ -319,8 +318,8 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
                 })}
               </tbody>
             </table>
-          </DataTable>
-        ) : <Empty title="No deposits in the last 99 days">When a client pays a deposit to book, it shows here until the visit.</Empty>}
+          </div>
+        ) : <Empty title="No deposits for this choice">When a client pays a deposit to book, it shows here until the visit.</Empty>}
         <div className="sub">
           {held.length ? `${plural(held.length, "deposit")} in this list ${held.length === 1 ? "is" : "are"} still held. ` : ""}
           A deposit is held until the visit and released at checkout. Held deposits are not part of your payout balance: {money(bal.held_cents, cur, { exact: true })} is held in total{mo.deposits_for > 0 ? ` for ${plural(mo.deposits_for, "upcoming booking")}` : ""}.
@@ -333,7 +332,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}><h3>Transactions · {rangeLabel}</h3>{filters}</div>
           {quickLinks}
-          {tx.length ? txTable(tx, 10) : <Empty title={oneDay && d.from === today ? "Nothing has gone through today yet" : "No ledger lines for this choice"}>Pick a longer range above to see earlier lines.</Empty>}
+          {tx.length ? txTable(tx.slice(0, 10), 10) : <Empty title={oneDay && d.from === today ? "Nothing has gone through today yet" : "No ledger lines for this choice"}>Pick a longer range above to see earlier lines.</Empty>}
           <div className="sub">
             <Link href={here({ tab: "tx" })} style={{ fontWeight: 600 }}>Open the full ledger</Link> ·{" "}
             Every sale, tip, refund, fee and payout is a line in the ledger. Export it for your accountant any time.
@@ -383,7 +382,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
 
   return (
     <div className="main pg-money">
-      <Topbar title="Money">
+<Topbar title="Money">
         <nav className="seg" aria-label="Money sections">
           {TABS.map(([id, name]) => <Link key={id} href={"/business/money" + qs({ tab: id === "overview" ? undefined : id })} className={tab === id ? "on" : ""} aria-current={tab === id ? "page" : undefined}>{name}</Link>)}
         </nav>
@@ -485,6 +484,10 @@ export default async function Money({ searchParams }: { searchParams: Promise<SP
           </div>
         </div>
 
+      {(tab === "tx" || tab === "deposits") && <MerchantHistoryPagination name="transactions" label="Transactions" pagination={d.transactions_pagination} />}
+{(tab === "payouts") && <MerchantHistoryPagination name="payouts" label="Payouts" pagination={d.payouts_pagination} />}
+{(tab === "statements") && <MerchantHistoryPagination name="statements" label="Statements" pagination={stm.data.statements_pagination} />}
+      {tab === "online" && <MerchantHistoryPagination name="payments" label="Online payments" pagination={online?.data.payments_pagination} />}
         {body}
       </div>
     </div>

@@ -1,4 +1,5 @@
 "use client";
+import { sendBookingRequest } from "@/lib/booking-request";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -238,18 +239,15 @@ export function BookFlow(p: Props) {
     setBusy(true); setError("");
     let res: Response, j: { error?: string; booking?: { id: string; payment?: { url?: string } } };
     try {
-      res = await fetch("/api/bookings", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await sendBookingRequest<{error?: string; booking?: {id:string;payment?:{url?:string}}}>({
           business_slug: slug, staff_id: slot.staff_id, starts_at: slot.starts_at, service_ids: services.map((s) => s.id), client_name: `${d.first} ${d.last}`.trim(), client_phone: d.phone.trim(), client_email: d.email.trim(), notes: d.note.trim(), promo_code: promo.trim(), source: src || "link",
           guest_name: guest, answers: intake.filter(answered).map((q) => ({ question_id: q.id, answer: answerOf(q) })),
           // A kept card is charged at once; a new card is kept only when the box is ticked.
           ...(useCard ? { card_id: useCard.id } : offerCards && keepCard ? { save_card: true } : {}),
-        }),
-      });
-      j = await res.json().catch(() => ({}));
+        }, p.me?.email || "guest");
+      res = result.res; j = result.data;
     } catch {
-      setBusy(false); setError("We could not reach the service. Nothing was booked. Try again in a moment.");
+      setBusy(false); setError("We could not confirm the result. Retry safely with the same details; the same request cannot create a second booking. You can also check your bookings.");
       return;
     }
     if (res.status === 409) {

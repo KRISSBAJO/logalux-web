@@ -2,8 +2,7 @@
 // LogaLuxe staff switch each channel on in the console, so the business console never
 // states it as fixed: every screen asks here and words itself from the answer.
 import { cache } from "react";
-import { getFeatures } from "./features";
-import { mLoad, type Row } from "./merchant-api";
+import { getMe } from "./merchant-api";
 
 export type Mode = "live" | "log";
 export type ChannelModes = { whatsapp: Mode; sms: Mode; email: Mode };
@@ -12,16 +11,14 @@ export type ChannelModes = { whatsapp: Mode; sms: Mode; email: Mode };
 export const asMode = (v: unknown): Mode => (v === "log" || v === undefined || v === null || v === "" ? "log" : "live");
 
 /**
- * The API says, for this business, which channels are live. Its answer comes with the marketing
- * screen, which a manager can read. For someone who cannot, the public list of switches is used,
- * which says nothing about email; a page that has `mail_mode` of its own should pass it to `withMail`.
+ * Every role receives actual channel modes with its request-cached account data.
+ * No extra Marketing request or assumption from a public feature switch is needed.
  */
 export const channelModes = cache(async (): Promise<ChannelModes> => {
-  const m = await mLoad<Row>("/marketing");
-  const modes = m.error ? null : (m.data.modes as Record<string, string> | undefined);
+  const me = await getMe();
+  const modes = me?.modes;
   if (modes) return { whatsapp: asMode(modes.whatsapp), sms: asMode(modes.sms), email: asMode(modes.email) };
-  const f = await getFeatures();
-  return { whatsapp: f.whatsapp ? "live" : "log", sms: f.sms_messages ? "live" : "log", email: "log" };
+  return { whatsapp: "log", sms: "log", email: asMode(me?.mail_mode) };
 });
 
 /** The same modes, with the email channel taken from a page's own `mail_mode` when it has one. */

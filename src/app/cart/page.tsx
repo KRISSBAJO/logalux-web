@@ -9,8 +9,8 @@ export const metadata = { title: "Your cart" };
 
 export default async function CartPage() {
   const me = await getCustomer();
-  // Store credit is in US dollars and is spent on dollar orders by the API itself. The cart shows the same sum before paying. A guest has none.
-  const credit = me ? await customerApi<{ credit_cents?: number }>("/auth/wallet").then((w) => Math.max(0, Math.floor(Number(w.credit_cents) || 0))).catch(() => 0) : 0;
+  // Store credit is kept separately for each currency. The API applies only the matching balance.
+  const credits = me ? await customerApi<{ credit_cents?: number; credit_balances?: Record<string,number> }>("/auth/wallet").then(w => w.credit_balances ?? {USD:w.credit_cents || 0,NGN:0}).catch(() => ({USD:0,NGN:0})) : {USD:0,NGN:0};
   // Kept cards for a signed-in customer, and wallets: each only while LogaLuxe staff have it switched on.
   const pay = await payFeatures(!!me);
   return (
@@ -25,7 +25,7 @@ export default async function CartPage() {
               Secure checkout · card details never touch LogaLuxe
             </span>
           </div>
-          <CartView me={me ? { name: `${me.first_name} ${me.last_name}`.trim(), phone: me.phone ?? "", email: me.email ?? "" } : undefined} creditCents={credit} pay={pay} />
+          <CartView me={me ? { name: `${me.first_name} ${me.last_name}`.trim(), phone: me.phone ?? "", email: me.email ?? "" } : undefined} creditBalances={credits} pay={pay} />
         </main>
       </div>
       <SiteFooter />

@@ -11,7 +11,7 @@ import "../../css/marketing.css";
 
 export const metadata = { title: "Marketing" };
 
-type SP = { ok?: string; err?: string; tab?: string; auto?: string; camp?: string; new?: string; audience?: string; find?: string };
+type SP = { [key: string]: string | undefined; ok?: string; err?: string; tab?: string; auto?: string; camp?: string; new?: string; audience?: string; find?: string };
 
 const TABS: [string, string][] = [["auto", "Automations"], ["camp", "Campaigns"], ["leads", "New clients"], ["loyalty", "Loyalty"], ["promos", "Promo codes"]];
 
@@ -74,7 +74,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
         <Topbar title="Marketing">{tabsNav}</Topbar>
         <div className="content">
           <Flash sp={sp} />
-          {tab === "leads" ? <LeadsTab m={m} owner={mCan(me, "owner")} link={String(d.booking_link ?? "")} /> : tab === "loyalty" ? <LoyaltyTab m={m} find={sp.find} /> : <PromosTab m={m} open={sp.new === "1"} />}
+          {tab === "leads" ? <LeadsTab sp={sp} m={m} owner={mCan(me, "owner")} link={String(d.booking_link ?? "")} /> : tab === "loyalty" ? <LoyaltyTab sp={sp} m={m} find={sp.find} /> : <PromosTab m={m} open={sp.new === "1"} />}
         </div>
       </div>
     );
@@ -122,7 +122,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                 <td data-sort={done ? c.logged : -1}>{done ? c.logged : <span className="muted" />}</td>
                 <td data-sort={done ? c.booked : -1}>{done ? c.booked : <span className="muted" />}</td>
                 <td data-sort={done ? c.booked_cents : -1}>{done ? money(c.booked_cents, cur) : <span className="muted" />}</td>
-                <td data-filter={c.status === "draft" ? "Draft" : c.status === "sending" ? "Sending" : "Sent"}>{c.status === "draft" ? <span className="pill pill-grey">Draft</span> : c.status === "sending" ? <span className="pill pill-gold">Sending</span> : <span className="pill pill-ok">Sent</span>}</td>
+                <td data-filter={c.status === "draft" ? "Draft" : c.status === "waiting" ? "Waiting" : c.status === "stalled" ? "Stalled" : c.status === "sending" ? "Sending" : "Sent"}>{c.status === "draft" ? <span className="pill pill-grey">Draft</span> : c.status === "waiting" ? <span className="pill pill-grey">Waiting</span> : c.status === "stalled" ? <span className="pill pill-gold">Stalled</span> : c.status === "sending" ? <span className="pill pill-gold">Sending</span> : <span className="pill pill-ok">Sent</span>}</td>
               </tr>
             );
           })}
@@ -265,7 +265,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
             <aside className="panel" aria-label={camp.name}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                 <div className="serif" style={{ fontSize: 22, fontWeight: 600, lineHeight: 1.1, overflowWrap: "anywhere" }}>{camp.name}</div>
-                {camp.status === "draft" ? <span className="pill pill-grey">Draft</span> : camp.status === "sending" ? <span className="pill pill-gold">Sending</span> : <span className="pill pill-ok">Sent</span>}
+                {camp.status === "draft" ? <span className="pill pill-grey">Draft</span> : camp.status === "waiting" ? <span className="pill pill-grey">Waiting</span> : camp.status === "stalled" ? <span className="pill pill-gold">Stalled</span> : camp.status === "sending" ? <span className="pill pill-gold">Sending</span> : <span className="pill pill-ok">Sent</span>}
               </div>
               <dl className="kv">
                 <dt>Goes to</dt><dd>{AUDIENCE_LABEL[camp.audience] ?? camp.audience}</dd>
@@ -303,9 +303,9 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
                     <ConfirmButton className="btn btn-danger btn-sm" message={`Delete the draft "${camp.name}"?`}>Delete draft</ConfirmButton>
                   </form>
                 </>
-              ) : camp.status === "sending" ? (
+              ) : ["waiting", "sending", "stalled"].includes(camp.status) ? (
                 <>
-                  <div className="note"><b>Sending is under way.</b> It carries on in the background. The numbers appear when it has finished.</div>
+                  <div className="note"><b>{camp.status === "waiting" ? "Waiting for a worker." : camp.status === "stalled" ? "Delivery needs review." : "Sending is under way."}</b> {camp.stalled_reason || "Progress is saved and resumes after an API restart."}<br />{camp.pending ?? 0} remaining · {camp.delivered ?? 0} delivered · {camp.queued ?? 0} queued · {camp.logged ?? 0} logged · {camp.skipped ?? 0} skipped · {camp.uncertain ?? 0} unknown. Unknown outcomes are not retried automatically.</div>
                   <div><Link href={back} className="btn btn-out btn-sm">Reload</Link></div>
                 </>
               ) : (

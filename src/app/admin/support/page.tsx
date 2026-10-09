@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin-pagination";
 import Link from "next/link";
 import { Btn, Content, Empty, Field, FilterSearch, Flash, Hidden, Panel, Pill, Tabs, Topbar, ago, inputCls, statusPill } from "@/components/admin-ui";
 import { getAdmin, load, qs, type Row } from "@/lib/admin-api";
@@ -8,15 +9,17 @@ const roleName: Record<string, string> = { client: "Client", business: "Business
 
 export default async function Support({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  const pageParams = sp as Record<string,string|undefined>;
+  const paging = {page:pageParams.page,per_page:pageParams.per_page,sort:pageParams.sort,direction:pageParams.direction};
   const status = sp.status ?? "open";
   const { q = "", mine = "" } = sp;
   const filters = { status, q, mine };
-  const [admin, res] = await Promise.all([getAdmin(), load(`/support${qs({ status: status === "all" ? "" : status, q, mine })}`)]);
+  const [admin, res] = await Promise.all([getAdmin(), load(`/support${qs({ ...paging, status: status === "all" ? "" : status, q, mine })}`)]);
   const tickets: Row[] = res.data.tickets ?? [];
   const selId = sp.id ?? tickets[0]?.id;
   const detail = selId ? await load(`/support/${encodeURIComponent(selId)}`) : null;
   const t: Row | undefined = detail?.data.ticket;
-  const here = (extra: Record<string, string | undefined>) => `/admin/support${qs({ ...filters, ...extra })}`;
+  const here = (extra: Record<string, string | undefined>) => `/admin/support${qs({ ...filters, ...paging, ...extra })}`;
   const back = here({ id: t?.id });
   const c = res.data.counts ?? {};
   const emailOn = res.data.mail_mode && res.data.mail_mode !== "log";
@@ -96,6 +99,7 @@ export default async function Support({ searchParams }: { searchParams: Promise<
             </div>
           )}
         </div>
+      <AdminPagination pagination={res.data.pagination} columns={["updated_at","subject","status","priority"]} />
       </Content>
     </>
   );

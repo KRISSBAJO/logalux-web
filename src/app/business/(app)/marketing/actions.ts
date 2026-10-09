@@ -42,7 +42,7 @@ export async function testCampaign(fd: FormData) {
 }
 
 export async function sendCampaign(fd: FormData) {
-  await mRun(fd, "Sending has started. It carries on in the background and the numbers fill in as it goes. Reload this page in a moment.", () => mPost(`/campaigns/${fid(fd)}/send`));
+  await mRun(fd, "Campaign scheduled. Waiting for a worker; progress is saved as it runs. Reload this page to check.", () => mPost(`/campaigns/${fid(fd)}/send`));
 }
 
 /**

@@ -40,7 +40,7 @@ const WORD: Record<Currency, string> = { USD: "dollars", NGN: "naira" };
  * currency, so the page shows one cart for each: its own items, delivery choices, total and Pay button.
  * Placing one order leaves the other cart's items where they are.
  */
-export function CartView({ me, creditCents = 0, pay = NO_PAY }: { me?: Me; creditCents?: number; /** Kept cards and wallets, each only while LogaLuxe staff have it switched on. */ pay?: PayFeatures }) {
+export function CartView({ me, creditBalances = {}, pay = NO_PAY }: { me?: Me; creditBalances?: Partial<Record<Currency,number>>; /** Kept cards and wallets, each only while LogaLuxe staff have it switched on. */ pay?: PayFeatures }) {
   const { items, how, when, ready } = useCart();
   // What each product costs and how it can be delivered today. The saved cart only remembers what was added.
   const [live, setLive] = useState<Record<string, CartProduct | null>>({});
@@ -94,7 +94,7 @@ export function CartView({ me, creditCents = 0, pay = NO_PAY }: { me?: Me; credi
           {split && <h2 className="serif curh">{PAYING[c]}</h2>}
           <CurrencyCart
             currency={c} items={byCurrency[c]} live={live} extras={extras} loaded={loaded} liveError={liveError} onRefresh={() => setRefresh((n) => n + 1)}
-            how={how} when={when} me={me} creditCents={creditCents} pay={pay}
+            how={how} when={when} me={me} creditCents={Number(creditBalances[c] || 0)} pay={pay}
             otherLeft={ORDER.filter((o) => o !== c).reduce((a, o) => a + byCurrency[o].reduce((n, i) => n + i.qty, 0), 0)}
             onPlaced={() => setPlaced((p) => (p.includes(c) ? p : [...p, c]))}
           />
@@ -203,7 +203,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
     let on = true;
     const asked = `${promo}|${gift}|${subtotal}`;
     fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "orders", currency, subtotal_cents: subtotal, promo_code: promo, gift_code: gift }) })
-      .then((r) => r.json()).then((j) => { if (on) setCheck({ ...NONE, ...j, asked }); })
+       .then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not check this code"); return data; }).then((j) => { if (on) setCheck({ ...NONE, ...j, asked }); })
       .catch(() => { if (on) setCheck({ ...NONE, promo_error: promo ? "we could not check that code" : "", gift_error: gift ? "we could not check that card" : "", asked }); });
     return () => { on = false; };
   }, [promo, gift, subtotal, currency]);
@@ -211,8 +211,8 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
   // A code goes into the order only once the server has said it is good for this cart.
   const checked = check.asked === `${promo}|${gift}|${subtotal}`;
   const promoOk = !!promo && checked && !check.promo_error && check.discount_cents > 0;
-  // Gift cards are in US dollars. A naira cart has no gift card field, and never sends a code.
-  const giftOk = !naira && !!gift && checked && !check.gift_error && check.gift_balance_cents > 0;
+  // A gift card is valid only for the currency checked by the server.
+  const giftOk = !!gift && checked && !check.gift_error && check.gift_balance_cents > 0;
 
   // The order as it would be placed. The quote is asked for this, and for nothing the shopper has not chosen yet.
   const orderBody = {
@@ -253,7 +253,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
   const discount = quote?.discount_cents ?? 0, giftUsed = quote?.gift_cents ?? 0, creditUsed = quote?.credit_cents ?? 0;
   const due = quote?.total_cents ?? 0;
   const free = current && due === 0;
-  // What the shopper has in store credit. It is in US dollars: the quote says how much of it a dollar order uses, and a naira order uses none. A guest has none.
+  // Only this order currency is supplied here. The server quote is authoritative.
   const credit = me ? Math.max(0, creditCents) : 0;
   const covered = [giftUsed > 0 ? "gift card" : "", creditUsed > 0 ? "store credit" : ""].filter(Boolean);
   // Nothing to pay means no card is asked for, kept or new.
@@ -263,7 +263,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
   const taxWaits = !naira && !region && groups.some((g) => g.how === "ship" && !!g.live && !g.live.business_slug);
   // A quote that fails says why in the API's own sentence, shown where the cart shows order errors.
   const quoteProblem = failed ? quoteFail!.text : "";
-  const quoteAbout = !quoteProblem ? "" : /promo code/i.test(quoteProblem) ? "promo" : !naira && /gift card/i.test(quoteProblem) ? "gift" : "pay";
+  const quoteAbout = !quoteProblem ? "" : /promo code/i.test(quoteProblem) ? "promo" : /gift card/i.test(quoteProblem) ? "gift" : "pay";
 
   /** What the customer is told about collecting one seller's items. */
   const collectText = (g: Group) =>
@@ -309,7 +309,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
       else if (/address/i.test(text)) { setErrors({ address: text }); addressRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }); }
       else if (/customer_name/.test(text)) setErrors({ name: "Enter your name." });
       else if (/promo code/i.test(text)) setErrors({ promo: text });
-      else if (!naira && /gift card/i.test(text)) setErrors({ gift: text });
+      else if (/gift card/i.test(text)) setErrors({ gift: text });
       else setErrors({ pay: text });
       return;
     }
@@ -494,7 +494,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
           <p className="msg" role="status">{updating && !blocked ? (quote ? "Updating the total." : "Working out the total.") : ""}</p>
           {codeRow("Promo code", promoInput, setPromoInput, () => { setPromo(promoInput.trim()); setErrors((e) => ({ ...e, promo: undefined })); }, promo, () => { setPromo(""); setPromoInput(""); setErrors((e) => ({ ...e, promo: undefined })); }, "Promo code", promoOk ? `${cash(current && discount ? discount : check.discount_cents)} off` : "", errors.promo ?? (quoteAbout === "promo" ? quoteProblem : promo && checked ? check.promo_error : ""))}
           {/* Gift cards are in US dollars and cannot pay for an order in naira. */}
-          {!naira && codeRow("Gift card code", giftInput, setGiftInput, () => { setGift(giftInput.trim()); setErrors((e) => ({ ...e, gift: undefined })); }, gift, () => { setGift(""); setGiftInput(""); setErrors((e) => ({ ...e, gift: undefined })); }, "Gift card code", giftOk ? `${cash(check.gift_balance_cents)} on this card${current && giftUsed < check.gift_balance_cents ? `, ${cash(giftUsed)} used here` : ""}` : "", errors.gift ?? (quoteAbout === "gift" ? quoteProblem : gift && checked ? check.gift_error : ""))}
+          {codeRow("Gift card code", giftInput, setGiftInput, () => { setGift(giftInput.trim()); setErrors((e) => ({ ...e, gift: undefined })); }, gift, () => { setGift(""); setGiftInput(""); setErrors((e) => ({ ...e, gift: undefined })); }, "Gift card code", giftOk ? `${cash(check.gift_balance_cents)} on this card${current && giftUsed < check.gift_balance_cents ? `, ${cash(giftUsed)} used here` : ""}` : "", errors.gift ?? (quoteAbout === "gift" ? quoteProblem : gift && checked ? check.gift_error : ""))}
           {errors.pay && <p role="alert" className="msg bad">{errors.pay}</p>}
           {!errors.pay && quoteAbout === "pay" && <p role="alert" className="msg bad">{quoteProblem} <button type="button" className="link" onClick={() => setQuoteRetry((n) => n + 1)}>Try again</button></p>}
           <button type="button" className="btn btn-ink pay" disabled={busy || blocked || !current} onClick={pay}>{busy ? (due === 0 ? "Placing your order…" : useCard ? "Paying…" : "Opening the payment page…") : !quote ? "Working out the total…" : due === 0 ? "Place order" : `Pay ${cash(due)}`}</button>
@@ -508,8 +508,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
         </div>
         <div className="muted small">
           {naira ? "Tax is each seller's own rate. You pay in naira through Paystack." : "Tax depends on the seller and where an order ships."} Prices and stock are checked again when you pay. {me ? "You can follow the order in your account." : ""}
-          {!naira && credit > 0 && ` You have ${cash(credit)} in store credit. It is used on this order automatically${current && creditUsed < credit ? `, and ${cash(credit - creditUsed)} stays for your next one` : ""}.`}
-          {naira && credit > 0 && ` Your ${money(credit, "USD")} of store credit is in US dollars, so it is not used on an order in naira.`}
+          {credit > 0 && ` You have ${cash(credit)} in store credit. It is used on this order automatically${current && creditUsed < credit ? `, and ${cash(credit - creditUsed)} stays for your next one` : ""}.`}
         </div>
       </aside>
     </div>

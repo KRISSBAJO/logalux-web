@@ -1,8 +1,8 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { DataTable } from "@/components/data-table";
 import { Ic, LoadError, NoAccess } from "@/components/merchant-ui";
-import { getMe, mLoad, type Row } from "@/lib/merchant-api";
+import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { METHOD_LABEL as BASE_METHOD, clock, dateOnly, dayShort, firstName, money, plural, ymd } from "@/lib/merchant-format";
 import { PrintButton } from "./print-button";
 import "../../../../css/money.css";
@@ -16,14 +16,34 @@ const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1).replace(/_/g, " 
 /** Moves a YYYY-MM month by a number of months. */
 const shift = (ym: string, n: number) => { const [y, mth] = ym.split("-").map(Number); const d = new Date(Date.UTC(y, mth - 1 + n, 15)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
 
-export default async function Statement({ params }: { params: Promise<{ month: string }> }) {
+export default async function Statement({ params, searchParams }: { params: Promise<{ month: string }>; searchParams: Promise<Record<string,string | undefined>> }) {
   const { month } = await params;
+ const sp = await searchParams;
   const me = (await getMe())!;
   const { merchant: m } = me;
   const tz = m.timezone;
   const back = "/business/money?tab=statements";
 
-  const { data: d, error, status } = /^\d{4}-\d{2}$/.test(month) ? await mLoad(`/statements/${month}`) : { data: {} as Row, error: "That is not a month. A statement address ends like 2026-10.", status: 400 };
+  let { data: d, error, status } = /^\d{4}-\d{2}$/.test(month) ? await mLoad(`/statements/${month}` + qs(sp.print === "all" ? { lines_per_page: "200", payouts_per_page: "200" } : sp)) : { data: {} as Row, error: "That is not a month. A statement address ends like 2026-10.", status: 400 };
+  // Printing/PDF is an export: walk every server page and clear table filters.
+  // Keep interactive browsing bounded without truncating the printable statement.
+  if (!error && sp.print === "all") {
+    const allLines = [...((d.lines ?? []) as Row[])];
+    const allPayouts = [...((d.payouts ?? []) as Row[])];
+    const linePages = Number(d.lines_pagination?.pages ?? 1);
+    const payoutPages = Number(d.payouts_pagination?.pages ?? 1);
+    for (let page = 2; page <= Math.max(linePages, payoutPages); page++) {
+      const next = await mLoad(`/statements/${month}` + qs({
+        lines_per_page: "200", payouts_per_page: "200",
+        lines_page: String(Math.min(page, linePages)), payouts_page: String(Math.min(page, payoutPages)),
+      }));
+      if (next.error) { error = next.error; status = next.status; break; }
+      if (page <= linePages) allLines.push(...((next.data.lines ?? []) as Row[]));
+      if (page <= payoutPages) allPayouts.push(...((next.data.payouts ?? []) as Row[]));
+    }
+    d = { ...d, lines: allLines, payouts: allPayouts };
+  }
+
   if (status === 403) return <div className="main pg-money pg-statement"><NoAccess title="Statement" need="owner" /></div>;
   if (error) return <div className="main pg-money pg-statement"><LoadError title="Statement" error={error[0].toUpperCase() + error.slice(1)} /><div className="content" style={{ paddingTop: 0 }}><div><Link href={back} className="btn btn-out btn-sm">Back to statements</Link></div></div></div>;
 
@@ -65,10 +85,13 @@ export default async function Statement({ params }: { params: Promise<{ month: s
         <Link href={`/business/money/statement/${shift(month, -1)}`} className="btn btn-out btn-sm" aria-label="The month before"><Ic name="chevL" size={16} /></Link>
         {month < thisMonth ? <Link href={`/business/money/statement/${shift(month, 1)}`} className="btn btn-out btn-sm" aria-label="The month after"><Ic name="chevR" size={16} /></Link> : null}
         <a href={`/business/money/statement/${month}/csv`} className="btn btn-out" download><Ic name="download" size={16} />Download CSV</a>
-        <PrintButton />
+        <PrintButton complete={sp.print === "all"} />
       </header>
 
-      <div className="content">
+      {sp.print !== "all" && <MerchantHistoryPagination name="payouts" label="Statement payouts" pagination={d.payouts_pagination} />}
+{sp.print !== "all" && <MerchantHistoryPagination name="lines" label="Statement lines" pagination={d.lines_pagination} />}
+
+<div className="content">
         <div className="sheetdoc">
           <div className="head">
             <div>
@@ -105,7 +128,7 @@ export default async function Statement({ params }: { params: Promise<{ month: s
           <section>
             <h3>Payouts created this month</h3>
             {payouts.length ? (
-              <DataTable id="st-payouts" search="Search payouts" filters={["Status"]} pageSize={10} noun="payout" sort={{ col: "Date", dir: "asc" }}>
+              <div className="dt">
                 <table className="fit">
                   <thead><tr><th>Date</th><th>Kind</th><th>Sent to</th><th>Reference</th><th className="r">Fee</th><th className="r">Amount</th><th>Status</th></tr></thead>
                   <tbody>
@@ -126,14 +149,14 @@ export default async function Statement({ params }: { params: Promise<{ month: s
                     })}
                   </tbody>
                 </table>
-              </DataTable>
+              </div>
             ) : <div className="empty"><b>No payouts this month</b></div>}
           </section>
 
           <section className="lines">
             <h3>Every line · {lines.length >= 5000 ? "the first 5,000" : lines.length}</h3>
             {lines.length ? (
-              <DataTable id="st-lines" search="Search this statement" filters={["Type", "Method", "Toward payouts"]} pageSize={25} noun="line" sort={{ col: "Date", dir: "asc" }}>
+              <div className="dt">
                 <table>
                   <thead><tr><th>Date</th><th>Description</th><th>Staff</th><th>Method</th><th>Type</th><th className="r">Amount</th><th>Toward payouts</th></tr></thead>
                   <tbody>
@@ -150,7 +173,7 @@ export default async function Statement({ params }: { params: Promise<{ month: s
                     ))}
                   </tbody>
                 </table>
-              </DataTable>
+              </div>
             ) : <div className="empty"><b>Nothing moved in {d.label}</b><span>A sale, tip, refund, fee or payout in this month would be listed here.</span></div>}
             <p className="noprint" style={{ fontSize: 12.5, color: "#6B5F57", marginTop: 8 }}>Printing lists every line, whatever page or filter is showing. Deposits still held for a visit that has not happened are not on a statement until they are released.</p>
           </section>

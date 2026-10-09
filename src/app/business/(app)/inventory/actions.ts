@@ -194,6 +194,7 @@ export async function answerReturn(fd: FormData) {
   }
   if (error) { again(); mBackTo(fd, "err", error); }
   if (refuse) mBackTo(fd, "ok", "Return refused. The customer is emailed your message. Nothing was refunded.");
+  if (out.provider_refund_status === "pending") mBackTo(fd,"ok","Return approved. The card refund is reserved and awaiting provider confirmation. Recovery is automatic.");
   const refund = Number(out.refund_cents ?? 0), card = Number(out.to_card_cents ?? 0), credit = Number(out.credit_cents ?? 0);
   const cur = String(out.currency || (await getMe())?.merchant.currency || "USD"); // a naira order is refunded in naira
   const where = card > 0 && credit > 0 ? `${money(card, cur)} to the customer's card and ${money(credit, cur)} as LogaLuxe store credit` : card > 0 ? "to the customer's card" : "as LogaLuxe store credit";

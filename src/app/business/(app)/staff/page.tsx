@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
@@ -11,7 +12,7 @@ import "../../css/staff.css";
 
 export const metadata = { title: "Staff" };
 
-type SP = { ok?: string; err?: string; tab?: string; week?: string; staff?: string; hours?: string; from?: string; to?: string; new?: string };
+type SP = { [key: string]: string | undefined; ok?: string; err?: string; tab?: string; week?: string; staff?: string; hours?: string; from?: string; to?: string; new?: string };
 type Hours = Record<string, string[] | null> | null;
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -143,7 +144,7 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
   const weekAsk = sp.week && ISO_DAY.test(sp.week) ? sp.week : "";
   const from = sp.from && ISO_DAY.test(sp.from) ? sp.from : "", to = sp.to && ISO_DAY.test(sp.to) ? sp.to : "";
   const [{ data, error }, pay] = await Promise.all([
-    mLoad("/staff" + qs({ week: weekAsk })),
+    mLoad("/staff" + qs({ ...sp, week: weekAsk })),
     manager ? mLoad("/payroll" + qs({ from, to })) : Promise.resolve({ data: {} as Row, error: "", status: 200 }),
   ]);
   if (error) return <div className="main pg-staff"><LoadError title="Staff & rosters" error={error} /></div>;
@@ -159,7 +160,8 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
   const permDefaults = (data.permission_defaults ?? {}) as Record<string, boolean>;
   const isRenter = (p: Row) => p.pay_type === "renter";
   const breaksOf = (p: Row, d: string) => (((p.breaks ?? {}) as Record<string, string[][]>)[d] ?? []).filter((b) => b.length === 2);
-  const owed = (p: Row) => rent.filter((c) => c.staff_id === p.id && c.status === "due").reduce((a, c) => a + c.amount_cents, 0);
+  const rentDueCount = ((data.rent_due ?? []) as Row[]).reduce((sum,c) => sum + Number(c.charges ?? 0),0);
+  const owed = (p: Row) => Number(((data.rent_due ?? []) as Row[]).find(c => c.staff_id === p.id)?.cents ?? 0);
   const rentDays = (p: Row) => { const d = DAYS.map((k, i) => (((p.rent_days ?? []) as string[]).includes(k) ? i : -1)).filter((i) => i >= 0); return !d.length ? "no days set" : d.length > 1 && d[d.length - 1] - d[0] === d.length - 1 ? `${DAY_NAME[d[0]]} to ${DAY_NAME[d[d.length - 1]]}` : d.map((i) => DAY_NAME[i]).join(", "); };
   const week = String(data.week), days = DAYS.map((_, i) => addDays(week, i));
   const tab = TABS.some(([id]) => id === sp.tab) ? sp.tab! : "roster";
@@ -199,7 +201,7 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
         <nav className="seg" aria-label="Sections">
           {TABS.filter(([id]) => (id !== "pay" && id !== "rent") || manager).map(([id, name]) => (
             <Link key={id} href={"/business/staff" + qs({ tab: id === "roster" ? "" : id, week: weekAsk, staff: sp.staff })} className={tab === id ? "on" : ""} aria-current={tab === id ? "page" : undefined}>
-              {name}{id === "timeoff" && asked.length ? ` (${asked.length})` : ""}{id === "rent" && rent.some((c) => c.status === "due") ? ` (${rent.filter((c) => c.status === "due").length})` : ""}
+              {name}{id === "timeoff" && asked.length ? ` (${asked.length})` : ""}{id === "rent" && rentDueCount > 0 ? ` (${rentDueCount})` : ""}
             </Link>
           ))}
         </nav>
@@ -581,9 +583,10 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
             <div className="sub">
               Each week or month a rent charge is opened for every chair renter. LogaLuxe records the rent and does not collect it: take the money yourself, then mark the period as paid here. To add a renter, choose Add staff and tick that they rent a chair.
             </div>
-            {rent.length ? (
+            <MerchantHistoryPagination name="rent" label="Rent charges" pagination={data.rent_pagination} />
+{rent.length ? (
               <div className="boxed">
-                <DataTable id="rent" search="Search rent" filters={["Renter", "Status"]} pageSize={10} noun="charge">
+                <div className="dt">
                   <table className="tbl">
                     <thead><tr><th>Renter</th><th>Period</th><th className="num">Amount</th><th>Status</th><th>Paid</th><th data-nosort><span className="sr">Actions</span></th></tr></thead>
                     <tbody>
@@ -611,7 +614,7 @@ export default async function Staff({ searchParams }: { searchParams: Promise<SP
                       ))}
                     </tbody>
                   </table>
-                </DataTable>
+                </div>
               </div>
             ) : <Empty title="No rent charges yet">{team.some((p) => p.pay_type === "renter") ? "The first charge opens at the start of the next period." : "Nobody rents a chair from you."}</Empty>}
           </div>

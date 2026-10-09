@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
@@ -16,7 +17,7 @@ import "../../css/inbox.css";
 
 export const metadata = { title: "Inbox" };
 
-type SP = { filter?: string; q?: string; thread?: string; new?: string; cq?: string; ok?: string; err?: string; tab?: string; problem?: string };
+type SP = { [key: string]: string | undefined; filter?: string; q?: string; thread?: string; new?: string; cq?: string; ok?: string; err?: string; tab?: string; problem?: string };
 
 const FILTERS: [string, string][] = [["open", "Open"], ["unread", "Unread"], ["mine", "Assigned to me"], ["closed", "Closed"]];
 const CH_CLASS: Record<string, string> = { whatsapp: "ch-wa", sms: "ch-sms", in_app: "ch-app", email: "ch-mail" };
@@ -41,10 +42,10 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   const manager = mCan(me, "manager");
   if (sp.tab === "problems") return <Problems sp={sp} m={m} />;
   const filter = FILTERS.some(([id]) => id === sp.filter) ? sp.filter! : "open";
-  const listPath = "/inbox" + qs({ filter, q: sp.q });
+  const listPath = "/inbox" + qs({ ...sp, filter, q: sp.q });
 
   // Opening a conversation marks it read, so it is loaded before the list when one is named in the address.
-  let one = sp.thread ? await mLoad(`/inbox/${encodeURIComponent(sp.thread)}`) : null;
+  let one = sp.thread ? await mLoad(`/inbox/${encodeURIComponent(sp.thread)}` + qs(sp)) : null;
   // The rest does not depend on each other: the list, the counts for the menu, the channel switches, and the client picker only when it is open.
   const [{ data: d, error }, care, modes0, pickClients, h] = await Promise.all([
     mLoad(listPath), careCounts(), channelModes(), sp.new === "1" ? mLoad("/clients" + qs({ q: sp.cq, sort: "name" })) : null, headers(),
@@ -52,7 +53,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
   if (error) return <div className="main pg-inbox"><LoadError title="Inbox" error={error} /></div>;
   const threads = (d.threads ?? []) as Row[], counts = (d.counts ?? {}) as Row;
   // With nothing chosen, show the newest conversation only if it has already been read: looking at the list must not mark anything read.
-  if (!sp.thread && threads[0] && !threads[0].unread_business) one = await mLoad(`/inbox/${encodeURIComponent(threads[0].id)}`);
+  if (!sp.thread && threads[0] && !threads[0].unread_business) one = await mLoad(`/inbox/${encodeURIComponent(threads[0].id)}` + qs(sp));
 
   const t = one && !one.error ? (one.data.thread as Row) : null;
   const messages = (one?.data.messages ?? []) as Row[], client = (one?.data.client ?? null) as Row | null, booking = (one?.data.booking ?? null) as Row | null;
@@ -101,6 +102,8 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<SP
 
   return (
     <div className="main pg-inbox">
+      <MerchantHistoryPagination name="threads" label="Conversations" pagination={d.threads_pagination} />
+<MerchantHistoryPagination name="messages" label="Messages" selection={t ? {thread: String(t.id)} : undefined} pagination={one?.data.messages_pagination} />
       <Topbar title="Inbox">
         {FILTERS.map(([id, name]) => (
           <Link key={id} href={"/business/inbox" + qs({ filter: id === "open" ? undefined : id, q: sp.q })} className={"chip" + (filter === id ? " on" : "")} aria-current={filter === id ? "true" : undefined}>

@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Avatar, Empty, Topbar } from "@/components/merchant-ui";
 import { dateOnly, dur, firstName, money } from "@/lib/merchant-format";
-import { makeLink, pay, quote, type PayLink, type Quote } from "./actions";
+import { checkoutScope, makeLink, pay, quote, type PayLink, type Quote } from "./actions";
+import { checkoutRequest, completeCheckout, pendingCheckouts, type CheckoutRequest } from "@/lib/checkout-request";
 import { lineTotal, pointsProblem, ticketTotals, toCents, type Line, type MemberRates, type Points } from "./math";
 
 type Service = { id: string; name: string; category: string; price_cents: number; duration_min: number };
@@ -48,8 +49,8 @@ const TONES = ["#3B1D22", "#4A3426", "#2E2538", "#1F2A33", "#3A3A2E", "#5A4A3A"]
 const DATA = "/business/checkout/data";
 
 async function ask<T>(query: string): Promise<T> {
-  const res = await fetch(`${DATA}?${query}`, { cache: "no-store" });
-  const body = await res.json().catch(() => ({}));
+  const res = await fetch(`${DATA}?${query}`, { cache: "no-store", signal: AbortSignal.timeout(25000) });
+  const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
   return body as T;
 }
@@ -117,6 +118,52 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
   const [lookupError, setLookupError] = useState("");
   const clientId = visit ? visit.clientId : chosen?.id ?? null;
   const sellerId = visit ? visit.staffId : staffId;
+  const [scope, setScope] = useState<{ business: string; merchant: string } | null>(null);
+  const [payError, setPayError] = useState("");
+  const [payBusy, setPayBusy] = useState(false);
+  const paying = useRef(false);
+  const [pendingSales, setPendingSales] = useState<CheckoutRequest[]>([]);
+  const customerScope = visit ? `booking:${visit.id}` : clientId ?? "walk-in";
+  useEffect(() => {
+    let open = true;
+    checkoutScope().then((value) => { if (open) setScope(value); })
+      .catch((e: Error) => { if (open) setPayError(e.message); });
+    return () => { open = false; };
+  }, []);
+  useEffect(() => {
+    setPendingSales([]);
+    if (!scope) return;
+    let open = true;
+    pendingCheckouts(scope.business, scope.merchant, customerScope)
+      .then((value) => { if (open) setPendingSales(value); })
+      .catch(() => { if (open) setPayError("Browser storage is unavailable. Checkout cannot safely submit."); });
+    return () => { open = false; };
+  }, [scope, customerScope]);
+  const submitSale = async (fd: FormData, saved?: CheckoutRequest) => {
+    if (!scope || paying.current) return;
+    paying.current = true;
+    setPayBusy(true); setPayError("");
+    let confirmed = false;
+    try {
+      fd.set("business_scope", scope.business); fd.set("merchant_scope", scope.merchant);
+      const request = saved ?? await checkoutRequest(fd, scope.business, scope.merchant, customerScope);
+      fd.set("request_id", request.id);
+      if (saved) fd.set("replay_only", "1");
+      setPendingSales((current) => current.some((x) => x.id === request.id) ? current : [...current, request]);
+      const out = await pay(fd);
+      if (!out.ok) { setPayError(out.error); return; }
+      completeCheckout(request);
+      setPendingSales((current) => current.filter((x) => x.id !== request.id));
+      confirmed = true;
+      router.push(out.url);
+    } catch (e) {
+      setPayError((e as Error).message || "The response was interrupted. Retry the same ticket.");
+    } finally {
+      // Keep the acknowledged ticket locked while navigation is pending.
+      if (!confirmed) { paying.current = false; setPayBusy(false); }
+    }
+  };
+
 
   useEffect(() => {
     const q = lookup.trim();
@@ -197,7 +244,7 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
   // The API prices the ticket: the sums above are only the instant estimate while its answer is on the way.
   // Everything that changes the total is in this key; a change waits 400 ms, then the same body a sale sends is quoted.
   const pointsSent = points && !pointsWhy ? points.redeem : 0;
-  const quoteKey = lines.length ? JSON.stringify([lines.map((l) => [l.kind, l.service_id, l.product_id, l.package_id, l.membership_id, l.qty, !!l.redeem, l.fixed ? l.unit : null]), t.tip, Math.min(typed, t.subtotal), promo, pointsSent, visit?.id ?? "", clientId ?? "", locationId]) : "";
+  const quoteKey = lines.length ? JSON.stringify([lines.map((l) => [l.kind, l.service_id, l.product_id, l.package_id, l.membership_id, l.qty, !!l.redeem, l.fixed ? l.unit : null]), t.tip, Math.min(typed, t.subtotal), promo, pointsSent, visit?.id ?? "", clientId ?? "", locationId, sellerId, method]) : "";
   const [quoted, setQuoted] = useState<{ forKey: string; out: Quote } | null>(null);
   useEffect(() => {
     if (!quoteKey) return;
@@ -312,7 +359,7 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
   })));
   const cta = !lines.length ? "Add something to charge" : checking || quoting ? "Checking the total…" : quoteError ? "Cannot charge yet" : due === 0 ? "Complete sale"
     : method === "cash" ? `Record cash ${cash(due)}` : live ? `Record ${cash(due)} taken` : `Charge ${cash(due)}`;
-  const blocked = !lines.length || checking || quoting || !!quoteError || plansLoading || !!pointsWhy || !canPay;
+  const blocked = payBusy || !scope || !lines.length || checking || quoting || !!quoteError || plansLoading || !!pointsWhy || !canPay;
   const who = visit ? visit.clientName : chosen ? chosen.name : clientName.trim() || "Walk-in";
   const TABS: [Tab, string][] = [["services", "Services"], ["products", "Products"], ["packages", "Packages"], ["memberships", "Memberships"], ["custom", "Custom amount"]];
 
@@ -405,7 +452,7 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
             {below}
           </div>
 
-          <form ref={form} className={"cart" + (link ? " linked" : "")} action={pay} aria-label="Ticket" onKeyDown={(e) => { if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault(); }}>
+          <form ref={form} className={"cart" + (link ? " linked" : "")} action={(fd) => submitSale(fd)} aria-label="Ticket" onKeyDown={(e) => { if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault(); }}>
             <input type="hidden" name="back" value={back} />
             <input type="hidden" name="booking_id" value={visit?.id ?? ""} />
             <input type="hidden" name="client_id" value={visit ? "" : chosen?.id ?? ""} />
@@ -618,6 +665,12 @@ export function Till({ currency, taxBp, simulated, live, market, loyalty, locati
             </div>
 
             <div className="foot">
+              {payError ? <div role="alert" style={{ color: "#9B2C2C" }}>{payError}</div> : null}
+              {pendingSales.length > 0 ? <div role="status">
+                A previous checkout response was not confirmed. Recover its receipt, or rebuild the same ticket to retry safely.
+                {pendingSales.map((request, i) => <button key={request.id} type="button" className="btn btn-out btn-sm" disabled={payBusy || !canPay} onClick={() => submitSale(new FormData(), request)}>Recover receipt{pendingSales.length > 1 ? ` ${i + 1}` : ""}</button>)}
+              </div> : null}
+
               {orphanPlans && <div role="alert" style={{ fontSize: 12.5, color: "#9B2C2C" }}>Choose the client before charging: a package or membership has to belong to someone.</div>}
               {method === "link" ? (
                 <>

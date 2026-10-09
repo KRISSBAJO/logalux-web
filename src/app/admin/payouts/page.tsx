@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin-pagination";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
 import { Btn, Content, Empty, Flash, Hidden, Panel, Pill, ReadOnly, Tabs, Topbar, ago, fmtDate, fmtMoney, inputCls, statusPill, inputSm } from "@/components/admin-ui";
@@ -6,8 +7,10 @@ import { payoutAction } from "../actions";
 
 export default async function Payouts({ searchParams }: { searchParams: Promise<{ status?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
+  const pageParams = sp as Record<string,string|undefined>;
+  const paging = {page:pageParams.page,per_page:pageParams.per_page,sort:pageParams.sort,direction:pageParams.direction};
   const status = sp.status ?? "";
-  const [admin, res] = await Promise.all([getAdmin(), load(`/payouts${qs({ status })}`)]);
+  const [admin, res] = await Promise.all([getAdmin(), load(`/payouts${qs({ ...paging, status })}`)]);
   const list: Row[] = res.data.payouts ?? [];
   const totals: Row[] = res.data.totals ?? [];
   const payments: Row[] = res.data.payments ?? [];
@@ -85,6 +88,7 @@ export default async function Payouts({ searchParams }: { searchParams: Promise<
           </table>
           {payments.length === 0 && <Empty>No payments yet.</Empty>}
         </Panel>
+      <AdminPagination pagination={res.data.pagination} columns={["scheduled_for","business","amount_cents","status"]} />
       </Content>
     </>
   );

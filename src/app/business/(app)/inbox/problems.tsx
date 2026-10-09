@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton, Sheet } from "@/components/merchant-client";
@@ -21,15 +22,15 @@ const OUTCOME: Record<string, string> = {
 };
 
 export async function Problems({ sp, m }: { sp: { ok?: string; err?: string; problem?: string }; m: Merchant }) {
-  const res = await mLoad("/problems");
+  const res = await mLoad("/problems"+qs(sp));
   if (res.status === 403) return <div className="main pg-inbox"><NoAccess title="Problems clients reported" need="manager" /></div>;
   if (res.error) return <div className="main pg-inbox"><LoadError title="Inbox" error={res.error} /></div>;
 
   const tz = m.timezone, now = Date.now();
   const rows = (res.data.problems ?? []) as Row[];
-  const waiting = rows.filter((p) => p.status === "with_business").length;
+  const waiting = Number(res.data.waiting??0);
   const here = "/business/inbox" + qs({ tab: "problems" });
-  const one = sp.problem ? rows.find((p) => p.id === sp.problem) : undefined;
+  const one = sp.problem ? res.data.selected_problem ?? rows.find((p) => p.id === sp.problem) : undefined;
   const stamp = (v: string) => `${dateMed(v, tz)}, ${clock(v, tz)}`;
   const late = (p: Row) => p.status === "with_business" && !!p.business_deadline && Date.parse(p.business_deadline) < now;
 
@@ -49,6 +50,7 @@ export async function Problems({ sp, m }: { sp: { ok?: string; err?: string; pro
         </div>
         {sp.problem && !one ? <div role="alert" className="flash flash-err">That report was not found. It may belong to another business.</div> : null}
 
+        <MerchantHistoryPagination name="problems" label="Visit problems" pagination={res.data.problems_pagination} />
         {rows.length ? (
           <div className="pb-box">
             <DataTable id="problems" search="Search problems" filters={["About", "Status"]} pageSize={25} noun="problem">

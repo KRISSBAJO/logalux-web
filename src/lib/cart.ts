@@ -9,10 +9,11 @@ export type Fulfilment = "pickup" | "ship";
 
 // The lines keep their first key and shape, so a cart saved before the
 // per-seller choice existed still opens. The choice lives beside it.
-const KEY = "logaluxe.cart.v1";
-const HOW_KEY = "logaluxe.cart.how.v1";
+const CART_PREFIX = process.env.NEXT_PUBLIC_LOGALUXE_QA === "1" ? "logaluxe.qa.cart" : "logaluxe.cart";
+const KEY = `${CART_PREFIX}.v1`;
+const HOW_KEY = `${CART_PREFIX}.how.v1`;
 // Which pick-up promise the customer chose to go by, per seller: at their booked visit, or today. Only wording; the order is plain pick-up either way.
-const WHEN_KEY = "logaluxe.cart.when.v1";
+const WHEN_KEY = `${CART_PREFIX}.when.v1`;
 export type PickupWhen = "visit" | "today";
 export const MAX_QTY = 9;
 const listeners = new Set<() => void>();

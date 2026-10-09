@@ -6,7 +6,7 @@ import { visitorHeaders } from "./visitor";
 import { cache } from "react";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
-export const MERCHANT_COOKIE = "lx_merchant";
+export const MERCHANT_COOKIE = process.env.LOGALUXE_QA === "1" ? "lx_qa_merchant" : "lx_merchant";
 
 export type MRole = "staff" | "manager" | "owner";
 export type Merchant = {
@@ -19,6 +19,8 @@ export type Me = {
   merchant: Merchant;
   businesses: { id: string; name: string; slug: string; role: MRole; area: string }[];
   badges: { area: string; checkout: number; inbox: number; locations: number; time_off: number; verification: string };
+  mail_mode?: string;
+  modes?: { email: string; sms: string; whatsapp: string };
 };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>;
@@ -34,11 +36,12 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
   if (!token) throw new MerchantApiError(401, "You are signed out.");
   let res: Response;
   try {
-    res = await fetch(`${BASE}/v1/m${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, ...(await visitorHeaders()), ...(init.headers ?? {}) }, cache: "no-store" });
+    res = await fetch(`${BASE}/v1/m${path}`, { ...init, signal: AbortSignal.timeout(25000), headers: { Authorization: `Bearer ${token}`, ...(await visitorHeaders()), ...(init.headers ?? {}) }, cache: "no-store" });
   } catch {
     throw new MerchantApiError(503, "The service is not reachable. Try again in a moment.");
   }
-  const body = await res.json().catch(() => ({}));
+  let body: Row;
+  try { body = await res.json(); } catch { throw new MerchantApiError(503, "The service response was interrupted. Try again in a moment."); }
   if (!res.ok) throw new MerchantApiError(res.status, body.error ?? res.statusText);
   return body as T;
 }
@@ -56,8 +59,9 @@ export function mUpload<T = Row>(path: string, form: FormData): Promise<T> {
 export const getMe = cache(async (): Promise<Me | null> => {
   try {
     return await mFetch<Me>("/me");
-  } catch {
-    return null;
+  } catch (e) {
+    if (e instanceof MerchantApiError && e.status === 401) return null;
+    throw e;
   }
 });
 
@@ -81,11 +85,12 @@ export const mCan = (me: Me | Merchant | null, role: MRole) => {
 export async function mPublic<T = Row>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}/v1/m${path}`, { method: "POST", headers: { "Content-Type": "application/json", ...(await visitorHeaders()) }, body: JSON.stringify(body), cache: "no-store" });
+    res = await fetch(`${BASE}/v1/m${path}`, { method: "POST", signal: AbortSignal.timeout(25000), headers: { "Content-Type": "application/json", ...(await visitorHeaders()) }, body: JSON.stringify(body), cache: "no-store" });
   } catch {
     throw new MerchantApiError(503, "The service is not reachable. Try again in a moment.");
   }
-  const out = await res.json().catch(() => ({}));
+  let out: Row;
+  try { out = await res.json(); } catch { throw new MerchantApiError(503, "The service response was interrupted. Try again in a moment."); }
   if (!res.ok) throw new MerchantApiError(res.status, out.error ?? "Something went wrong.", out);
   return out as T;
 }

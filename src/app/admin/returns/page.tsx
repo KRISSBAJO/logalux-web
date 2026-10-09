@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { ConfirmButton } from "@/components/merchant-client";
 import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, ReadOnly, Tabs, Topbar, fmtDate, fmtMoney, inputCls } from "@/components/admin-ui";
@@ -10,14 +11,15 @@ const STATE: Record<string, ["ok" | "gold" | "wine" | "grey", string]> = { reque
 const amount = (cents: number) => (Number(cents ?? 0) / 100).toFixed(2);
 const stamp = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Chicago", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 
-export default async function Returns({ searchParams }: { searchParams: Promise<{ status?: string; answer?: string; ok?: string; err?: string }> }) {
+export default async function Returns({ searchParams }: { searchParams: Promise<{ [key: string]: string | undefined; status?: string; answer?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
   const status = ["requested", "approved", "refused"].includes(sp.status ?? "") ? sp.status! : "";
-  const [admin, res] = await Promise.all([getAdmin(), load(`/returns${qs({ status })}`)]);
+  const [admin, res] = await Promise.all([getAdmin(), load(`/returns${qs({ ...sp, status })}`)]);
   const list: Row[] = res.data.returns ?? [], reasons: Record<string, string> = res.data.reasons ?? {};
   const boss = can(admin, "super_admin");
-  const back = `/admin/returns${qs({ status })}`;
-  const open = boss && sp.answer ? list.find((r) => r.id === sp.answer && r.status === "requested") : undefined;
+  const back = `/admin/returns${qs({ ...sp, answer: undefined, status })}`;
+  const selected = res.data.selected_return as Row | undefined;
+  const open = boss && sp.answer ? (selected?.id === sp.answer && selected.status === "requested" ? selected : list.find((r) => r.id === sp.answer && r.status === "requested")) : undefined;
   const itemsOf = (r: Row) => ((r.items ?? []) as Row[]).map((i) => `${i.qty} × ${i.name}${i.size ? ` (${i.size})` : ""}`);
 
   return (
@@ -60,13 +62,14 @@ export default async function Returns({ searchParams }: { searchParams: Promise<
           </Panel>
         )}
 
+        <MerchantHistoryPagination name="returns" label="Brand returns" pagination={res.data.returns_pagination} />
         <Panel flush>
           {list.length > 0 && (
             <table className="data min-w-[980px]">
               <thead><tr><th>Asked</th><th>Customer</th><th>Items</th><th>Reason</th><th>Paid</th><th>Status</th><th>Answer</th></tr></thead>
               <tbody>
                 {list.map((r) => {
-                  const [kind, label] = STATE[r.status] ?? ["grey", r.status];
+                  const [kind, label]: readonly ["ok" | "gold" | "wine" | "grey", string] = r.provider_refund_status === "pending" ? ["gold", "Provider refund pending"] as const : STATE[r.status] ?? ["grey", r.status];
                   const card = Math.max(0, Number(r.refund_cents ?? 0) - Number(r.credit_cents ?? 0));
                   return (
                     <tr key={r.id} className="align-top hover:bg-cream">
@@ -82,7 +85,7 @@ export default async function Returns({ searchParams }: { searchParams: Promise<
                           : <span className="text-muted">Waiting for a super admin</span>)}
                         {r.status === "approved" && (
                           <>
-                            <b className="block font-semibold">Refunded {fmtMoney(r.refund_cents)}</b>
+                            <b className="block font-semibold">{r.provider_refund_status === "pending" ? "Refund reserved" : "Refunded"} {fmtMoney(r.refund_cents)}</b>
                             <span className="block text-muted">{card > 0 && r.credit_cents > 0 ? `${fmtMoney(card)} to the card, ${fmtMoney(r.credit_cents)} as store credit` : card > 0 ? "All of it to the card" : "All of it as LogaLuxe store credit"}</span>
                             <span className="block text-muted">{r.restocked ? "Items put back in stock" : "Items not put back in stock"}</span>
                           </>

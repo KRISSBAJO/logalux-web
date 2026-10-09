@@ -1,3 +1,4 @@
+import { MerchantHistoryPagination } from "@/components/merchant-history-pagination";
 import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { ConfirmButton, CopyButton, Sheet } from "@/components/merchant-client";
@@ -17,8 +18,8 @@ const Fail = ({ error }: { error: string }) => <div role="alert" className="flas
 
 // ---------- new clients ----------
 
-export async function LeadsTab({ m, owner, link }: { m: Merchant; owner: boolean; link: string }) {
-  const { data: d, error } = await mLoad("/leads");
+export async function LeadsTab({ m, owner, link, sp }: { sp: Record<string,string | undefined>; m: Merchant; owner: boolean; link: string }) {
+  const { data: d, error } = await mLoad("/leads" + qs(sp));
   if (error) return <Fail error={error} />;
   const cur = m.currency, tz = m.timezone, back = "/business/marketing?tab=leads";
   const rate = d.rate as Row, k = d.kpis as Row, set = d.settings as Row, boost = d.boost as Row, rank = d.rank as Row;
@@ -50,6 +51,7 @@ export async function LeadsTab({ m, owner, link }: { m: Merchant; owner: boolean
 
   return (
     <>
+<MerchantHistoryPagination name="leads" label="New clients" pagination={d.leads_pagination} />
       <div className="cardx hero">
         <div style={{ flex: "1 1 420px", minWidth: 0 }}>
           <div className="muted" style={EYEBROW}>How new clients from LogaLuxe work</div>
@@ -128,7 +130,7 @@ export async function LeadsTab({ m, owner, link }: { m: Merchant; owner: boolean
       <div className="muted" style={EYEBROW}>New clients LogaLuxe brought you</div>
       {leads.length ? (
         <div className="tablebox">
-          <DataTable id="leads" search="Search new clients" filters={["Status", "Where from"]} pageSize={25} noun="new client" sort={{ col: "Date", dir: "desc" }}>
+          <div className="dt">
             <table>
               <thead><tr><th>Date</th><th>Client</th><th>Services</th><th>Where from</th><th>Status</th><th>First visit</th><th>Rate</th><th>Fee</th><th>Spent since</th><th data-nosort data-col="Action" /></tr></thead>
               <tbody>
@@ -165,7 +167,7 @@ export async function LeadsTab({ m, owner, link }: { m: Merchant; owner: boolean
                 })}
               </tbody>
             </table>
-          </DataTable>
+          </div>
         </div>
       ) : <Empty title="No new clients from LogaLuxe yet">When someone who has never booked you finds you on LogaLuxe and books, they appear here with what the visit cost you and what they have spent since.</Empty>}
       <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5 }}>{owner ? `You can dispute a fee for ${days} days after it is charged.` : `The owner can dispute a fee for ${days} days after it is charged.`} Fees also show line by line under Money.</div>
@@ -193,18 +195,20 @@ function AdjustSheet({ client, points, back }: { client: Row; points: number | n
   );
 }
 
-export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
+export async function LoyaltyTab({ m, find, sp }: { sp: Record<string,string | undefined>; m: Merchant; find?: string }) {
   const q = (find ?? "").trim();
-  const [{ data: d, error }, found] = await Promise.all([mLoad("/loyalty"), q ? mLoad("/clients" + qs({ q, per_page: 8 })) : Promise.resolve(null)]);
+  const [{ data: d, error }, found] = await Promise.all([mLoad("/loyalty" + qs(sp)), q ? mLoad("/clients" + qs({ q, per_page: 8 })) : Promise.resolve(null)]);
   if (error) return <Fail error={error} />;
   const cur = m.currency, tz = m.timezone, back = "/business/marketing?tab=loyalty";
   const rules = d.rules as { enabled: boolean; earn_points: number; per_cents: number; point_value_cents: number; min_redeem: number }, k = d.kpis as Row;
   const clients = (d.clients ?? []) as Row[], recent = (d.recent ?? []) as Row[];
   const matches = found && !found.error ? ((found.data.clients ?? []) as Row[]).slice(0, 8) : [];
-  const balance = new Map(clients.map((c) => [String(c.id), Number(c.points)]));
+  const balance = new Map([...clients, ...matches].map((c) => [String(c.id), Number(c.points)]));
 
   return (
     <>
+<MerchantHistoryPagination name="loyalty_clients" label="Loyalty balances" pagination={d.loyalty_clients_pagination} />
+<MerchantHistoryPagination name="recent" label="Loyalty movements" pagination={d.recent_pagination} />
       <div className="kpis">
         <div className="kpi"><small>Clients with points</small><b>{n(k.members)}</b><span>{rules.enabled ? "Loyalty is on" : "Loyalty is off"}</span></div>
         <div className="kpi"><small>Points not yet spent</small><b>{n(k.outstanding)}</b><span>worth {money(k.outstanding * rules.point_value_cents, cur)} off future visits</span></div>
@@ -217,7 +221,7 @@ export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
           <div className="muted" style={EYEBROW}>Clients with points</div>
           {clients.length ? (
             <div className="tablebox">
-              <DataTable id="loyalty-clients" search="Search clients" pageSize={10} noun="client" sort={{ col: "Balance", dir: "desc" }}>
+              <div className="dt">
                 <table>
                   <thead><tr><th>Client</th><th>Balance</th><th>Worth</th><th>Earned</th><th>Spent</th><th>Last activity</th><th data-nosort data-col="Action" /></tr></thead>
                   <tbody>
@@ -234,7 +238,7 @@ export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
                     ))}
                   </tbody>
                 </table>
-              </DataTable>
+              </div>
             </div>
           ) : <Empty title="Nobody has points yet">{rules.enabled ? "Clients earn points the next time they pay at Checkout." : "Switch loyalty on and clients earn points each time they pay at Checkout."}</Empty>}
 
@@ -260,7 +264,7 @@ export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
           <div className="muted" style={{ ...EYEBROW, marginTop: 4 }}>Recent movements</div>
           {recent.length ? (
             <div className="tablebox">
-              <DataTable id="loyalty-moves" search="Search movements" filters={["What"]} pageSize={10} noun="movement" sort={{ col: "When", dir: "desc" }}>
+              <div className="dt">
                 <table>
                   <thead><tr><th>When</th><th>Client</th><th>Points</th><th>What</th><th>Note</th><th>By</th></tr></thead>
                   <tbody>
@@ -276,7 +280,7 @@ export async function LoyaltyTab({ m, find }: { m: Merchant; find?: string }) {
                     ))}
                   </tbody>
                 </table>
-              </DataTable>
+              </div>
             </div>
           ) : <Empty title="No movements yet">Every time points are earned, spent or changed by hand, it is listed here.</Empty>}
         </div>

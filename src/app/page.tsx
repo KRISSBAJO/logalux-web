@@ -27,9 +27,9 @@ const CATEGORIES: [string, string, string][] = [
 
 const PRO_FEATURES: [React.ReactNode, string, string][] = [
   [<Icon.Calendar key="c" />, "A calendar that fills itself", "Your booking link lives in your bio. Nothing double-books."],
-  [<Icon.Shield key="s" />, "No more no-shows", "Take a deposit or hold a card. Your policy is enforced for you."],
-  [<Icon.Chat key="m" />, "Reminders, sent for you", "WhatsApp, SMS and email. Clients confirm or move from the message."],
-  [<Icon.Card key="p" />, "Paid out daily", "Card, Apple Pay, transfer or USSD. Tips are yours in full."],
+  [<Icon.Shield key="s" />, "Protect your time", "Set deposits and cancellation rules before clients book."],
+  [<Icon.Chat key="m" />, "Stay in touch", "Manage client messages and email reminders from one place."],
+  [<Icon.Card key="p" />, "Know your money", "Track payments, tips and payouts in your business dashboard."],
 ];
 
 export default async function Landing() {
@@ -217,7 +217,7 @@ export default async function Landing() {
             {[
               ["01", "Find someone you trust", "Search by service or browse near you. Portfolios, verified reviews with photos, prices, and policies are all on the profile before you commit."],
               ["02", "Pick a real opening", "The calendar shows only slots that are actually free. Choose your professional or “anyone available”, add services, and confirm with a card or a small deposit."],
-              ["03", "Show up and pay in app", "Reminders arrive on WhatsApp or SMS. Reschedule from the message if life happens. Pay and tip in the app, then rebook with one tap."],
+              ["03", "Keep every visit together", "See your appointment and payment status in your account. Message your professional, manage your booking and rebook when you are ready."],
             ].map(([n, t, d]) => (
               <div key={n} className="card lift flex min-h-[300px] flex-col gap-4 rounded-[24px] p-9">
                 <div className="serif text-[56px] leading-none text-gold">{n}</div>
@@ -253,13 +253,13 @@ export default async function Landing() {
                 <div className="relative flex h-[620px] flex-col overflow-hidden rounded-[39px] bg-cream text-ink">
                   <i aria-hidden className="absolute left-1/2 top-2.5 z-10 block h-[22px] w-[92px] -translate-x-1/2 rounded-full bg-ink-2" />
                   <div className="px-5 pb-4 pt-12">
-                    <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-muted">Saturday, October 10</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-muted">Sample business dashboard</div>
                     <div className="serif mt-1 text-[30px] leading-none">Good morning, Ada</div>
                   </div>
                   <div className="mx-4 flex items-end justify-between rounded-[20px] bg-ink-2 p-4 text-[#F4ECE3]">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[.1em] text-[#B9ADA2]">Booked today</div>
-                      <div className="serif mt-1 text-[36px] leading-none">$640</div>
+                      <div className="serif mt-1 text-[36px] leading-none">{money(where.scope === "NG" ? 64000000 : 64000, where.scope === "NG" ? "NGN" : "USD")}</div>
                       <div className="mt-1.5 text-[12px] text-gold-2">6 clients · 1 open slot</div>
                     </div>
                     <div aria-hidden className="flex h-[52px] items-end gap-1.5">
@@ -316,8 +316,8 @@ export default async function Landing() {
             {[
               ["Verified, licensed, real", "Every professional verifies their identity. Licences are checked where the law requires one. Portfolios show their own work."],
               ["Reviews only from real visits", "You can only review a booking you completed and paid for. One review per visit. No rings, no copy-paste."],
-              ["Pay in app, protected", "Cards are never stored by us. Deposits are held until the visit. If something goes wrong, a dispute is one tap away."],
-              ["Home visits, safely", "Addresses and live location are shared only from an hour before the visit. Report and block from any booking."],
+              ["Secure payment pages", "Online card payments are handled by Stripe or Paystack. LogaLuxe does not store your full card number."],
+              ["Know before you book", "Check the location, services and cancellation policy on each professional’s page. Contact them if you need more details."],
             ].map(([t, d]) => (
               <div key={t} className="card lift flex flex-col gap-3 rounded-[20px] p-7">
                 <Icon.Shield className="text-wine" width={28} height={28} />
@@ -338,9 +338,7 @@ export default async function Landing() {
               <p className="mt-3 max-w-[520px] text-[17px] leading-relaxed text-[#F1D9DC]">Rebook your favourite in a tap, get reminders where you actually read them, and keep every receipt and photo in one place.</p>
             </div>
             <div className="flex flex-wrap gap-3.5">
-              {[["Download on the", "App Store"], ["Get it on", "Google Play"]].map(([s, b]) => (
-                <a key={b} href="#top" className="flex min-h-[56px] min-w-[170px] flex-col justify-center rounded-[14px] border border-white/15 bg-ink px-5 text-cream"><small className="text-[11px] tracking-wide text-[#C9BCB0]">{s}</small><b className="text-[17px] font-semibold">{b}</b></a>
-              ))}
+              <div className="flex flex-col gap-3"><p className="text-sm text-[#F1D9DC]">Mobile app · preparing for release</p><Link href="/search" className="btn bg-cream text-ink">Book on the web</Link></div>
             </div>
           </div>
         </div>

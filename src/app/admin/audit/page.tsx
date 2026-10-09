@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin-pagination";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
 import { Btn, Content, Empty, Field, Flash, Panel, Topbar, inputCls } from "@/components/admin-ui";
@@ -7,8 +8,10 @@ const show = (v: unknown) => (v === null || v === undefined ? "" : typeof v === 
 
 export default async function Audit({ searchParams }: { searchParams: Promise<{ q?: string; actor?: string; action?: string }> }) {
   const sp = await searchParams;
+  const pageParams = sp as Record<string,string|undefined>;
+  const paging = {page:pageParams.page,per_page:pageParams.per_page,sort:pageParams.sort,direction:pageParams.direction};
   const { q = "", actor = "", action = "" } = sp;
-  const res = await load(`/audit${qs({ q, actor, action })}`);
+  const res = await load(`/audit${qs({ ...paging, q, actor, action })}`);
   const events: Row[] = res.data.events ?? [];
   const actors: Row[] = res.data.actors ?? [];
 
@@ -46,6 +49,7 @@ export default async function Audit({ searchParams }: { searchParams: Promise<{ 
           </table>
           {events.length === 0 && <Empty>No entries match.</Empty>}
         </Panel>
+      <AdminPagination pagination={res.data.pagination} columns={["created_at","actor","action","target"]} />
       </Content>
     </>
   );

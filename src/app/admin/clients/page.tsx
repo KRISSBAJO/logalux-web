@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin-pagination";
 import Link from "next/link";
 import { ExportLink } from "@/components/export-link";
 import { Btn, Content, Empty, Field, FilterSearch, Flash, Hidden, Panel, Pill, ReadOnly, Tabs, Topbar, ago, fmtDate, fmtMoney, inputCls } from "@/components/admin-ui";
@@ -6,8 +7,10 @@ import { blockClient } from "../actions";
 
 export default async function Clients({ searchParams }: { searchParams: Promise<{ q?: string; filter?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
+  const pageParams = sp as Record<string,string|undefined>;
+  const paging = {page:pageParams.page,per_page:pageParams.per_page,sort:pageParams.sort,direction:pageParams.direction};
   const { q = "", filter = "" } = sp;
-  const [admin, res] = await Promise.all([getAdmin(), load(`/clients${qs({ q, filter })}`)]);
+  const [admin, res] = await Promise.all([getAdmin(), load(`/clients${qs({ ...paging, q, filter })}`)]);
   const list: Row[] = res.data.clients ?? [];
   const blocked: Row[] = res.data.blocked ?? [];
   const back = `/admin/clients${qs({ q, filter })}`;
@@ -75,6 +78,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
             </Panel>
           </div>
         </div>
+      <AdminPagination pagination={res.data.pagination} columns={["name","business","spent_cents","bookings","created_at"]} />
       </Content>
     </>
   );
