@@ -27,7 +27,7 @@ export type ResultCard = {
   travels?: boolean;
 };
 
-type Opening = { service: string; service_id: string; slots: { time: string; starts_at: string; staff_id: string; staff: string }[] };
+export type Opening = { service: string; service_id: string; slots: { time: string; starts_at: string; staff_id: string; staff: string }[] };
 
 /** The calendar day of a moment in a time zone, as YYYY-MM-DD. */
 function dayIn(at: Date, timeZone?: string): string {
@@ -129,82 +129,7 @@ export function SearchResults({ cards, pins, q = "", header, near, home = "", ce
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className={`flex min-w-0 flex-col gap-3.5 ${showMap ? "max-lg:hidden" : ""}`}>
         {cards.map((c) => (
-          <article
-            key={c.slug}
-            id={`result-${c.slug}`}
-            onMouseEnter={() => setActive(c.slug)}
-            onMouseLeave={() => setActive(null)}
-            className={`group relative flex overflow-hidden rounded-[20px] border bg-white transition duration-300 ${active === c.slug ? "border-ink shadow-[0_16px_40px_rgba(26,21,19,.12)]" : "border-line hover:border-ink"}`}
-          >
-            <div className="relative w-[112px] flex-none self-stretch overflow-hidden sm:w-[172px]" style={{ background: `linear-gradient(150deg, ${c.tone}, #120e0d 140%)` }}>
-              {c.coverId ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/media/${c.coverId}`} alt={c.coverAlt ?? ""} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
-              ) : (
-                <div aria-hidden className="absolute inset-0 flex items-center justify-center">
-                  <LogoMark className="absolute h-[135%] w-auto text-white/[.07]" />
-                  <span className="serif text-[52px] leading-none text-white/85">{c.name.slice(0, 1)}</span>
-                </div>
-              )}
-              <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-cream/95 px-2 py-1 text-[12px] font-bold text-ink"><Icon.Star width={11} height={11} className="text-gold" />{c.rating.toFixed(1)}<small className="font-medium text-muted">({c.reviews})</small></span>
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col px-4 py-3.5 sm:px-5">
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="serif min-w-0 truncate text-[23px] leading-tight">
-                  <Link href={`/b/${c.slug}?src=search`} className="after:absolute after:inset-0 after:content-['']">{c.name}</Link>
-                </h2>
-                {c.promoted && <span className="mt-1 flex-none rounded-full border border-line px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.06em] text-muted" title="This business pays LogaLuxe to be listed higher">Promoted</span>}
-                {c.verified && <span className="mt-1 flex flex-none items-center gap-1 text-[11.5px] font-semibold text-ok"><Icon.Shield width={12} height={12} />Verified</span>}
-              </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] text-muted">
-                <span className="flex items-center gap-1"><Icon.Pin width={12} height={12} />{c.area}</span>
-                {c.distance && <span className="whitespace-nowrap font-semibold text-ink">{c.distance}</span>}
-                {c.travels && <span className="whitespace-nowrap rounded-full border border-line px-2 py-px text-[11.5px] font-semibold text-ink">Comes to you</span>}
-                {c.open !== null && <span className="flex items-center gap-1.5"><i className={`block h-1.5 w-1.5 rounded-full ${c.open ? "bg-ok" : "bg-muted-2"}`} />{c.openText}</span>}
-              </div>
-
-              {c.services.length > 0 && (
-                <ul className="mt-2.5 border-t border-line-2 text-[13.5px]">
-                  {c.services.map((s) => (
-                    <li key={s.name} className="flex items-baseline justify-between gap-3 border-b border-line-2 py-1.5 last:border-0">
-                      <span className="min-w-0 truncate">{s.name}<span className="ml-2 text-[12px] text-muted">{s.length}</span></span>
-                      <b className="flex-none font-semibold">{s.price}</b>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {(() => {
-                const o = openings[c.slug];
-                if (!o?.slots?.length) return null;
-                const today = dayIn(new Date(), c.timezone);
-                return (
-                  <div className="relative z-10 mt-2.5 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[12px] font-semibold text-muted">Next:</span>
-                    {o.slots.slice(0, 3).map((s) => {
-                      const date = dayIn(new Date(s.starts_at), c.timezone);
-                      const label = `${dayLabel(date, today)} ${s.time}`;
-                      return (
-                        <Link
-                          key={s.starts_at + s.staff_id}
-                          href={`/b/${c.slug}/book?${new URLSearchParams({ services: o.service_id, staff: s.staff_id, date, time: s.time, src: "search" })}`}
-                          aria-label={`Book ${o.service} at ${c.name}, ${label}, with ${s.staff}`}
-                          className="rounded-full border border-line bg-white px-2.5 py-1 text-[12.5px] font-semibold text-ink transition hover:border-ink hover:bg-cream-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                        >{label}</Link>
-                      );
-                    })}
-                    {o.service && <span className="min-w-0 basis-full truncate text-[11.5px] text-muted">for {o.service}</span>}
-                  </div>
-                );
-              })()}
-
-              <div className="mt-auto flex items-center justify-between gap-3 pt-2.5">
-                <span className="min-w-0 truncate text-[12.5px] text-muted">{c.team}{c.from && <> · from <b className="text-ink">{c.from}</b></>}</span>
-                <span className="flex flex-none items-center gap-1 text-[13px] font-semibold text-wine transition group-hover:gap-2">See times<Icon.Arrow width={13} height={13} /></span>
-              </div>
-            </div>
-          </article>
+          <ResultCardItem key={c.slug} c={c} active={active === c.slug} onEnter={() => setActive(c.slug)} onLeave={() => setActive(null)} opening={openings[c.slug]} />
         ))}
       </div>
 
@@ -219,5 +144,89 @@ export function SearchResults({ cards, pins, q = "", header, near, home = "", ce
       )}
     </div>
     </>
+  );
+}
+
+/**
+ * One business as a result card. Search, the city pages and the Journal's
+ * "Book it" all show the same card. `opening` is its next free times, when known.
+ */
+export function ResultCardItem({ c, active, onEnter, onLeave, opening, src = "search" }: { c: ResultCard; active?: boolean; onEnter?: () => void; onLeave?: () => void; opening?: Opening; /** How the visitor found it, for the lead. */ src?: string }) {
+  return (
+    <article
+      id={`result-${c.slug}`}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      className={`group relative flex overflow-hidden rounded-[20px] border bg-white transition duration-300 ${active ? "border-ink shadow-[0_16px_40px_rgba(26,21,19,.12)]" : "border-line hover:border-ink"}`}
+    >
+      <div className="relative w-[112px] flex-none self-stretch overflow-hidden sm:w-[172px]" style={{ background: `linear-gradient(150deg, ${c.tone}, #120e0d 140%)` }}>
+        {c.coverId ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`/media/${c.coverId}`} alt={c.coverAlt ?? ""} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+        ) : (
+          <div aria-hidden className="absolute inset-0 flex items-center justify-center">
+            <LogoMark className="absolute h-[135%] w-auto text-white/[.07]" />
+            <span className="serif text-[52px] leading-none text-white/85">{c.name.slice(0, 1)}</span>
+          </div>
+        )}
+        <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-cream/95 px-2 py-1 text-[12px] font-bold text-ink"><Icon.Star width={11} height={11} className="text-gold" />{c.rating.toFixed(1)}<small className="font-medium text-muted">({c.reviews})</small></span>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col px-4 py-3.5 sm:px-5">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="serif min-w-0 truncate text-[23px] leading-tight">
+            <Link href={`/b/${c.slug}?src=${src}`} className="after:absolute after:inset-0 after:content-['']">{c.name}</Link>
+          </h2>
+          {c.promoted && <span className="mt-1 flex-none rounded-full border border-line px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.06em] text-muted" title="This business pays LogaLuxe to be listed higher">Promoted</span>}
+          {c.verified && <span className="mt-1 flex flex-none items-center gap-1 text-[11.5px] font-semibold text-ok"><Icon.Shield width={12} height={12} />Verified</span>}
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] text-muted">
+          <span className="flex items-center gap-1"><Icon.Pin width={12} height={12} />{c.area}</span>
+          {c.distance && <span className="whitespace-nowrap font-semibold text-ink">{c.distance}</span>}
+          {c.travels && <span className="whitespace-nowrap rounded-full border border-line px-2 py-px text-[11.5px] font-semibold text-ink">Comes to you</span>}
+          {c.open !== null && <span className="flex items-center gap-1.5"><i className={`block h-1.5 w-1.5 rounded-full ${c.open ? "bg-ok" : "bg-muted-2"}`} />{c.openText}</span>}
+        </div>
+
+        {c.services.length > 0 && (
+          <ul className="mt-2.5 border-t border-line-2 text-[13.5px]">
+            {c.services.map((s) => (
+              <li key={s.name} className="flex items-baseline justify-between gap-3 border-b border-line-2 py-1.5 last:border-0">
+                <span className="min-w-0 truncate">{s.name}<span className="ml-2 text-[12px] text-muted">{s.length}</span></span>
+                <b className="flex-none font-semibold">{s.price}</b>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {(() => {
+          const o = opening;
+          if (!o?.slots?.length) return null;
+          const today = dayIn(new Date(), c.timezone);
+          return (
+            <div className="relative z-10 mt-2.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[12px] font-semibold text-muted">Next:</span>
+              {o.slots.slice(0, 3).map((s) => {
+                const date = dayIn(new Date(s.starts_at), c.timezone);
+                const label = `${dayLabel(date, today)} ${s.time}`;
+                return (
+                  <Link
+                    key={s.starts_at + s.staff_id}
+                    href={`/b/${c.slug}/book?${new URLSearchParams({ services: o.service_id, staff: s.staff_id, date, time: s.time, src })}`}
+                    aria-label={`Book ${o.service} at ${c.name}, ${label}, with ${s.staff}`}
+                    className="rounded-full border border-line bg-white px-2.5 py-1 text-[12.5px] font-semibold text-ink transition hover:border-ink hover:bg-cream-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                  >{label}</Link>
+                );
+              })}
+              {o.service && <span className="min-w-0 basis-full truncate text-[11.5px] text-muted">for {o.service}</span>}
+            </div>
+          );
+        })()}
+
+        <div className="mt-auto flex items-center justify-between gap-3 pt-2.5">
+          <span className="min-w-0 truncate text-[12.5px] text-muted">{c.team}{c.from && <> · from <b className="text-ink">{c.from}</b></>}</span>
+          <span className="flex flex-none items-center gap-1 text-[13px] font-semibold text-wine transition group-hover:gap-2">See times<Icon.Arrow width={13} height={13} /></span>
+        </div>
+      </div>
+    </article>
   );
 }

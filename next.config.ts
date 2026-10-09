@@ -8,6 +8,19 @@ const nextConfig: NextConfig = {
     // Public base URL of the Go API, used by server components and route handlers.
     LOGALUXE_API_URL: process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080",
   },
+  // The Journal on its own host: journal.<site host> serves /journal/*. Nothing changes until the owner adds a DNS
+  // record for the subdomain (see the README). The site's own files, pictures and API routes pass through untouched,
+  // and so does /journal/... itself, so the links inside the pages keep working on either host.
+  async rewrites() {
+    const journalHost = [{ type: "host" as const, value: "journal\\..+" }];
+    return {
+      beforeFiles: [
+        { source: "/", has: journalHost, destination: "/journal" },
+        { source: "/category/:key", has: journalHost, destination: "/journal/category/:key" },
+        { source: "/:slug((?!search$|shop$|cart$|signin$|signup$|help$|places$|account$|business$|journal$|admin$|staff$|verify$|forgot$|reset$|pay$|embed$|legal$|media$|api$|gift-cards$|_next$)[a-z0-9][a-z0-9-]*)", has: journalHost, destination: "/journal/:slug" },
+      ],
+    };
+  },
   // Who may put our pages inside a frame. Only the booking page made for a business's own website
   // (/embed/<slug>) may be framed by other sites; everything else only by LogaLuxe itself.
   // No X-Frame-Options is sent anywhere: it cannot say "any site", and frame-ancestors replaces it.

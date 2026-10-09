@@ -20,7 +20,7 @@ export function Logo({ light = true, size = 26 }: { light?: boolean; size?: numb
  * and the place the visitor is looking in, which they can change from any page.
  * `placePage`: this page belongs to one place, so choosing another goes to that place's page.
  */
-export async function SiteHeader({ active, transparent = false, placePage = false }: { active?: "book" | "shop" | "pros"; transparent?: boolean; placePage?: boolean }) {
+export async function SiteHeader({ active, transparent = false, placePage = false }: { active?: "book" | "shop" | "journal" | "pros"; transparent?: boolean; placePage?: boolean }) {
   const [me, where, picked] = await Promise.all([getCustomer(), whereAmI(), pickerWhere()]);
   const link = (href: string, label: string, key: string) => (
     <Link href={href} className="text-[14px] font-medium hover:text-white" style={{ color: active === key ? "#FFFFFF" : "#E9DED3", fontWeight: active === key ? 600 : 500 }}>
@@ -39,6 +39,7 @@ export async function SiteHeader({ active, transparent = false, placePage = fals
         <div className="ml-auto flex items-center gap-5 max-md:hidden">
           {link("/search", "Book a service", "book")}
           {link("/shop", "Shop", "shop")}
+          {link("/journal", "Journal", "journal")}
           {link("/#pros", "For professionals", "pros")}
           <Link href="/cart" className="text-[14px] font-medium text-[#E9DED3] hover:text-white">Cart</Link>
           {!me && <Link href="/signin" className="text-[14px] font-medium text-[#E9DED3] hover:text-white">Sign in</Link>}
@@ -66,9 +67,9 @@ export async function SiteFooter() {
   // The places of the country being browsed.
   const places = all.filter((p) => !where.scope || p.country === where.scope);
   const columns: [string, ...[string, string][]][] = [
-    ["Clients", ["Browse services", "/search"], ...places.slice(0, 4).map((p): [string, string] => [`Beauty in ${p.city}`, `/${p.slug}`]), ...(places.length > 0 ? [["All places", "/places"] as [string, string]] : []), ["Shop", "/shop"], ["How it works", "/#how"], ["Help", "/help"]],
-    ["Professionals", ["List your business", "/business/signup"], ["Business sign in", "/business/signin"], ["Pricing", "/#pros"], ["Switch from another app", "/#pros"]],
-    ["Company", ["About LogaXP", "/"], ["For professionals", "/#pros"], ["Help", "/help"], ["Contact", "/help"]],
+    ["Clients", ["Browse services", "/search"], ...places.slice(0, 4).map((p): [string, string] => [`Beauty in ${p.city}`, `/${p.slug}`]), ...(places.length > 0 ? [["All places", "/places"] as [string, string]] : []), ["Shop", "/shop"], ["The Journal", "/journal"], ["How it works", "/#how"], ["Help", "/help"]],
+    ["Professionals", ["List your business", "/business/signup"], ["Business sign in", "/business/signin"], ["Pricing", "/#pros"], ["Switch from another app", "/#pros"], ["Business articles", "/journal/category/business"]],
+    ["Company", ["About LogaXP", "/"], ["The Journal", "/journal"], ["For professionals", "/#pros"], ["Help", "/help"], ["Contact", "/help"]],
     ["Legal", ["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Cancellation policy", "/legal/cancellation"], ["Accessibility", "/legal/accessibility"]],
   ];
   return (

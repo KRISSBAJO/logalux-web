@@ -11,6 +11,7 @@ import { livePlaces, pickerWhere, whereAmI } from "@/lib/places";
 import { Motion, MotionBoot } from "@/components/motion";
 import { HeroShowcase, type HeroImage } from "@/components/hero-slides";
 import { Pic } from "@/components/pic";
+import { JournalHomeSection } from "@/components/journal-home";
 import { firstByRef, siteMedia } from "@/lib/media";
 
 const CATEGORIES: [string, string, string][] = [
@@ -132,7 +133,7 @@ export default async function Landing() {
           <div data-reveal className="mb-10 flex flex-wrap items-end justify-between gap-8">
             <div>
               <div className="eyebrow !text-wine">Recommended</div>
-              <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">{device ? "Nearest to" : place?.kind === "state" || place?.kind === "country" ? "Top rated in" : "Top rated near"} <em className="text-wine">{device ? "you" : nearName || "you"}</em></h2>
+              <h2 className="serif mt-3 text-[36px] font-medium leading-[1.08] tracking-tight md:text-[44px]">Your next <em className="text-wine">beauty favourite.</em></h2>
               {/* One calm line: where, and how we came by it (a guess is called a guess), with the way to change it. */}
               {place && (
                 <div className="mt-3 flex flex-wrap items-center gap-x-2 text-[16px] text-muted">
@@ -199,6 +200,9 @@ export default async function Landing() {
           {featured.length > 0 && <div className="mt-10 flex justify-center"><Link href="/search" className="btn btn-out">See all {device ? "near you" : place?.kind === "state" || place?.kind === "country" ? `in ${nearName}` : `near ${nearName}`}</Link></div>}
         </div>
       </section>
+
+      {/* Articles from the Journal, for the country being browsed. Nothing shows until something is published. */}
+      <JournalHomeSection scope={where.scope} />
 
       <section className="py-24" id="how">
         <div className="container-x">

@@ -21,9 +21,13 @@ const paths: Record<string, ReactNode> = {
   makeup: <><path d="M9 12h6v9H9z" /><path d="M10 12V6.5L14 3v9" /><path d="M9 15.5h6" /></>,
   // A lotus.
   spa: <><path d="M12 20c-2.6-2-3.6-4.9-3.6-7.8 0-2.9 1.5-5.4 3.6-7.4 2.1 2 3.6 4.5 3.6 7.4 0 2.9-1 5.8-3.6 7.8z" /><path d="M8.6 14.4C7 13.5 5 13.2 3 13.6c1 3.7 4.8 6.4 9 6.4" /><path d="M15.4 14.4c1.6-.9 3.6-1.2 5.6-.8-1 3.7-4.8 6.4-9 6.4" /></>,
+  // A shop front with its awning: the Journal's articles for professionals.
+  business: <><path d="M4 10 5.5 4h13L20 10" /><path d="M4 10c0 1.4 1.1 2.5 2.5 2.5S9 11.4 9 10c0 1.4 1.1 2.5 2.5 2.5S14 11.4 14 10c0 1.4 1.1 2.5 2.5 2.5S19 11.4 19 10" /><path d="M5.5 12.5V20h13v-7.5" /><path d="M10 20v-5h4v5" /></>,
+  // A signpost: how to use LogaLuxe.
+  guide: <><path d="M12 3v18M8 21h8" /><path d="M12 6h7l2 2.5L19 11h-7z" /><path d="M12 13H5l-2 2.5L5 18h7z" /></>,
 };
 
-/** The drawing for a category id (hair, braids, barber, nails, lashes, skin, makeup, spa). Nothing for an id it does not know. */
+/** The drawing for a category id (hair, braids, barber, nails, lashes, skin, makeup, spa, business, guide). Nothing for an id it does not know. */
 export function CategoryIcon({ id, ...props }: { id: string } & SVGProps<SVGSVGElement>) {
   const drawing = paths[id];
   if (!drawing) return null;

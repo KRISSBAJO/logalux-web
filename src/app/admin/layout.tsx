@@ -75,6 +75,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       collapsible: true,
       items: [
         { href: "/admin/messages", label: "Messages", icon: <Icon.Arrow /> },
+        { href: "/admin/journal", label: "Journal", icon: <Icon.Book /> },
         { href: "/admin/site", label: "Site images", icon: <Icon.Camera /> },
         { href: "/admin/pages", label: "Site pages", icon: <Icon.Doc /> },
         { href: "/admin/features", label: "Features", icon: <Icon.Check /> },

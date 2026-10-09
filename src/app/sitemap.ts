@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { CATEGORY_PAGES } from "@/lib/categories";
 import type { Place } from "@/lib/place";
 import { allListings } from "@/lib/listings";
+import { isTestArticle, journalCategory, journalList } from "@/lib/journal";
 import { absoluteUrl, isTestEntry } from "@/lib/site";
 
 // Built from the live API and kept for an hour, so a crawler does not make the API list every business on each visit.
@@ -50,6 +51,20 @@ async function businessPages(): Promise<Entry[]> {
   return list.map((b) => ({ url: absoluteUrl(`/b/${encodeURIComponent(b.slug)}`), changeFrequency: "weekly" as const, priority: 0.7 }));
 }
 
+/** The Journal: its front, a page for each kind of article that has one, and every published article. */
+async function journalPages(): Promise<Entry[]> {
+  const list = await journalList({ limit: 500, quiet: true }, revalidate);
+  if (!list) return [];
+  const out: Entry[] = [{ url: absoluteUrl("/journal"), changeFrequency: "daily", priority: 0.8 }];
+  for (const c of list.categories) if (c.count > 0 && journalCategory(c.key)) out.push({ url: absoluteUrl(`/journal/category/${c.key}`), changeFrequency: "weekly", priority: 0.6 });
+  for (const a of list.articles) {
+    if (isTestArticle(a)) continue;
+    const at = a.published_at ? new Date(a.published_at) : null;
+    out.push({ url: absoluteUrl(`/journal/${encodeURIComponent(a.slug)}`), lastModified: at && !Number.isNaN(at.getTime()) ? at : undefined, changeFrequency: "monthly", priority: 0.7 });
+  }
+  return out;
+}
+
 /** Every product on sale in one of the two shops: the dollar shop, or the naira shop. */
 async function productPages(currency: "USD" | "NGN"): Promise<Entry[]> {
   const out: Entry[] = [];
@@ -68,11 +83,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/search"), changeFrequency: "daily", priority: 0.9 },
   ];
   // Each part answers with what it could read. With the API down that is nothing, and the fixed pages still go out.
-  const [legal, places, businesses, products, naira] = await Promise.all([legalPages().catch(() => []), placePages().catch(() => []), businessPages().catch(() => []), productPages("USD").catch(() => []), productPages("NGN").catch(() => [])]);
+  const [legal, places, businesses, products, naira, journal] = await Promise.all([legalPages().catch(() => []), placePages().catch(() => []), businessPages().catch(() => []), productPages("USD").catch(() => []), productPages("NGN").catch(() => []), journalPages().catch(() => [])]);
   // Each country's shop has its own address, and is listed only when it sells something.
   const shops: Entry[] = [
     ...(products.length ? [{ url: absoluteUrl("/shop?country=us"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
     ...(naira.length ? [{ url: absoluteUrl("/shop?country=ng"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
   ];
-  return [...fixed, ...shops, ...legal, ...places, ...businesses, ...products, ...naira];
+  return [...fixed, ...shops, ...legal, ...places, ...businesses, ...products, ...naira, ...journal];
 }

@@ -29,6 +29,11 @@ export const Icon = {
   List: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 6h16M4 12h16M4 18h10" /></svg>,
   Flag: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01" /></svg>,
   Doc: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg>,
+  // An open book: the Journal.
+  Book: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 6.5C10.5 5.2 8.3 4.5 5.5 4.5H3v14h2.5c2.8 0 5 .7 6.5 2 1.5-1.3 3.7-2 6.5-2H21v-14h-2.5c-2.8 0-5 .7-6.5 2z" /><path d="M12 6.5v14" /></svg>,
+  Link: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5" /></svg>,
+  Share: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>,
+  Image: (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="3" y="4" width="18" height="16" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="m21 16-5-5-8 9" /></svg>,
 };
 
 export function Stars({ rating, size = 12 }: { rating: number | string; size?: number }) {
