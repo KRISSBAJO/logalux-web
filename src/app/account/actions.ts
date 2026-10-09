@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { money } from "@/lib/api";
 import { cardFields } from "@/lib/cards";
 import { USER_COOKIE, CustomerApiError, cookieOptions, customerApi, customerUpload, safeNext } from "@/lib/customer";
+import { messageCode } from "@/lib/flash";
 
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const enc = encodeURIComponent;
@@ -52,7 +53,7 @@ export async function signUp(fd: FormData) {
     }
   }
   // When the form is shown again, the invitation stays with it.
-  redirect(error ? `/signup?next=${enc(next)}${ref ? `&ref=${ref}` : ""}&err=${enc(error)}` : next);
+  redirect(error ? `/signup?next=${enc(next)}${ref ? `&ref=${ref}` : ""}&err=${await messageCode(error)}` : next);
 }
 
 export async function signIn(fd: FormData) {
@@ -63,7 +64,7 @@ export async function signIn(fd: FormData) {
   } catch (e) {
     error = (e as Error).message;
   }
-  redirect(error ? `/signin?next=${enc(next)}&err=${enc(error)}` : next);
+  redirect(error ? `/signin?next=${enc(next)}&err=${await messageCode(error)}` : next);
 }
 
 export async function signOut() {
@@ -76,14 +77,16 @@ export async function signOut() {
 
 /** Back to one section of the account with a message. Extra values (an open mover, a chosen day) are kept in the address. */
 async function back(kind: "ok" | "err", message: string, tab = "bookings", extra: Record<string, string> = {}): Promise<never> {
-  const p = new URLSearchParams({ tab, ...extra, [kind]: message });
+  const p = new URLSearchParams({ tab, ...extra, [kind]: await messageCode(message) });
   redirect(`/account?${p}`);
 }
 
 export async function saveDetails(fd: FormData) {
   let error = "";
+  // The email field is on the form only for an account that has none yet (one made with a texted code).
+  const email = v(fd, "email");
   try {
-    await customerApi("/auth/me", { method: "PUT", body: { first_name: v(fd, "first_name"), last_name: v(fd, "last_name"), phone: v(fd, "phone") } });
+    await customerApi("/auth/me", { method: "PUT", body: { first_name: v(fd, "first_name"), last_name: v(fd, "last_name"), phone: v(fd, "phone"), ...(email ? { email } : {}) } });
   } catch (e) {
     error = (e as Error).message;
   }
@@ -92,15 +95,17 @@ export async function saveDetails(fd: FormData) {
 
 export async function changeMyPassword(fd: FormData) {
   let error = "";
+  // No current password on the form: the account has none yet, and this sets the first one.
+  const current = fd.get("current"), setting = current === null;
   if (String(fd.get("new") ?? "") !== String(fd.get("again") ?? "")) error = "The two new passwords do not match.";
   if (!error) {
     try {
-      await customerApi("/auth/password", { method: "POST", body: { current: String(fd.get("current") ?? ""), new: String(fd.get("new") ?? "") } });
+      await customerApi("/auth/password", { method: "POST", body: { ...(setting ? {} : { current: String(current ?? "") }), new: String(fd.get("new") ?? "") } });
     } catch (e) {
       error = (e as Error).message;
     }
   }
-  await (error ? back("err", error, "details") : back("ok", "Password changed. Other devices have been signed out.", "details"));
+  await (error ? back("err", error, "details") : back("ok", setting ? "Password set. You can sign in with your email and this password." : "Password changed. Other devices have been signed out.", "details"));
 }
 
 export async function cancelMyBooking(fd: FormData) {
@@ -160,7 +165,7 @@ export async function askForReset(fd: FormData) {
   } catch (e) {
     error = (e as Error).message;
   }
-  redirect(error ? `/forgot?err=${enc(error)}` : "/forgot?sent=1");
+  redirect(error ? `/forgot?err=${await messageCode(error)}` : "/forgot?sent=1");
 }
 
 export async function chooseNewPassword(fd: FormData) {
@@ -174,7 +179,7 @@ export async function chooseNewPassword(fd: FormData) {
       error = (e as Error).message;
     }
   }
-  redirect(error ? `/reset?token=${enc(token)}&err=${enc(error)}` : `/signin?ok=${enc("Password changed. Sign in with the new one.")}`);
+  redirect(error ? `/reset?token=${enc(token)}&err=${await messageCode(error)}` : `/signin?ok=${await messageCode("Password changed. Sign in with the new one.")}`);
 }
 
 /** A signed-in client writes to a business. The reply arrives in the same thread. */
@@ -186,7 +191,7 @@ export async function sendMessage(fd: FormData) {
     error = (e as Error).message;
   }
   const where = id ? `thread=${enc(id)}&` : v(fd, "slug") ? `to=${enc(v(fd, "slug"))}&` : "";
-  redirect(`/account?tab=messages&${where}${error ? "err=" + enc(error) : "ok=" + enc("Message sent.")}#messages`);
+  redirect(`/account?tab=messages&${where}${error ? "err=" + await messageCode(error) : "ok=" + await messageCode("Message sent.")}#messages`);
 }
 
 /** A review of a finished visit: one to five stars and a few words. */
@@ -295,7 +300,7 @@ export async function confirmEmail(fd: FormData) {
   } catch (e) {
     error = (e as Error).message;
   }
-  redirect(error ? `/verify?err=${enc(error)}` : `/verify?ok=${enc(`${email} is confirmed. Thank you.`)}`);
+  redirect(error ? `/verify?err=${await messageCode(error)}` : `/verify?ok=${await messageCode(`${email} is confirmed. Thank you.`)}`);
 }
 
 export async function resendConfirmation(fd: FormData) {
@@ -326,7 +331,7 @@ export async function askReturn(_prev: CareState, fd: FormData): Promise<CareSta
   } catch (e) {
     return { error: sentence((e as Error).message) };
   }
-  redirect(`/account?tab=orders&ok=${enc(`Return requested. ${seller} will answer by email.`)}#o-${id}`);
+  redirect(`/account?tab=orders&ok=${await messageCode(`Return requested. ${seller} will answer by email.`)}#o-${id}`);
 }
 
 /** Adds a tip to a finished visit. With payments live the answer is a payment page, unless a kept card paid it at once; otherwise the tip is already recorded. */
@@ -342,7 +347,9 @@ export async function addTip(_prev: CareState, fd: FormData): Promise<CareState>
     return { error: sentence((e as Error).message) };
   }
   if (out.payment?.url) return { error: "", url: out.payment.url };
-  redirect(`/account?tab=bookings&ok=${enc(`Thank you. Your ${money(Number(out.amount_cents) || cents, out.currency || "USD")} tip is on its way to ${v(fd, "business") || "the business"}.`)}#b-${id}`);
+  // The amount is named only when the API says what money it is in.
+  const amount = out.currency ? ` ${money(Number(out.amount_cents) || cents, out.currency)}` : "";
+  redirect(`/account?tab=bookings&ok=${await messageCode(`Thank you. Your${amount} tip is on its way to ${v(fd, "business") || "the business"}.`)}#b-${id}`);
 }
 
 /** Reports a problem with a visit. The business has 48 hours to give its side, then LogaLuxe decides. */
@@ -358,7 +365,7 @@ export async function reportProblem(_prev: CareState, fd: FormData): Promise<Car
   } catch (e) {
     return { error: sentence((e as Error).message) };
   }
-  redirect(`/account?tab=bookings&ok=${enc(`Your report is in${ref ? `, reference ${ref}` : ""}. ${v(fd, "business") || "The business"} has 48 hours to give its side. Then LogaLuxe decides and emails you.`)}#b-${id}`);
+  redirect(`/account?tab=bookings&ok=${await messageCode(`Your report is in${ref ? `, reference ${ref}` : ""}. ${v(fd, "business") || "The business"} has 48 hours to give its side. Then LogaLuxe decides and emails you.`)}#b-${id}`);
 }
 
 // ---------- signing in with a texted code, and confirming a number ----------
@@ -439,7 +446,7 @@ export async function phoneStep(prev: PhoneState, fd: FormData): Promise<PhoneSt
   } catch (e) {
     return { ...prev, error: sentence((e as Error).message) };
   }
-  redirect(`/account?tab=details&ok=${enc("Your number is confirmed. You can sign in with a code sent to it.")}`);
+  redirect(`/account?tab=details&ok=${await messageCode("Your number is confirmed. You can sign in with a code sent to it.")}`);
 }
 
 /** How the person wants to hear about bookings. Only a channel that is switched on is accepted here; the API checks the word itself. */

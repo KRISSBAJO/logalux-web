@@ -9,16 +9,20 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** `revalidate`: keep the answer this many seconds. Without it nothing is kept. */
+type CacheOption = { revalidate?: number };
+
+async function request<T>(path: string, init: RequestInit = {}, keep: CacheOption = {}): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json", ...(init.headers as Record<string, string>) };
-  const res = await fetch(`${BASE}${path}`, { ...init, headers, cache: "no-store" });
+  const caching: RequestInit = keep.revalidate ? { next: { revalidate: keep.revalidate } } : { cache: "no-store" };
+  const res = await fetch(`${BASE}${path}`, { ...init, headers, ...caching });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body.error ?? res.statusText);
   return body as T;
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
+  get: <T>(path: string, keep: CacheOption = {}) => request<T>(path, {}, keep),
   post: <T>(path: string, data: unknown) => request<T>(path, { method: "POST", body: JSON.stringify(data) }),
 };
 

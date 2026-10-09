@@ -7,6 +7,9 @@ export async function GET(req: NextRequest) {
   const slugs = (p.get("slugs") ?? "").split(",").map((s) => s.trim()).filter((s) => /^[a-z0-9-]{1,80}$/i.test(s)).slice(0, 40);
   if (!slugs.length) return NextResponse.json({ openings: {} });
   const qs = new URLSearchParams({ slugs: slugs.join(","), q: (p.get("q") ?? "").slice(0, 80) });
+  // The search "When": each business then also says whether it has a free time in that window.
+  const when = p.get("when") ?? "";
+  if (["today", "tomorrow", "weekend"].includes(when)) qs.set("when", when);
   try {
     return NextResponse.json(await api.get(`/v1/openings?${qs}`));
   } catch (e) {

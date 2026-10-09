@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { AuthField } from "@/components/auth-card";
+import { AuthField } from "@/components/auth-field";
 import { merchantSignInStep, type SignInState } from "../actions";
 
 /** Email and password, then a code box when the account has two-step sign-in on. What was typed is kept between the steps. */

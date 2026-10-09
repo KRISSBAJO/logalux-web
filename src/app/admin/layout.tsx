@@ -4,6 +4,7 @@ import { Icon } from "@/components/icons";
 import { Suspense } from "react";
 import { AdminNav, SignInError, type NavGroup } from "@/components/admin-nav";
 import { can, getAdmin, load } from "@/lib/admin-api";
+import { changePassword } from "./actions-account";
 import { login, logout } from "./actions";
 
 export const metadata = { title: "LogaXP console" };
@@ -35,6 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await getAdmin();
   if (!admin) return <SignIn />;
 
+  if (admin.must_change_password) return <div className="hero-bg flex min-h-screen items-center justify-center p-6"><form action={changePassword} className="w-full max-w-[440px] rounded-[22px] bg-cream p-8"><h1 className="serif text-[30px]">Choose your own password</h1><p className="my-4">Change your temporary password before accessing the admin console.</p><Suspense><SignInError /></Suspense><input type="hidden" name="back" value="/admin" /><label className="field my-3">Temporary password<input name="current" type="password" required autoComplete="current-password" /></label><label className="field my-3">New password<input name="new" type="password" required minLength={10} maxLength={72} autoComplete="new-password" /></label><label className="field my-3">Confirm new password<input name="again" type="password" required minLength={10} maxLength={72} autoComplete="new-password" /></label><button className="btn btn-ink mt-4 w-full">Save password and continue</button></form></div>;
   const overview = await load("/overview");
   const k = overview.data.kpis ?? {};
   const attention = (k.pending_refunds ?? 0) + (k.stalled_campaigns ?? 0);

@@ -88,7 +88,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
   }
   const dayBookings = view === "staff" || view === "day" ? bookings : bookings.filter((b) => ymd(b.starts_at, tz) === date);
   if (view === "staff") for (const b of [...bookings, ...blocks]) { lo = Math.min(lo, minutesOfDay(b.starts_at, tz)); hi = Math.max(hi, minutesOfDay(b.starts_at, tz) + lengthOf(b)); }
-  const startH = Math.floor(lo / 60), endH = Math.min(24, Math.ceil(hi / 60));
+  const startH = Math.max(0, Math.floor(lo / 60) - 1), endH = Math.min(24, Math.ceil(hi / 60) + 1);
   const height = (endH - startH) * HOUR;
   const top = (iso: string) => Math.round(((minutesOfDay(iso, tz) - startH * 60) / 60) * HOUR);
   const nowTop = date === today ? top(new Date().toISOString()) : -1;
@@ -96,6 +96,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
 
   const evClass = (b: Row) => [
     "ev",
+    lengthOf(b) < 40 ? "ev-short" : "",
     b.status === "paid" || b.status === "completed" ? "done" : b.status === "no_show" ? "miss" : b.status === "requested" ? "req" : b.deposit_paid ? "gold" : "",
     b.status === "in_progress" || b.status === "checked_in" ? "live" : "",
     sp.booking === b.id ? "on" : "",
@@ -379,7 +380,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                   <div><small>Service</small><b>{picked.services ?? "Visit"}</b></div>
                   <div><small>With</small><b>{picked.staff}</b></div>
                   <div><small>Time</small><b>{ymd(picked.starts_at, tz) !== date || view !== "staff" ? dayShort(picked.starts_at, tz) + " · " : ""}{clock(picked.starts_at, tz)} to {clock(picked.ends_at, tz)}</b></div>
-                  <div><small>Booked via</small><b>{SOURCE[picked.source] ?? picked.source}</b></div>
+                  <div><small>Booked via</small><b>{picked.source === "internal" ? "Internal booking" : SOURCE[picked.source] ?? picked.source}</b></div>
                 </div>
                 <div>
                   {items.map((it, i) => <div key={i} className="line"><span>{it.name}</span><span>{money(it.price_cents, cur)}</span></div>)}

@@ -221,7 +221,6 @@ export default async function BusinessPage({ params, searchParams }: { params: P
             })}
             {photos.length > 0 ? <Link href={`/b/${b.slug}?photos=1${src ? `&src=${src}` : ""}`} className="btn btn-out btn-sm all">All {photos.length} photo{photos.length === 1 ? "" : "s"}</Link> : null}
           </div>
-          {photos.some((ph) => ph.alt.startsWith("AI-generated sample")) && <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Sample gallery · AI-generated imagery for this demo business.</p>}
 
           <div className="head">
             <div style={{ flex: 1, minWidth: 280 }}>

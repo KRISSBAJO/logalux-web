@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { CopyButton } from "@/components/merchant-client";
 import { Btn, Content, Empty, Field, Flash, Hidden, Panel, Pill, Topbar, ago, inputCls, statusPill, inputSm } from "@/components/admin-ui";
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
 import { inviteAdmin, updateAdmin } from "../actions";
@@ -12,6 +14,9 @@ const roles: [string, string, string][] = [
 export default async function Team({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
   // The team list is loaded alongside the sign-in check; the API refuses it to anyone below super admin anyway.
   const [sp, admin, res] = await Promise.all([searchParams, getAdmin(), load("/team")]);
+  const h = await headers();
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || `${h.get("x-forwarded-proto") || "http"}://${h.get("x-forwarded-host") || h.get("host") || "localhost:3100"}`;
+  const loginUrl = new URL("/admin", origin).toString();
   const back = "/admin/team";
 
   if (!can(admin, "super_admin")) {
@@ -29,6 +34,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
       <Topbar title="Team" sub="Who can sign in to this console, and what each person may do" />
       <Content>
         <Flash sp={sp} error={res.error} />
+        <Panel title="Admin sign-in link" sub="Share this address with authorised colleagues. Each person uses their own account."><a href={loginUrl} className="text-wine underline underline-offset-4">{loginUrl}</a><div className="mt-3"><CopyButton text={loginUrl}>Copy admin sign-in link</CopyButton></div></Panel>
         <Panel flush>
           <table className="data min-w-[1040px]">
             <thead><tr><th>Person</th><th>Status</th><th>Two-step</th><th>Last sign-in</th><th>Role</th><th>Access</th><th>New password</th></tr></thead>

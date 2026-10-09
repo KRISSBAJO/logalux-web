@@ -145,7 +145,6 @@ export function PlacePicker({ where, look, align = "left", after = "auto" }: {
   const list = q ? found?.places ?? [] : suggested;
   const shown = label || "Your area";
   const guessed = source === "ip";
-  const others = countries.filter((c) => c.code !== scope);
   const own = countries.find((c) => c.code === scope);
   // What the trigger says. A guess is never stated as a fact.
   const words = source === "device" ? `Near you · ${shown}` : shown;

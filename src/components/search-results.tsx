@@ -27,7 +27,15 @@ export type ResultCard = {
   travels?: boolean;
 };
 
-export type Opening = { service: string; service_id: string; slots: { time: string; starts_at: string; staff_id: string; staff: string }[] };
+export type Opening = {
+  service: string; service_id: string; slots: { time: string; starts_at: string; staff_id: string; staff: string }[];
+  /** Whether there is a free time in the window the search asked about (today, tomorrow or the weekend). Only with a window. */
+  in_window?: boolean;
+};
+
+/** The search "When": the window results are sorted by. */
+export type When = "today" | "tomorrow" | "weekend";
+const WHEN_WORDS: Record<When, string> = { today: "today", tomorrow: "tomorrow", weekend: "this weekend" };
 
 /** The calendar day of a moment in a time zone, as YYYY-MM-DD. */
 function dayIn(at: Date, timeZone?: string): string {
@@ -47,10 +55,14 @@ function dayLabel(date: string, today: string): string {
   return new Date(noon(date)).toLocaleDateString("en-GB", away < 7 ? { timeZone: "UTC", weekday: "short" } : { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
 }
 
-export function SearchResults({ cards, pins, q = "", header, near, home = "", centre, area, areaBase }: {
+export function SearchResults({ cards, pins, q = "", header, near, home = "", centre, area, areaBase, when, anyTimeHref = "/search" }: {
   cards: ResultCard[]; pins: Pin[]; q?: string;
   /** The line above the list: how many there are. The location control sits beside it. */
   header?: ReactNode;
+  /** The window asked for: those with a free time in it come first, the rest go under "No free time". */
+  when?: When;
+  /** The same search without the window, for "Show everyone". */
+  anyTimeHref?: string;
   /** `on`: results are ordered from the device's position. `off`: offer "Near me". Leave out to offer neither. */
   near?: "on" | "off";
   /** The country we think the visitor is in, noted with their position when they share it. */
@@ -86,18 +98,23 @@ export function SearchResults({ cards, pins, q = "", header, near, home = "", ce
   const [showMap, setShowMap] = useState(false); // phones show the list or the map, not both
 
   // The next free times of everyone on this page, asked for once after the list is on screen.
-  const [openings, setOpenings] = useState<Record<string, Opening>>({});
+  // With a "When", the same answer says who has a free time in that window.
+  const [openings, setOpenings] = useState<{ by: Record<string, Opening>; loaded: boolean }>({ by: {}, loaded: false });
   const slugs = cards.map((c) => c.slug).join(",");
   useEffect(() => {
     if (!slugs) return;
     let live = true;
-    setOpenings({});
-    fetch(`/api/openings?${new URLSearchParams({ slugs, q })}`)
+    setOpenings({ by: {}, loaded: false });
+    fetch(`/api/openings?${new URLSearchParams({ slugs, q, ...(when ? { when } : {}) })}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (live && d?.openings) setOpenings(d.openings); })
+      .then((d) => { if (live && d?.openings) setOpenings({ by: d.openings, loaded: true }); })
       .catch(() => {});
     return () => { live = false; };
-  }, [slugs, q]);
+  }, [slugs, q, when]);
+  // With a window, and once the free times are known: those free in it first, the rest after a heading.
+  // Until then, and when the free times could not be read, the list stays in the order the search gave.
+  const free = when && openings.loaded ? cards.filter((c) => openings.by[c.slug]?.in_window === true) : cards;
+  const busy = when && openings.loaded ? cards.filter((c) => openings.by[c.slug]?.in_window !== true) : [];
 
   const pick = useCallback((slug: string) => {
     setActive(slug);
@@ -125,11 +142,21 @@ export function SearchResults({ cards, pins, q = "", header, near, home = "", ce
       )}
       {problem && <p role="status" className="basis-full text-[13px] text-muted">{problem}</p>}
       {near === "on" && <p className="sr-only" role="status">Showing how far each one is from you, nearest first.</p>}
+      {when && (
+        <p role="status" className="basis-full text-[13.5px] text-ink">
+          Showing who has a free time {WHEN_WORDS[when]}{openings.loaded ? "" : ", once the free times are read"}. <Link href={anyTimeHref} className="font-semibold text-wine underline underline-offset-2">Show everyone</Link>
+        </p>
+      )}
     </div>
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className={`flex min-w-0 flex-col gap-3.5 ${showMap ? "max-lg:hidden" : ""}`}>
-        {cards.map((c) => (
-          <ResultCardItem key={c.slug} c={c} active={active === c.slug} onEnter={() => setActive(c.slug)} onLeave={() => setActive(null)} opening={openings[c.slug]} />
+        {free.map((c) => (
+          <ResultCardItem key={c.slug} c={c} active={active === c.slug} onEnter={() => setActive(c.slug)} onLeave={() => setActive(null)} opening={openings.by[c.slug]} />
+        ))}
+        {when && openings.loaded && free.length === 0 && <p className="text-[14.5px] text-muted">Nobody on this page has a free time {WHEN_WORDS[when]}.</p>}
+        {busy.length > 0 && <h2 className="mt-3 text-[12px] font-semibold uppercase tracking-[.1em] text-muted">No free time {when ? WHEN_WORDS[when] : ""}</h2>}
+        {busy.map((c) => (
+          <ResultCardItem key={c.slug} c={c} active={active === c.slug} onEnter={() => setActive(c.slug)} onLeave={() => setActive(null)} opening={openings.by[c.slug]} />
         ))}
       </div>
 

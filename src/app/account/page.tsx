@@ -8,6 +8,7 @@ import { AccountPhoto } from "./account-photo";
 import { Privacy } from "./privacy";
 import { myCards } from "@/lib/cards";
 import { getFeatures } from "@/lib/features";
+import { readMessage } from "@/lib/flash";
 import { NO_PAY, WalletNote, cardExpiry, cardLabel, cardsFor, type PayFeatures } from "@/components/pay-bits";
 import { BookingMover, ConfirmSubmit, CopyButton, HashTab, PhoneConfirm, ProblemForm, ReturnForm, ReviewPhotos, TipForm } from "./account-client";
 import { RepeatCard } from "@/app/b/[slug]/book/repeat";
@@ -216,6 +217,7 @@ function Booking({ b, past, sp, series = [], pay: payf = NO_PAY }: { b: Row; pas
         </div>
       )}
 
+      {b.is_internal && <p className="text-sm text-muted">Internal booking at your own business. It is not eligible for a public review.</p>}
       {b.can_review && !b.review_id && (
         <details className="w-full border-t border-line-2 pt-3">
           <summary className="cursor-pointer text-[14px] font-semibold text-wine">Leave a review</summary>
@@ -268,7 +270,11 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     }
   }
   const unread = Number(data.summary.unread) || 0;
-  const stamp = (iso: string) => new Date(iso).toLocaleString("en-US", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  // Message times are shown by the business's own clock. The thread names the business; its page says the zone.
+  const openTz = open ? (await customerApi<{ business: { timezone?: string } }>(`/businesses/${encodeURIComponent(String(open.thread.slug))}`, { auth: false }).catch(() => null))?.business?.timezone || "UTC" : "UTC";
+  const stamp = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: openTz, day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  // The address carries a code for the message, never the words.
+  const [okMessage, errMessage] = await Promise.all([readMessage(sp.ok), readMessage(sp.err)]);
 
   const now = Date.now();
   const active = (b: Row) => ["requested", "confirmed", "checked_in", "in_progress"].includes(b.status) && new Date(b.ends_at).getTime() > now;
@@ -324,7 +330,10 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const kept = tab === "bookings" || tab === "details" ? await myCards() : { enabled: false, cards: [], failed: false };
   const pay: PayFeatures = { saved: kept.enabled, wallets: features.wallets, cards: kept.cards };
   // How the person hears about bookings. Only a channel that is switched on is offered, and email always.
-  const phoneWays: ["sms" | "whatsapp", string][] = [...(features.sms_messages ? [["sms", "Text, and email"] as ["sms", string]] : []), ...(features.whatsapp ? [["whatsapp", "WhatsApp, and email"] as ["whatsapp", string]] : [])];
+  // A text is offered only where one can be sent: the country of the number on the account, else the country the person is in.
+  const phoneCountry = user.phone?.startsWith("+234") ? "NG" : user.phone?.startsWith("+1") ? "US" : (where.home || where.scope) === "NG" ? "NG" : "US";
+  const textsHere = features.sms_messages && features.texts_in[phoneCountry];
+  const phoneWays: ["sms" | "whatsapp", string][] = [...(textsHere ? [["sms", "Text, and email"] as ["sms", string]] : []), ...(features.whatsapp ? [["whatsapp", "WhatsApp, and email"] as ["whatsapp", string]] : [])];
   const chosenWay = phoneWays.some(([k]) => k === user.preferred_channel) && user.phone ? user.preferred_channel! : "email";
   const wayChip = "flex min-h-[42px] cursor-pointer items-center rounded-full border border-line bg-white px-3.5 text-[14px] font-semibold transition hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-cream has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-gold";
   const creditHistory = referral?.history ?? [];
@@ -367,8 +376,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <button className="btn btn-sm border border-line bg-white">Send the link again</button>
           </form>
         )}
-        {sp.err && <div role="alert" className="mt-6 whitespace-pre-line rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{sp.err}</div>}
-        {sp.ok && !sp.err && <div role="status" className="mt-6 whitespace-pre-line rounded-xl border border-ok/25 bg-ok-bg px-4 py-3 text-[14.5px] font-medium text-ok">{sp.ok}</div>}
+        {errMessage && <div role="alert" className="mt-6 whitespace-pre-line rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{errMessage}</div>}
+        {okMessage && !errMessage && <div role="status" className="mt-6 whitespace-pre-line rounded-xl border border-ok/25 bg-ok-bg px-4 py-3 text-[14.5px] font-medium text-ok">{okMessage}</div>}
         {(sectionError || messageError) && <div role="alert" className="mt-6 rounded-xl border border-bad/25 bg-bad-bg px-4 py-3 text-[14.5px] font-medium text-bad">{messageError || "Some details couldn’t load. Your records haven’t changed."} <Link className="underline" href={`/account?${new URLSearchParams(Object.entries(sp).filter(([,v])=>v!==undefined) as [string,string][])}`}>Retry</Link></div>}
 
         {tab === "bookings" && (
@@ -566,7 +575,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                       {creditHistory.map((c, i) => (
                         <li key={i} className="flex items-baseline justify-between gap-3 border-b border-line-2 py-2 last:border-0">
                           <span className="min-w-0">{c.reason}<span className="block text-[12.5px] text-muted">{day(c.created_at)}</span></span>
-                          <b className={`flex-none font-semibold ${c.amount_cents < 0 ? "text-muted" : "text-ok"}`}>{c.amount_cents < 0 ? `-${money(-c.amount_cents, c.currency || "USD")}` : `+${money(c.amount_cents, c.currency || "USD")}`}</b>
+                          {/* An amount is shown only when the API says what money it is in. */}
+                          {c.currency ? <b className={`flex-none font-semibold ${c.amount_cents < 0 ? "text-muted" : "text-ok"}`}>{c.amount_cents < 0 ? `-${money(-c.amount_cents, c.currency)}` : `+${money(c.amount_cents, c.currency)}`}</b> : null}
                         </li>
                       ))}
                     </ul>
@@ -703,16 +713,28 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                   <label className="field"><span className={cap}>First name</span><input name="first_name" required maxLength={60} defaultValue={user.first_name} autoComplete="given-name" /></label>
                   <label className="field"><span className={cap}>Last name</span><input name="last_name" maxLength={60} defaultValue={user.last_name} autoComplete="family-name" /></label>
                 </div>
-                <label className="field"><span className={cap}>Email</span><input value={user.email} disabled readOnly className="!bg-cream-2 !text-muted" /></label>
+                {/* An account made with a texted code has no email yet: it can be added here once. After that it is changed through support. */}
+                {user.email
+                  ? <label className="field"><span className={cap}>Email</span><input value={user.email} disabled readOnly className="!bg-cream-2 !text-muted" /></label>
+                  : <label className="field"><span className={cap}>Email</span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={254} /></label>}
                 <label className="field"><span className={cap}>Mobile, for reminders</span><input name="phone" type="tel" defaultValue={user.phone} autoComplete="tel" placeholder={where.scope === "NG" ? "+234 800 000 0000" : "+1 615 555 0100"} /></label>
                 <div><button className="btn btn-ink">Save details</button></div>
-                <p className="text-[12.5px] text-muted">To change your email, <Link href="/help" className="font-semibold text-wine">write to us</Link>.</p>
+                {user.email
+                  ? <p className="text-[12.5px] text-muted">To change your email, <Link href="/help" className="font-semibold text-wine">write to us</Link>.</p>
+                  : <p className="text-[12.5px] text-muted">Add an email to get receipts and confirmations by email, and to set a password. We send a link to confirm it.</p>}
               </form>
               <form action={changeMyPassword} className="card flex flex-col gap-4 rounded-[20px] p-6">
-                <label className="field"><span className={cap}>Current password</span><input name="current" type="password" required autoComplete="current-password" /></label>
-                <label className="field"><span className={cap}>New password, 8 characters or more</span><input name="new" type="password" required minLength={8} autoComplete="new-password" /></label>
-                <label className="field"><span className={cap}>New password again</span><input name="again" type="password" required minLength={8} autoComplete="new-password" /></label>
-                <div><button className="btn btn-out">Change password</button></div>
+                {user.has_password === false ? (
+                  <>
+                    <h3 className="text-[16px] font-semibold">Set a password</h3>
+                    <p className="text-[13.5px] text-muted">{user.email ? "With a password you can also sign in with your email." : "Add an email in your details first. The password goes with it."}</p>
+                  </>
+                ) : (
+                  <label className="field"><span className={cap}>Current password</span><input name="current" type="password" required autoComplete="current-password" /></label>
+                )}
+                <label className="field"><span className={cap}>New password, 8 characters or more</span><input name="new" type="password" required minLength={8} autoComplete="new-password" disabled={user.has_password === false && !user.email} /></label>
+                <label className="field"><span className={cap}>New password again</span><input name="again" type="password" required minLength={8} autoComplete="new-password" disabled={user.has_password === false && !user.email} /></label>
+                <div><button className="btn btn-out" disabled={user.has_password === false && !user.email}>{user.has_password === false ? "Set password" : "Change password"}</button></div>
               </form>
 
               {(features.sms_login || phoneWays.length > 0) && (

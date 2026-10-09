@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 
 export default async function GiftCards({ searchParams }: { searchParams: Promise<{ country?: string }> }) {
   const [me, where, sp] = await Promise.all([getCustomer(), whereAmI(), searchParams]);
-  // What a card can be in each country. Without an answer the form still offers dollars, as it always has.
+  // What a card can be in each country. Without an answer the form offers nothing: the amounts come from the API alone.
   const options: GiftOption[] = await fetch(`${BASE}/v1/gift-cards/options`, { next: { revalidate: 300 } }).then((r) => (r.ok ? r.json() : null)).then((d) => d?.options ?? []).catch(() => []);
   // The card starts in the money of the country being browsed: someone browsing Nigeria is most likely buying for someone there.
   const asked = (sp.country ?? "").toUpperCase();

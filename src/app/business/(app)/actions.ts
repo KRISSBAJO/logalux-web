@@ -12,7 +12,8 @@ export async function signOutMerchant() {
   try {
     await mFetch("/logout", { method: "POST", body: {} });
   } catch {}
-  (await cookies()).delete({ name: MERCHANT_COOKIE, path: "/business" });
+  (await cookies()).delete({ name: MERCHANT_COOKIE, path: "/" });
+  (await cookies()).delete({ name: "lx_merchant", path: "/business" });
   redirect("/business/signin");
 }
 
@@ -50,4 +51,16 @@ export async function waitlistUpdate(fd: FormData) {
 export async function timeOffDecide(fd: FormData) {
   const decision = str(fd, "decision");
   await mRun(fd, decision === "approve" ? "Time off approved." : decision === "decline" ? "Time off declined." : "Time off removed.", () => mPost(`/time-off/${encodeURIComponent(str(fd, "id"))}`, { decision }));
+}
+
+export async function useAsCustomer() {
+  const { USER_COOKIE, cookieOptions, userToken } = await import("@/lib/customer");
+  const token = await userToken();
+  let error = "";
+  try {
+    const out = await mFetch<{token:string; expires_in:number}>("/customer-profile", {method:"POST",body:{},headers:token ? {"X-Customer-Token":token} : {}});
+    (await cookies()).set(USER_COOKIE,out.token,cookieOptions(out.expires_in));
+  } catch(e) { error=(e as Error).message; }
+  if(error) redirect("/business/customer?err="+encodeURIComponent(error));
+  redirect("/account");
 }

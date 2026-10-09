@@ -81,6 +81,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fixed: Entry[] = [
     { url: absoluteUrl("/"), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/search"), changeFrequency: "daily", priority: 0.9 },
+    { url: absoluteUrl("/gift-cards"), changeFrequency: "monthly", priority: 0.5 },
+    { url: absoluteUrl("/help"), changeFrequency: "monthly", priority: 0.4 },
   ];
   // Each part answers with what it could read. With the API down that is nothing, and the fixed pages still go out.
   const [legal, places, businesses, products, naira, journal] = await Promise.all([legalPages().catch(() => []), placePages().catch(() => []), businessPages().catch(() => []), productPages("USD").catch(() => []), productPages("NGN").catch(() => []), journalPages().catch(() => [])]);

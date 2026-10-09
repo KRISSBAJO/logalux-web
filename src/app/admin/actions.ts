@@ -47,6 +47,12 @@ export async function setBusinessStatus(fd: FormData) {
 export async function setBusinessPlan(fd: FormData) {
   await run(fd, "Plan changed.", () => adminFetch(`/businesses/${id(fd)}`, { method: "PATCH", body: { plan: str(fd, "plan") } }));
 }
+/** The AI-written review summary: approve it for the public page, clear it, or have it written again (unapproved). */
+export async function setReviewSummary(fd: FormData) {
+  const action = str(fd, "action");
+  const said = action === "approve" ? "The summary is approved and now shows on the public page." : action === "clear" ? "The summary is cleared." : "A new summary was written. Read it and approve it before it goes live.";
+  await run(fd, said, () => post(`/businesses/${id(fd)}/review-summary`, { action }));
+}
 export async function setPayoutHold(fd: FormData) {
   const hold = str(fd, "hold") === "1";
   await run(fd, hold ? "Payouts are on hold." : "Payouts released.", () => post(`/businesses/${id(fd)}/payout-hold`, { hold, reason: str(fd, "note") }));
@@ -91,6 +97,7 @@ export async function proposeFee(fd: FormData) {
       transaction_fixed_cents: cents(fd, "transaction_fixed"),
       transaction_cap_cents: cap === "" ? null : cents(fd, "transaction_cap"),
       new_client_pct: num(fd, "new_client_pct"),
+      new_client_cap_cents: str(fd, "new_client_cap") === "" ? null : cents(fd, "new_client_cap"),
       instant_payout_pct: num(fd, "instant_payout_pct"),
       marketplace_pct: num(fd, "marketplace_pct"),
       chargeback_cents: cents(fd, "chargeback"),

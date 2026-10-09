@@ -42,7 +42,6 @@ export function LivePreview({ formId, init, rating, reviewCount, verified, openN
   }, [formId, init]);
 
   const d = v.display;
-  const tones = [v.tone, "#4A2A2A", "#2E2538"];
   return (
     <div className="phone">
       <div className="screen">
@@ -64,14 +63,14 @@ export function LivePreview({ formId, init, rating, reviewCount, verified, openN
           </div>
           {d.notice ? <div className="pnote">{d.notice}</div> : null}
           {v.highlights.length ? <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{v.highlights.map((h) => <span key={h} className="pill pill-grey">{h}</span>)}</div> : null}
-          <div className="pgrid">
-            {[0, 1, 2].map((i) => (
-              <div key={i} style={{ background: tones[i], position: "relative", overflow: "hidden" }}>
+          {grid.length > 0 && <div className="pgrid" style={{ gridTemplateColumns: `repeat(${Math.min(grid.length, 3)}, minmax(0, 1fr))` }}>
+            {grid.slice(0, 3).map((photo) => (
+              <div key={photo.id} style={{ background: v.tone, position: "relative", overflow: "hidden" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {grid[i] ? <img src={`/media/${grid[i].id}`} alt={grid[i].alt} className="fill" /> : null}
+                <img src={`/media/${photo.id}`} alt={photo.alt} className="fill" />
               </div>
             ))}
-          </div>
+          </div>}
           {services.length ? (
             <div>
               {services.map((s) => (

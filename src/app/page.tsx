@@ -73,7 +73,7 @@ export default async function Landing() {
               Beauty you<br />can <em className="text-gold-2">trust.</em>
             </h1>
             <p style={{ "--i": 2 } as React.CSSProperties} className="rise mb-10 mt-7 max-w-[440px] text-[19px] leading-relaxed text-[#C9BCB0]">
-              Verified professionals. Real openings. Booked in under a minute.
+              See who is verified, pick a free time, and book online.
             </p>
             <div className="rise max-w-[600px]" style={{ "--i": 3 } as React.CSSProperties}><SearchBar where={picker} /></div>
           </div>
@@ -105,7 +105,7 @@ export default async function Landing() {
               <div className="eyebrow !text-wine">Browse by service</div>
               <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">Every chair, one place.</h2>
             </div>
-            <p className="max-w-[520px] text-[17px] leading-relaxed text-muted">Every professional is verified, and every price you see is the price you pay.</p>
+            <p className="max-w-[520px] text-[17px] leading-relaxed text-muted">Verified professionals are marked. The price you see is the price you pay.</p>
           </div>
           <div data-stagger className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
             {CATEGORIES.map(([id, name, sub]) => (
@@ -166,7 +166,7 @@ export default async function Landing() {
                   <div className="text-[13px] text-muted"><b className="text-ink">{b.category}</b> · {(b.tier && b.tier !== "near" ? [b.city, b.region] : [b.area, b.city && b.city !== b.area ? b.city : ""]).filter(Boolean).join(", ")}{b.distance_text && (device || found?.geo?.widened || (b.tier && b.tier !== "near")) ? ` · ${b.distance_text}${device ? " away" : ""}` : ""}</div>
                   <h3 className="text-[19px] font-semibold leading-tight">{b.name}</h3>
                   <div className="mt-auto flex items-center justify-between border-t border-line-2 pt-2.5">
-                    <span className="text-[14px] text-muted">From <b className="block text-[17px] text-ink">{b.from_cents ? money(b.from_cents, b.currency) : "—"}</b></span>
+                    <span className="text-[14px] text-muted">{b.from_cents ? <>From <b className="block text-[17px] text-ink">{money(b.from_cents, b.currency)}</b></> : <b className="block text-[14px] text-ink">Price on booking</b>}</span>
                     <span className="btn btn-ink btn-sm">Book</span>
                   </div>
                 </div>
@@ -209,9 +209,9 @@ export default async function Landing() {
           <div data-reveal className="mb-10 flex flex-wrap items-end justify-between gap-8">
             <div>
               <div className="eyebrow !text-wine">How it works</div>
-              <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">Three screens. Under a minute.</h2>
+              <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">Three steps to a booking.</h2>
             </div>
-            <p className="max-w-[520px] text-[17px] leading-relaxed text-muted">No back-and-forth in the DMs. You see what is open, you pick it, it is yours.</p>
+            <p className="max-w-[520px] text-[17px] leading-relaxed text-muted">No messages back and forth. You see what is free, you pick it, it is yours.</p>
           </div>
           <div data-stagger className="grid gap-8 md:grid-cols-3">
             {[
@@ -249,34 +249,38 @@ export default async function Landing() {
             </div>
 
             <div data-reveal className="mx-auto max-lg:order-1">
-              <div className="phone float-slow w-[310px]">
+              {/* A drawing of the business dashboard: the layout only. Names, amounts and counts are left blank on purpose. */}
+              <div className="phone float-slow w-full max-w-[310px]" role="img" aria-label="A drawing of the business dashboard: today's takings, and the day's appointments one under the other.">
                 <div className="relative flex h-[620px] flex-col overflow-hidden rounded-[39px] bg-cream text-ink">
                   <i aria-hidden className="absolute left-1/2 top-2.5 z-10 block h-[22px] w-[92px] -translate-x-1/2 rounded-full bg-ink-2" />
                   <div className="px-5 pb-4 pt-12">
-                    <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-muted">Sample business dashboard</div>
-                    <div className="serif mt-1 text-[30px] leading-none">Good morning, Ada</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-muted">Business dashboard</div>
+                    <div className="serif mt-1 text-[30px] leading-none">Good morning</div>
                   </div>
                   <div className="mx-4 flex items-end justify-between rounded-[20px] bg-ink-2 p-4 text-[#F4ECE3]">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[.1em] text-[#B9ADA2]">Booked today</div>
-                      <div className="serif mt-1 text-[36px] leading-none">{money(where.scope === "NG" ? 64000000 : 64000, where.scope === "NG" ? "NGN" : "USD")}</div>
-                      <div className="mt-1.5 text-[12px] text-gold-2">6 clients · 1 open slot</div>
+                      <i aria-hidden className="mt-2 block h-8 w-28 rounded-lg bg-white/15" />
+                      <i aria-hidden className="mt-2.5 block h-2.5 w-20 rounded-full bg-gold-2/50" />
                     </div>
                     <div aria-hidden className="flex h-[52px] items-end gap-1.5">
                       {[38, 62, 46, 80, 58, 100].map((h, n) => <i key={n} className={`block w-2 rounded-full ${n === 5 ? "bg-gold" : "bg-white/20"}`} style={{ height: `${h}%` }} />)}
                     </div>
                   </div>
                   <div data-stagger className="flex flex-1 flex-col gap-2 px-4 pt-4">
-                    {([["09:00", "Zara M.", "Skin fade + beard", "Paid", "#1F2A33"], ["10:00", "Ada O.", "Knotless braids", "Deposit", "#7A1F2B"], ["13:30", "", "60 min open", "", ""], ["14:30", "Tomi A.", "Silk press", "Card on file", "#4A3426"], ["16:00", "Grace E.", "Lash fill", "Paid", "#2E2538"]] as const).map(([time, who, what, tag, tone]) =>
-                      who ? (
+                    {([["09:00", "#1F2A33", "pill-ok"], ["10:00", "#7A1F2B", "pill-gold"], ["13:30", "", ""], ["14:30", "#4A3426", "pill-grey"], ["16:00", "#2E2538", "pill-ok"]] as const).map(([time, tone, pill]) =>
+                      tone ? (
                         <div key={time} className="flex items-center gap-3 rounded-[16px] bg-white py-2.5 pl-2.5 pr-3 shadow-[0_1px_0_rgba(26,21,19,.04)]">
-                          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-[11px] font-semibold text-white" style={{ background: tone }}>{who.split(" ").map((w) => w[0]).join("")}</span>
-                          <div className="min-w-0 flex-1"><b className="block truncate text-[13.5px] font-semibold">{who}</b><span className="block truncate text-[11.5px] text-muted">{time} · {what}</span></div>
-                          <span className={`pill ${tag === "Deposit" ? "pill-gold" : tag === "Paid" ? "pill-ok" : "pill-grey"}`}>{tag}</span>
+                          <span aria-hidden className="block h-9 w-9 flex-none rounded-full" style={{ background: tone }} />
+                          <div className="min-w-0 flex-1">
+                            <i aria-hidden className="block h-3 w-24 rounded-full bg-cream-3" />
+                            <span className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-muted"><time>{time}</time><i aria-hidden className="block h-2 w-20 rounded-full bg-cream-3" /></span>
+                          </div>
+                          <span aria-hidden className={`pill ${pill} h-5 w-12`} />
                         </div>
                       ) : (
                         <div key={time} className="flex items-center gap-3 rounded-[16px] border border-dashed border-muted-2/70 px-3 py-2.5 text-[12.5px] text-muted">
-                          <time className="font-semibold">{time}</time><span className="flex-1">{what}</span><span className="font-semibold text-wine">Fill it</span>
+                          <time className="font-semibold">{time}</time><span className="flex-1">Open slot</span><span className="font-semibold text-wine">Fill it</span>
                         </div>
                       ),
                     )}
@@ -310,11 +314,11 @@ export default async function Landing() {
         <div className="container-x">
           <div data-reveal className="mb-10">
             <div className="eyebrow !text-wine">Why LogaLuxe</div>
-            <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">Trust is the product.</h2>
+            <h2 className="serif mt-3 text-[40px] font-medium leading-[1.05] tracking-tight md:text-[52px]">What you can count on.</h2>
           </div>
           <div data-stagger className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              ["Verified, licensed, real", "Every professional verifies their identity. Licences are checked where the law requires one. Portfolios show their own work."],
+              ["Verified professionals are marked", "A professional who has verified their identity with LogaLuxe carries the Verified mark. Licences are checked where the law requires one."],
               ["Reviews only from real visits", "You can only review a booking you completed and paid for. One review per visit. No rings, no copy-paste."],
               ["Secure payment pages", "Online card payments are handled by Stripe or Paystack. LogaLuxe does not store your full card number."],
               ["Know before you book", "Check the location, services and cancellation policy on each professional’s page. Contact them if you need more details."],
@@ -338,7 +342,7 @@ export default async function Landing() {
               <p className="mt-3 max-w-[520px] text-[17px] leading-relaxed text-[#F1D9DC]">Rebook your favourite in a tap, get reminders where you actually read them, and keep every receipt and photo in one place.</p>
             </div>
             <div className="flex flex-wrap gap-3.5">
-              <div className="flex flex-col gap-3"><p className="text-sm text-[#F1D9DC]">Mobile app · preparing for release</p><Link href="/search" className="btn bg-cream text-ink">Book on the web</Link></div>
+              <Link href="/search" className="btn bg-cream text-ink">Book on the web</Link>
             </div>
           </div>
         </div>

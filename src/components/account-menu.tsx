@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 /** The signed-in customer's menu in the site header. `signOut` is a server action. */
-export function AccountMenu({ firstName, email, signOut }: { firstName: string; email: string; signOut: () => Promise<void> }) {
+export function AccountMenu({ firstName, email, signOut, customer = true, business, signOutBusiness }: { firstName: string; email: string; signOut: () => Promise<void>; customer?: boolean; business?: string; signOutBusiness?: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -20,7 +20,7 @@ export function AccountMenu({ firstName, email, signOut }: { firstName: string; 
   const item = "block rounded-lg px-3 py-2 text-[14px] font-medium text-ink hover:bg-cream-2";
   return (
     <div ref={box} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="flex items-center gap-2 rounded-full border border-white/15 py-1 pl-1 pr-3 text-[14px] font-medium text-[#F4ECE3] transition hover:border-gold">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label={`Account options for ${firstName}`} aria-expanded={open} aria-haspopup="menu" className="flex items-center gap-2 rounded-full border border-white/15 py-1 pl-1 pr-3 text-[14px] font-medium text-[#F4ECE3] transition hover:border-gold">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-[13px] font-bold uppercase text-ink">{firstName.slice(0, 1)}</span>
         <span className="max-w-[110px] truncate max-sm:hidden">{firstName}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`transition-transform ${open ? "rotate-180" : ""}`}><path d="M6 9l6 6 6-6" /></svg>
@@ -31,14 +31,20 @@ export function AccountMenu({ firstName, email, signOut }: { firstName: string; 
             <b className="block text-[14.5px] font-semibold">{firstName}</b>
             <span className="block truncate text-[12.5px] text-muted">{email}</span>
           </div>
-          <div className="py-1.5">
+          {business && <div className="border-b border-line-2 py-1.5">
+            <span className="block truncate px-3 py-1 text-xs text-muted">{business}</span>
+            <Link role="menuitem" href="/business" onClick={() => setOpen(false)} className={item}>Business dashboard</Link>
+            <Link role="menuitem" href={customer ? "/account" : "/business/customer"} onClick={() => setOpen(false)} className={item}>{customer ? "Customer account" : "Use as customer"}</Link>
+          </div>}
+          {customer && <div className="py-1.5">
             <Link role="menuitem" href="/account" onClick={() => setOpen(false)} className={item}>My bookings</Link>
             <Link role="menuitem" href="/account#orders" onClick={() => setOpen(false)} className={item}>My orders</Link>
             <Link role="menuitem" href="/account#details" onClick={() => setOpen(false)} className={item}>Details and password</Link>
-          </div>
-          <form action={signOut} className="border-t border-line-2 pt-1.5">
-            <button role="menuitem" className={`${item} w-full text-left text-wine`}>Sign out</button>
-          </form>
+          </div>}
+          {customer && <form action={signOut} className="border-t border-line-2 pt-1.5">
+            <button role="menuitem" className={`${item} w-full text-left text-wine`}>{business ? "Sign out of customer account" : "Sign out"}</button>
+          </form>}
+          {business && signOutBusiness && <form action={signOutBusiness} className="border-t border-line-2 pt-1.5"><button role="menuitem" className={`${item} w-full text-left text-wine`}>Sign out of business</button></form>}
         </div>
       )}
     </div>

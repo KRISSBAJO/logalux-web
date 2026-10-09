@@ -5,11 +5,11 @@ import { api } from "./api";
 export type Media = { id: string; ref: string; alt: string; caption?: string; caption_pos?: string };
 export type MediaSlot = "hero" | "category" | "business" | "product";
 
-/** Never throws: a page still renders, with its colour placeholders, if images cannot be loaded. */
+/** Never throws: a page still renders, with its colour placeholders, if images cannot be loaded. Kept for a minute: an upload in the console shows soon after. */
 export async function siteMedia(slot: MediaSlot, ref?: string): Promise<Media[]> {
   try {
     const q = new URLSearchParams({ slot, ...(ref ? { ref } : {}) });
-    return (await api.get<{ media: Media[] }>(`/v1/site/media?${q}`)).media ?? [];
+    return (await api.get<{ media: Media[] }>(`/v1/site/media?${q}`, { revalidate: 60 })).media ?? [];
   } catch {
     return [];
   }

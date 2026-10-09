@@ -1,6 +1,8 @@
 "use server";
 
+import { api, money } from "@/lib/api";
 import { customerApi } from "@/lib/customer";
+import type { GiftOption } from "./gift-form";
 
 const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const sentence = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) + (/[.!?]$/.test(s) ? "" : ".") : s);
@@ -8,8 +10,15 @@ const sentence = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) + (/
 /** What the gift card form is told after it is sent: a payment page to go to, or the address the code went to. */
 export type GiftState = { error: string; url?: string; sentTo?: string; amountCents?: number; currency?: string };
 
-/** The least and most a card can hold in each country's money, in cents or kobo. The API checks the same. */
-const BOUNDS: Record<string, [number, number, string]> = { US: [1000, 50000, "Choose an amount between $10 and $500."], NG: [500000, 50000000, "Choose an amount between ₦5,000 and ₦500,000."] };
+/** The least and most a card can hold in one country's money, as the API says. Nothing is assumed when it cannot be read. */
+async function bounds(country: string): Promise<GiftOption | null> {
+  try {
+    const { options = [] } = await api.get<{ options?: GiftOption[] }>("/v1/gift-cards/options", { revalidate: 300 });
+    return options.find((o) => o.country === country) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** Buys a gift card. The code is only ever emailed, so it is never part of the answer. */
 export async function buyGiftCard(_prev: GiftState, fd: FormData): Promise<GiftState> {
@@ -17,8 +26,9 @@ export async function buyGiftCard(_prev: GiftState, fd: FormData): Promise<GiftS
   const note = v(fd, "note");
   // Where the person it is for will spend it decides the money: dollars in the United States, naira in Nigeria.
   const country = v(fd, "country") === "NG" ? "NG" : "US";
-  const [min, max, range] = BOUNDS[country];
-  if (!Number.isFinite(amountCents) || amountCents < min || amountCents > max) return { error: range };
+  const opt = await bounds(country);
+  if (!opt) return { error: "Gift cards are not available just now. Try again in a moment." };
+  if (!Number.isFinite(amountCents) || amountCents < opt.min_cents || amountCents > opt.max_cents) return { error: `Choose an amount between ${money(opt.min_cents, opt.currency)} and ${money(opt.max_cents, opt.currency)}.` };
   if (!v(fd, "recipient_name")) return { error: "Say who the card is for." };
   if (note.length > 300) return { error: "Keep the message under 300 characters." };
   if (!/^\S+@\S+\.\S+$/.test(v(fd, "buyer_email"))) return { error: "Add your email, for the receipt." };

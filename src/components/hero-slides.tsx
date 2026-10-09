@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "./icons";
 
 export type HeroImage = { id: string; alt: string; caption?: string; caption_pos?: string };
 
-// Where the quote card sits. Each photo chooses its own, so the card never covers its subject.
+// Where the caption card sits. Each photo chooses its own, so the card never covers its subject.
 const CARD_AT: Record<string, string> = {
   "bottom-right": "-right-10 bottom-[9%]",
   "bottom-left": "-left-10 bottom-[9%]",
@@ -14,8 +13,8 @@ const CARD_AT: Record<string, string> = {
 };
 
 /**
- * The hero arch: the photos, and the quote card that belongs to each one.
- * One photo sits still; several cross-fade slowly, and the card changes with
+ * The hero arch: the photos, and the caption that belongs to each one, as the admin wrote it.
+ * One photo sits still; several cross-fade slowly, and the caption changes with
  * them. Rotation stops for people who ask their device to reduce motion.
  */
 export function HeroShowcase({ images }: { images: HeroImage[] }) {
@@ -28,8 +27,8 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
   }, [images.length]);
 
   const shown = images[Math.min(current, Math.max(0, images.length - 1))];
-  // With no photo yet, the arch shows the brand art and a default quote.
-  const caption = images.length === 0 ? "Exactly what I booked." : (shown?.caption ?? "").trim();
+  // With no photo yet, the arch shows the brand art and nothing is said.
+  const caption = (shown?.caption ?? "").trim();
   const at = CARD_AT[shown?.caption_pos ?? "bottom-right"];
 
   return (
@@ -69,13 +68,10 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
         </div>
       </div>
 
+      {/* The caption the admin gave the photo, as plain words: no stars, no quotation marks, no claim about who said it. */}
       {caption && at && (
         <figure key={shown?.id ?? "default"} className={`fade-in float-slow absolute z-20 w-[226px] rounded-[20px] border border-white/12 bg-[#1A1513]/75 p-5 text-[#F4ECE3] shadow-[0_24px_60px_rgba(0,0,0,.5)] backdrop-blur-md ${at}`}>
-          <div className="flex gap-1 text-gold" aria-label="Five stars">
-            {[0, 1, 2, 3, 4].map((n) => <Icon.Star key={n} width={13} height={13} />)}
-          </div>
-          <blockquote className="serif mt-3 text-[22px] italic leading-[1.15]">&ldquo;{caption.replace(/^["“”]+|["“”]+$/g, "")}&rdquo;</blockquote>
-          <figcaption className="mt-3 flex items-center gap-2 text-[11.5px] uppercase tracking-[.1em] text-[#B9ADA2]"><Icon.Check width={13} height={13} className="text-gold" />Verified visit</figcaption>
+          <figcaption className="serif text-[21px] leading-[1.2]">{caption}</figcaption>
         </figure>
       )}
     </>

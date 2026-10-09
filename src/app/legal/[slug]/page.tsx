@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Markdown } from "@/components/markdown";
+import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { api } from "@/lib/api";
+import { clip } from "@/lib/site";
 
 type Page = { slug: string; title: string; body: string; updated_at: string };
 const OTHERS: [string, string][] = [["terms", "Terms"], ["privacy", "Privacy"], ["cancellation", "Cancellation policy"], ["accessibility", "Accessibility"]];
@@ -16,9 +18,18 @@ async function get(slug: string): Promise<Page | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const page = await get((await params).slug);
-  return { title: page?.title ?? "Page not found" };
+  if (!page) return { title: "Page not found", robots: { index: false, follow: false } };
+  // The first words of the page itself, without its markdown marks, say what it is.
+  const description = clip(page.body.replace(/^#+\s.*$/gm, " ").replace(/[*_`>#]/g, " "), 160) || `${page.title} for LogaLuxe.`;
+  const canonical = `/legal/${page.slug}`;
+  return {
+    title: page.title,
+    description,
+    alternates: { canonical },
+    openGraph: { title: page.title, description, url: canonical, siteName: "LogaLuxe", type: "website" },
+  };
 }
 
 export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {

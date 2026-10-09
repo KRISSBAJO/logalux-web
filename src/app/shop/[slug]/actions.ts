@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { customerApi } from "@/lib/customer";
+import { messageCode } from "@/lib/flash";
 
 const enc = encodeURIComponent;
 
@@ -16,5 +17,6 @@ export async function reviewProduct(fd: FormData) {
     const message = (e as Error).message;
     error = message ? message[0].toUpperCase() + message.slice(1) + (/[.!?]$/.test(message) ? "" : ".") : "Your review could not be saved.";
   }
-  redirect(`/shop/${enc(slug)}?tab=reviews&${error ? `err=${enc(error)}` : `ok=${enc("Thank you. Your review is published.")}`}#tabs`);
+  // The address carries a code for the message, never the words.
+  redirect(`/shop/${enc(slug)}?tab=reviews&${error ? `err=${await messageCode(error)}` : `ok=${await messageCode("Thank you. Your review is published.")}`}#tabs`);
 }

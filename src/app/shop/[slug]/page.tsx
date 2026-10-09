@@ -9,6 +9,7 @@ import { ProductGallery } from "@/components/product-gallery";
 import { money } from "@/lib/api";
 import { CustomerApiError, customerApi, getCustomer } from "@/lib/customer";
 import { getFeatures } from "@/lib/features";
+import { readMessage } from "@/lib/flash";
 import { WalletNote } from "@/components/pay-bits";
 import { categoryName, currencyOf, deliveryDays, payProvider, pickupTodayText, returnsText, shopHref, tagName, visitDay, type ProductExtras, type Size } from "@/lib/shop";
 import { JsonLd, breadcrumbs } from "@/components/json-ld";
@@ -103,6 +104,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   // A gift card is bought on its own page, where the amount and the person it is for are chosen. It does not go in the cart.
   if (slug === "gift-card") redirect("/gift-cards");
   const sp = await searchParams;
+  // The address carries a code for a message after a review, never the words.
+  const [okMessage, errMessage] = await Promise.all([readMessage(sp.ok), readMessage(sp.err)]);
   let data: Payload;
   try { data = await load(slug); } catch (e) {
     if ((e as CustomerApiError).status === 404) notFound();
@@ -203,8 +206,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               {tab === "how" && <div className="body">{p.how_to_use}</div>}
               {tab === "reviews" && (
                 <div id="reviews">
-                  {sp.ok && <p className="flash good" role="status">{sp.ok}</p>}
-                  {sp.err && <p className="flash bad" role="alert">{sp.err}</p>}
+                  {okMessage && <p className="flash good" role="status">{okMessage}</p>}
+                  {errMessage && <p className="flash bad" role="alert">{errMessage}</p>}
                   {reviews.length === 0 && <p className="body muted">No reviews yet.</p>}
                   {reviews.map((r) => (
                     <div key={r.id} className="rev">
@@ -260,7 +263,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               {p.business_slug && (
                 <div className="pro">
                   <span className="av" aria-hidden />
-                  <div className="txt"><b>{p.pickup ? `Book ${studio} and pick this up at your visit` : `Book ${studio}`}</b>{p.business_from_cents != null && <span>Services from {money(p.business_from_cents, p.business_currency ?? "USD")}{p.business_city ? ` · ${p.business_city}` : ""}</span>}</div>
+                  {/* The starting price is named only when the API says what money the business charges in. */}
+                  <div className="txt"><b>{p.pickup ? `Book ${studio} and pick this up at your visit` : `Book ${studio}`}</b>{p.business_from_cents != null && p.business_currency ? <span>Services from {money(p.business_from_cents, p.business_currency)}{p.business_city ? ` · ${p.business_city}` : ""}</span> : p.business_city ? <span>{p.business_city}</span> : null}</div>
                   <Link href={`/b/${p.business_slug}`} className="btn btn-gold btn-sm">Book</Link>
                 </div>
               )}

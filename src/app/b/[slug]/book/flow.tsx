@@ -51,7 +51,6 @@ export function GuestLine({ id, name, side }: { id: string; name: string; side?:
 }
 const addDays = (date: string, n: number) => { const [y, m, d] = date.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
 const shiftMonth = (month: string, n: number) => { const [y, m] = month.split("-").map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
-const CHECK = "M20 6 9 17l-5-5";
 
 export function BookFlow(p: Props) {
   const { slug, currency, tz, services, policy, intake } = p;

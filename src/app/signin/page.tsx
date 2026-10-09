@@ -18,7 +18,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
   const q = `next=${encodeURIComponent(next)}`;
   return (
     <AuthCard title="Welcome back" sub={byCode ? "We send a 6-digit code to your phone. No password needed." : "Sign in to see your bookings and rebook in a tap."} sp={sp}
-      footer={<>New to LogaLuxe? <Link href={`/signup?${byCode ? "how=code&" : ""}${q}`} className="font-semibold text-wine">Create an account</Link></>}>
+      footer={<div className="space-y-3"><p>New to LogaLuxe? <Link href={`/signup?${byCode ? "how=code&" : ""}${q}`} className="font-semibold text-wine">Create an account</Link></p><p>Are you a professional? <Link href="/business/signin" className="inline-flex items-center gap-1 font-semibold text-wine underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-wine">Business sign in</Link></p></div>}>
       {sp.deleted === "1" && <p role="status" className="mb-4 rounded-xl bg-ok-bg p-3 text-sm text-ok">Your account profile has been deleted and all devices signed out.</p>}
       {features.sms_login ? <AuthWays label="How to sign in" current={byCode ? "code" : "password"} passwordHref={`/signin?${q}`} codeHref={`/signin?how=code&${q}`} /> : null}
       {byCode ? <CodeSignIn mode="signin" next={next} whatsapp={features.whatsapp} /> : (

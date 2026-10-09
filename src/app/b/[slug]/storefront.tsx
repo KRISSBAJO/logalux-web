@@ -301,7 +301,7 @@ export function Storefront(p: Props) {
                     <div><b>{x.name}</b><span>{money(x.price_cents, currency)}{Number(x.review_count) > 0 ? ` · ${Number(x.rating).toFixed(1)} ★ (${x.review_count})` : ""}</span></div>
                   </Link>
                 ))}
-                <Link href={`/shop?${currency === "NGN" ? "market=ng&" : ""}seller=${slug}`} className="pr">
+                <Link href={`/shop?${currency === "NGN" ? "country=ng&" : ""}seller=${slug}`} className="pr">
                   <div className="ph" style={{ background: "#1A1513" }} />
                   <div><b>All products</b><span>Everything {p.name} sells</span></div>
                 </Link>

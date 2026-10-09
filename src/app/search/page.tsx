@@ -66,7 +66,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     : `${catName ? `${catName} professionals` : "Beauty professionals"} ${words} on LogaLuxe. See prices, reviews from real visits and the next free times, and book online.`;
   // The lists worth finding have pages of their own (/nashville-tn, /nashville-tn/braids). Search itself has one address
   // for search engines; what it shows depends on who is looking, so everything narrower stays out of them.
-  const plain = !q && !category && page === 1 && !sp.place && !sp.bbox && !sp.market && !sp.where && !sp.sort;
+  const plain = !q && !category && page === 1 && !sp.place && !sp.bbox && !sp.market && !sp.where && !sp.sort && !sp.when;
   return {
     title,
     description,
@@ -77,9 +77,14 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   };
 }
 
+/** The "When" of the search bar: a window the results are sorted by. Anything else means any time. */
+const WHENS = ["today", "tomorrow", "weekend"] as const;
+type When = (typeof WHENS)[number];
+
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim(), category = sp.category ?? "";
+  const when: When | "" = (WHENS as readonly string[]).includes(sp.when ?? "") ? (sp.when as When) : "";
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
   const area = areaOf(sp.bbox);
   const [t, picker] = await Promise.all([target(sp), pickerWhere()]);
@@ -128,7 +133,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const words = whereWords(place, device, !!area);
   /** A link to this page with some filters changed. Changing a filter goes back to the first page. */
   const href = (change: Partial<SP>) => {
-    const next = { q, category, sort, place: t.named ? place?.slug ?? "" : "", bbox: sp.bbox ?? "", when: sp.when ?? "", page: "", ...change } as Record<string, string | undefined>;
+    const next = { q, category, sort, place: t.named ? place?.slug ?? "" : "", bbox: sp.bbox ?? "", when, page: "", ...change } as Record<string, string | undefined>;
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v && !(k === "page" && v === "1")) p.set(k, v);
     const s = p.toString();
@@ -159,7 +164,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </div>
           )}
           {abroadHere && <p className="mb-4 text-[14.5px] text-[#C9BCB0]">You are looking in {inCountry(scope)}. Prices there are in {scope === "NG" ? "naira" : "US dollars"}. <Link href={href({ place: "" })} className="font-semibold text-gold-2 underline underline-offset-2">Back to {inCountry(me.home)}</Link></p>}
-          <div className="max-w-[680px]"><SearchBar initial={{ q, when: sp.when }} where={t.named && place ? { ...picker, label: place.label, source: "chosen" } : picker} keep={{ category, sort }} /></div>
+          <div className="max-w-[680px]"><SearchBar initial={{ q, when }} where={t.named && place ? { ...picker, label: place.label, source: "chosen" } : picker} keep={{ category, sort }} /></div>
         </div>
       </div>
 
@@ -174,6 +179,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="hidden flex-none items-center gap-1 rounded-full bg-[#EFE5DA] p-1 xl:inline-flex" role="group" aria-label="Sort">
             {SORTS.map(([v, l]) => <Link key={l} href={href({ sort: v })} className={`whitespace-nowrap rounded-full px-3 py-1 text-[12.5px] font-semibold ${sort === v ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}>{l}</Link>)}
           </div>
+          {/* On narrower screens the same choices sit in a small menu. */}
+          <details className="relative flex-none xl:hidden">
+            <summary className="cursor-pointer list-none whitespace-nowrap rounded-full bg-[#EFE5DA] px-3.5 py-2 text-[12.5px] font-semibold text-ink hover:bg-[#E6DCD2] [&::-webkit-details-marker]:hidden">Sort: {SORTS.find(([v]) => v === sort)?.[1] ?? SORTS[0][1]}</summary>
+            <nav aria-label="Sort" className="absolute right-0 top-full z-40 mt-2 flex w-44 flex-col rounded-2xl border border-line bg-white p-1.5 shadow-xl">
+              {SORTS.map(([v, l]) => <Link key={l} href={href({ sort: v })} aria-current={sort === v ? "true" : undefined} className={`rounded-xl px-3 py-2 text-[13px] font-semibold ${sort === v ? "bg-cream-2 text-ink" : "text-muted hover:bg-cream-2 hover:text-ink"}`}>{l}</Link>)}
+            </nav>
+          </details>
           {area && <Link href={href({ bbox: "" })} className="flex-none rounded-full bg-[#EFE5DA] px-3.5 py-2 text-[12.5px] font-semibold text-ink hover:bg-[#E6DCD2]">Clear the map area</Link>}
         </div>
       </div>
@@ -192,9 +204,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         {cards.length > 0 && (
           <SearchResults
             cards={cards} pins={pins} q={q} near={device ? "on" : "off"} home={me.home} centre={centre} area={area ?? undefined} areaBase={href({ bbox: "", place: "", page: "" })}
+            when={when || undefined} anyTimeHref={href({ when: "" })}
             header={(
               <p>
-                <b className="text-ink">{total.toLocaleString("en-US")}</b> verified {total === 1 ? "professional" : "professionals"}
+                <b className="text-ink">{total.toLocaleString("en-US")}</b> {total === 1 ? "professional" : "professionals"}
                 {geo?.mode === "near" && geo.radius_used ? ` within ${geo.radius_used} ${geo.unit === "mi" ? "miles" : "kilometres"}` : ""}
                 {pages > 1 ? ` · showing ${first} to ${last}` : ""}
                 {filtered && <> · <Link href={href({ q: "", category: "" })} className="font-semibold text-wine">Clear filters</Link></>}

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { messageCode } from "@/lib/flash";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
 
@@ -24,5 +25,6 @@ export async function sendToSupport(fd: FormData) {
   } catch {
     error = "We could not reach the service. Try again in a moment.";
   }
-  redirect(error ? `/help?err=${encodeURIComponent(error)}` : `/help?sent=${encodeURIComponent(ref)}`);
+  // The address carries a code for the message, and the ticket reference (SP-1234); never free text.
+  redirect(error ? `/help?err=${await messageCode(error)}` : `/help?sent=${encodeURIComponent(ref)}`);
 }

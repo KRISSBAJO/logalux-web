@@ -8,8 +8,6 @@ import { buyGiftCard, type GiftState } from "./actions";
 
 /** What a card can be in one country, as GET /v1/gift-cards/options says. */
 export type GiftOption = { country: "US" | "NG"; country_name: string; currency: string; min_cents: number; max_cents: number; amounts_cents: number[]; provider: string };
-// Dollars, as the card has always been, when the options could not be read.
-const FALLBACK: GiftOption = { country: "US", country_name: "United States", currency: "USD", min_cents: 1000, max_cents: 50000, amounts_cents: [2500, 5000, 10000, 15000], provider: "stripe" };
 const NOTE_MAX = 300;
 const NONE: GiftState = { error: "" };
 const cap = "text-[11px] font-semibold uppercase tracking-[.06em] text-muted";
@@ -27,8 +25,17 @@ export function GiftForm({ me, wallets = false, options = [], start = "US" }: {
 }) {
   // After a card is sent, "Buy another" starts the form afresh.
   const [round, setRound] = useState(0);
-  const list = options.length ? options : [FALLBACK];
-  return <OneCard key={round} me={me} wallets={wallets} options={list} start={list.some((o) => o.country === start) ? start : list[0].country} another={() => setRound((n) => n + 1)} />;
+  // The amounts a card can hold come from the API alone. Without that answer no card is offered: a wrong range would be refused anyway.
+  if (options.length === 0) {
+    return (
+      <div className="card mx-auto max-w-[620px] rounded-[20px] p-6 md:p-8" role="status">
+        <h2 className="serif text-[30px] leading-[1.05]">Gift cards are not available just now</h2>
+        <p className="mt-3 text-[15.5px] leading-relaxed text-muted">We could not read what a card can hold. Try again in a moment.</p>
+        <div className="mt-5"><Link href="/shop" className="btn btn-out">Back to the shop</Link></div>
+      </div>
+    );
+  }
+  return <OneCard key={round} me={me} wallets={wallets} options={options} start={options.some((o) => o.country === start) ? start : options[0].country} another={() => setRound((n) => n + 1)} />;
 }
 
 function OneCard({ me, another, wallets, options, start }: { me?: { name: string; email: string }; another: () => void; wallets: boolean; options: GiftOption[]; start: string }) {

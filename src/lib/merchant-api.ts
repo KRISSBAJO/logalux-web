@@ -1,12 +1,12 @@
 // Server-only client for the merchant API: the people who run a business.
 // The session token lives in an httpOnly cookie that only travels to
-// /business pages, so scripts in the browser can never read it.
+// site pages; scripts in the browser can never read it.
 import { cookies } from "next/headers";
 import { visitorHeaders } from "./visitor";
 import { cache } from "react";
 
 const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
-export const MERCHANT_COOKIE = process.env.LOGALUXE_QA === "1" ? "lx_qa_merchant" : "lx_merchant";
+export const MERCHANT_COOKIE = process.env.LOGALUXE_QA === "1" ? "lx_qa_merchant" : "lx_merchant_site";
 
 export type MRole = "staff" | "manager" | "owner";
 export type Merchant = {
@@ -46,8 +46,8 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
   return body as T;
 }
 
-export function mFetch<T = Row>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  return send<T>(path, { method: init.method ?? "GET", headers: { "Content-Type": "application/json" }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
+export function mFetch<T = Row>(path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
+  return send<T>(path, { method: init.method ?? "GET", headers: { "Content-Type": "application/json", ...init.headers }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
 }
 
 /** Sends a file. The form data from the browser is passed on as it is. */
@@ -95,7 +95,7 @@ export async function mPublic<T = Row>(path: string, body: unknown): Promise<T> 
   return out as T;
 }
 
-export const merchantCookie = (maxAge: number) => ({ httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/business", maxAge });
+export const merchantCookie = (maxAge: number) => ({ httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge });
 
 /** Builds a query string, leaving out empty values. */
 export const qs = (params: Record<string, string | number | undefined | null>) => {

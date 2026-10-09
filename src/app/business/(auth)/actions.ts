@@ -11,6 +11,7 @@ type Session = { token: string; expires_in: number };
 
 async function start(s: Session) {
   (await cookies()).set(MERCHANT_COOKIE, s.token, merchantCookie(s.expires_in));
+  (await cookies()).delete({name:"lx_merchant",path:"/business"});
 }
 
 export async function merchantSignIn(fd: FormData) {

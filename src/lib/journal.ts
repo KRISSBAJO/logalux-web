@@ -127,9 +127,9 @@ export async function journalProfessionals(slug: string, p: { lat?: number; lng?
 
 // ---- words ----
 
-/** "8 Oct 2026". */
+/** "8 Oct 2026". The day it was published, the same wherever the server runs. */
 export const articleDate = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
+  iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "";
 
 /** "4 min read". */
 export const readingLabel = (min: number) => `${Math.max(1, min || 1)} min read`;

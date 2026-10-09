@@ -205,3 +205,12 @@
 .mx .pg-calendar .answers dl{margin:6px 0 0;display:flex;flex-direction:column;gap:8px}
 .mx .pg-calendar .answers dt{color:#6B5F57;font-size:12.5px;overflow-wrap:anywhere}
 .mx .pg-calendar .answers dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+
+/* Keep short visits legible without overstating their duration. */
+.mx .pg-calendar .ev{justify-content:flex-start}
+.mx .pg-calendar .ev b,.mx .pg-calendar .ev span{flex-shrink:0}
+.mx .pg-calendar .ev.ev-short{padding:2px 8px;justify-content:center;gap:0}
+.mx .pg-calendar .ev.ev-short b{font-size:12px;line-height:16px}
+.mx .pg-calendar .ev.ev-short>span{display:none}
+.mx .pg-calendar .ev:hover{border-color:#9A8E85;z-index:3}
+.mx .pg-calendar .ev:focus-visible{outline:2px solid #7A1F2B;outline-offset:1px;z-index:4}

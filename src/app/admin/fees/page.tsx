@@ -37,7 +37,7 @@ export default async function Fees({ searchParams }: { searchParams: Promise<{ o
               <td className="whitespace-nowrap">{fmtDate(f.effective_from)}</td>
               <td>{f.plan_price_cents ? `${fmtMoney(f.plan_price_cents, c)} / mo` : "Free"}</td>
               <td>{txn(f)}</td>
-              <td>{f.new_client_pct}%</td>
+              <td>{f.new_client_pct}%<span className="block text-[12px] text-muted">{f.new_client_cap_cents ? `Capped at ${fmtMoney(f.new_client_cap_cents, c)}` : "No cap"}</span></td>
               <td>{f.marketplace_pct}%</td>
               <td>{f.instant_payout_pct}%</td>
               <td>{fmtMoney(f.chargeback_cents, c)}</td>
@@ -93,6 +93,7 @@ export default async function Fees({ searchParams }: { searchParams: Promise<{ o
                 <Field label="Transaction fixed fee"><input type="number" name="transaction_fixed" min="0" step="0.01" defaultValue="0" className={inputCls} /></Field>
                 <Field label="Transaction cap (optional)"><input type="number" name="transaction_cap" min="0" step="0.01" className={inputCls} /></Field>
                 <Field label="New client %"><input type="number" name="new_client_pct" min="0" max="100" step="0.01" defaultValue="0" className={inputCls} /></Field>
+                <Field label="New client cap (optional)"><input type="number" name="new_client_cap" min="0.01" step="0.01" placeholder="Blank = no cap" className={inputCls} /><span className="text-[12px] text-muted">USD for US; NGN for Nigeria. Leave blank for no cap.</span></Field>
                 <Field label="Marketplace %"><input type="number" name="marketplace_pct" min="0" max="100" step="0.01" defaultValue="0" className={inputCls} /></Field>
                 <Field label="Instant payout %"><input type="number" name="instant_payout_pct" min="0" max="100" step="0.01" defaultValue="0" className={inputCls} /></Field>
                 <Field label="Chargeback fee"><input type="number" name="chargeback" min="0" step="0.01" defaultValue="0" className={inputCls} /></Field>

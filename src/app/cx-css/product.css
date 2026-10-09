@@ -44,7 +44,7 @@
 .cx.pg-product .chips{display:flex;gap:8px;flex-wrap:wrap}
 .cx.pg-product .chip{border:1px solid #E6DCD2;background:#FFFFFF;border-radius:999px;padding:0 14px;min-height:42px;font:inherit;font-size:14px;font-weight:600;color:#1A1513;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .cx.pg-product .chip.on{background:#1A1513;color:#FBF7F2;border-color:#1A1513}
-.cx.pg-product .chip small{font-weight:500;color:#9A8E85}
+.cx.pg-product .chip small{font-weight:500;color:#6B5F57}
 .cx.pg-product .chip.on small{color:#C9BCB0}
 .cx.pg-product .deliv{display:flex;flex-direction:column;gap:8px}
 .cx.pg-product .opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #E6DCD2;border-radius:14px;background:#FFFFFF;font:inherit;text-align:left;cursor:pointer;color:#1A1513;width:100%}

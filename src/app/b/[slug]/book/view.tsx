@@ -136,10 +136,11 @@ export async function BookView({ slug, sp, embed = false }: { slug: string; sp: 
 
   // What staff have switched on: kept cards for a signed-in client, wallets, and a confirmation to the phone.
   const [features, pay] = await Promise.all([getFeatures(), payFeatures(!!me)]);
-  // The API sends the confirmation to the phone on WhatsApp when that is on, or else by text when that is on.
-  // Someone who chose email only is promised nothing more than the email.
+  // The API sends the confirmation to the phone on WhatsApp when that is on, or else by text when that is on
+  // and a text can really reach this business's country. Someone who chose email only is promised nothing more than the email.
   const prefer = me?.preferred_channel ?? "";
-  const tell = prefer === "email" ? "" : features.whatsapp && prefer !== "sms" ? "whatsapp" : features.sms_messages ? "sms" : "";
+  const textsHere = features.sms_messages && features.texts_in[b.market === "NG" ? "NG" : "US"];
+  const tell = prefer === "email" ? "" : features.whatsapp && prefer !== "sms" ? "whatsapp" : textsHere ? "sms" : "";
 
   return (
     <>

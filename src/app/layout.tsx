@@ -4,9 +4,9 @@ import { SubmitterFix } from "@/components/submitter-fix";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: { default: "LogaLuxe — Discover and book beauty you can trust", template: "%s · LogaLuxe" },
+  title: { default: "LogaLuxe · Book beauty professionals in the United States and Nigeria", template: "%s · LogaLuxe" },
   description:
-    "Find verified beauty professionals near you, see real openings, and book in under a minute. Braids, barbers, nails, lashes, skin, and more. Across the United States and Nigeria.",
+    "Find beauty professionals near you, see their free times and prices, and book online. Hair, braids, barbers, nails, lashes, skin and more, in the United States and Nigeria.",
   metadataBase: new URL(SITE_URL),
   openGraph: { siteName: "LogaLuxe", type: "website" },
 };

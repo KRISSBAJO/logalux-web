@@ -6,10 +6,9 @@ const nextConfig: NextConfig = {
   distDir: process.env.LOGALUXE_QA === "1" ? ".next-qa" : ".next",
   // Image uploads from the admin console pass through a server action.
   experimental: { serverActions: { bodySizeLimit: "10mb" } },
+  // LOGALUXE_API_URL is read on the server only (process.env in server code), so it is not put in the browser bundle.
   env: {
     NEXT_PUBLIC_LOGALUXE_QA: process.env.LOGALUXE_QA === "1" ? "1" : "0",
-    // Public base URL of the Go API, used by server components and route handlers.
-    LOGALUXE_API_URL: process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080",
   },
   // The Journal on its own host: journal.<site host> serves /journal/*. Nothing changes until the owner adds a DNS
   // record for the subdomain (see the README). The site's own files, pictures and API routes pass through untouched,

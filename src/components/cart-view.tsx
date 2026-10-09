@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { money } from "@/lib/api";
 import { MAX_QTY, cart, useCart, type CartItem, type Fulfilment, type PickupWhen } from "@/lib/cart";
+import { checkoutRequest, completeCheckout, type CheckoutRequest } from "@/lib/checkout-request";
 import { CardChoice, NO_PAY, WalletNote, cardLabel, cardsFor, walletsFor, type PayFeatures } from "@/components/pay-bits";
 import { US_STATES, currencyOf, deliveryDays, payProvider, pickupTodayText, possessive, shopHref, visitDay, type CartProduct, type Currency, type OrderQuote, type ProductExtras } from "@/lib/shop";
 
@@ -284,22 +285,35 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
     if (blocked || !current) return;
     setBusy(true);
     const sent = lines.filter((l) => l.live !== null);
+    const body = {
+      customer_name: name.trim(), customer_phone: phone.trim(), customer_email: email.trim(),
+      ...orderBody,
+      // A kept card is charged at once; a new card is kept only when the box is ticked.
+      ...(useCard ? { card_id: useCard.id } : offerCards && keepCard ? { save_card: true } : {}),
+      address: anyShip ? { line1: line1.trim(), city: city.trim(), region: region.trim(), postal: naira ? "" : zip.trim() } : null,
+    };
+    // The same order sent again (after a lost answer, or two clicks) carries the same request id, so the API
+    // answers with the order it already placed rather than placing a second one. Only the id is kept in the browser.
+    let request: CheckoutRequest;
+    try {
+      const fd = new FormData();
+      fd.set("order", JSON.stringify(body));
+      request = await checkoutRequest(fd, "shop", "cart", me?.email || "guest");
+    } catch (e) {
+      setBusy(false); setErrors({ pay: (e as Error).message }); return;
+    }
     let res: Response, j: { order?: Order; error?: string };
     try {
       res = await fetch("/api/orders", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer_name: name.trim(), customer_phone: phone.trim(), customer_email: email.trim(),
-          ...orderBody,
-          // A kept card is charged at once; a new card is kept only when the box is ticked.
-          ...(useCard ? { card_id: useCard.id } : offerCards && keepCard ? { save_card: true } : {}),
-          address: anyShip ? { line1: line1.trim(), city: city.trim(), region: region.trim(), postal: naira ? "" : zip.trim() } : null,
-        }),
+        body: JSON.stringify({ ...body, request_id: request.id }),
+        signal: AbortSignal.timeout(25000),
       });
       j = await res.json();
     } catch {
-      setBusy(false); setErrors({ pay: "We could not reach the shop. Nothing was charged. Try again in a moment." }); return;
+      setBusy(false); setErrors({ pay: "We could not confirm the result. Nothing more is charged if you try again with the same details: the same request cannot place a second order. You can also check your orders in your account." }); return;
     }
+    if (res.ok && j.order) completeCheckout(request);
     if (!res.ok || !j.order) {
       setBusy(false);
       const text = sentence(j.error ?? "the order could not be placed");
@@ -342,7 +356,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
             {otherLeft > 0 && <p className="muted">Your {otherLeft === 1 ? "item" : `${otherLeft} items`} priced in {WORD[naira ? "USD" : "NGN"]} {otherLeft === 1 ? "is" : "are"} still in your cart, ready to pay for.</p>}
             <div className="row">
               <Link href={shopHref(currency)} className="btn btn-out">Keep shopping</Link>
-              {me ? <Link href="/account?tab=orders" className="btn btn-ink">See your orders</Link> : <Link href={naira ? "/search?market=NG" : "/search"} className="btn btn-ink">Book a visit</Link>}
+              {me ? <Link href="/account?tab=orders" className="btn btn-ink">See your orders</Link> : <Link href={naira ? "/search?place=nigeria" : "/search"} className="btn btn-ink">Book a visit</Link>}
             </div>
           </div>
         </div>
@@ -493,7 +507,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
           </div>
           <p className="msg" role="status">{updating && !blocked ? (quote ? "Updating the total." : "Working out the total.") : ""}</p>
           {codeRow("Promo code", promoInput, setPromoInput, () => { setPromo(promoInput.trim()); setErrors((e) => ({ ...e, promo: undefined })); }, promo, () => { setPromo(""); setPromoInput(""); setErrors((e) => ({ ...e, promo: undefined })); }, "Promo code", promoOk ? `${cash(current && discount ? discount : check.discount_cents)} off` : "", errors.promo ?? (quoteAbout === "promo" ? quoteProblem : promo && checked ? check.promo_error : ""))}
-          {/* Gift cards are in US dollars and cannot pay for an order in naira. */}
+          {/* A gift card pays only for an order in its own money; the API says so when it does not match. */}
           {codeRow("Gift card code", giftInput, setGiftInput, () => { setGift(giftInput.trim()); setErrors((e) => ({ ...e, gift: undefined })); }, gift, () => { setGift(""); setGiftInput(""); setErrors((e) => ({ ...e, gift: undefined })); }, "Gift card code", giftOk ? `${cash(check.gift_balance_cents)} on this card${current && giftUsed < check.gift_balance_cents ? `, ${cash(giftUsed)} used here` : ""}` : "", errors.gift ?? (quoteAbout === "gift" ? quoteProblem : gift && checked ? check.gift_error : ""))}
           {errors.pay && <p role="alert" className="msg bad">{errors.pay}</p>}
           {!errors.pay && quoteAbout === "pay" && <p role="alert" className="msg bad">{quoteProblem} <button type="button" className="link" onClick={() => setQuoteRetry((n) => n + 1)}>Try again</button></p>}

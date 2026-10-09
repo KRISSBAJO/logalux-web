@@ -7,7 +7,7 @@ import { getMe, mLoad, qs, type Row } from "@/lib/merchant-api";
 import { clock, dateMed, dur, money, plural } from "@/lib/merchant-format";
 import { deletePhoto, orderPhotos, pinReview, removeLogo, replyReview, saveLanguages, saveStorefront, updatePhoto, uploadLogo, uploadPhoto } from "./actions";
 import { HashTab, LivePreview, type PreviewData } from "./preview";
-import { ShareCard } from "./share-card";
+import { ShareCard, siteOrigin } from "./share-card";
 import "../../css/storefront.css";
 
 export const metadata = { title: "Storefront" };
@@ -58,7 +58,8 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
   const b = d.business as Row, disp = d.display as PreviewData["display"], loc = (d.location ?? null) as Row | null;
   const photos = (d.photos ?? []) as Row[], reviews = (d.reviews ?? []) as Row[];
   const maxPhotos = Number(d.max_photos ?? 8), storage = !!d.storage;
-  const url = String(d.url ?? ""), host = (() => { try { return new URL(url).host; } catch { return ""; } })();
+  const origin = await siteOrigin();
+  const url = origin ? `${origin}/b/${b.slug}` : String(d.url ?? ""), host = (() => { try { return new URL(url).host; } catch { return ""; } })();
   const highlights = (b.highlights ?? []) as string[];
   const logoId = b.logo_id ? String(b.logo_id) : "";
   const tone = /^#[0-9a-f]{6}$/i.test(b.tone ?? "") ? String(b.tone) : "#3B1D22";
@@ -80,7 +81,7 @@ export default async function Storefront({ searchParams }: { searchParams: Promi
   const team = menu.error ? [] : ((menu.data.staff ?? []) as Row[]).filter((p) => p.bookable).slice(0, 5).map((p) => ({ initials: String(p.initials ?? ""), tone: String(p.tone ?? "#7A1F2B"), name: String(p.name) }));
 
   const live = b.status === "live";
-  const statusPill = live ? <span className="pill pill-ok">Live · {host}/b/{b.slug}</span>
+  const statusPill = live ? <span className="pill pill-ok">{host.startsWith("localhost") || host.startsWith("127.") ? "Local preview" : "Live"} · {host}/b/{b.slug}</span>
     : b.status === "paused" ? <span className="pill pill-grey">Paused · not taking online bookings</span>
       : b.status === "suspended" ? <span className="pill pill-bad">Suspended</span>
         : <span className="pill pill-gold">In review · not on search yet</span>;

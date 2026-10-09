@@ -8,7 +8,7 @@ const BASE = process.env.LOGALUXE_API_URL ?? "http://127.0.0.1:18080";
 export const SESSION_COOKIE = "lx_session";
 
 export type Role = "support" | "ops" | "super_admin";
-export type Admin = { id: string; email: string; name: string; role: Role };
+export type Admin = { id: string; email: string; name: string; role: Role; must_change_password?: boolean };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>;
 

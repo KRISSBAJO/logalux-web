@@ -3,7 +3,7 @@ import { Btn, Content, Empty, Facts, Field, Flash, Hidden, Kpi, Panel, Pill, Rea
 import { Avatar, Stars } from "@/components/icons";
 import { MediaManager } from "@/components/media-manager";
 import { can, getAdmin, load, type Row } from "@/lib/admin-api";
-import { addNote, issueCredit, setBusinessPlan, setBusinessStatus, setPayoutHold } from "../../actions";
+import { addNote, issueCredit, setBusinessPlan, setBusinessStatus, setPayoutHold, setReviewSummary } from "../../actions";
 
 const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -155,6 +155,25 @@ export default async function BusinessDetail({ params, searchParams }: { params:
                   </form>
                 </div>
               ) : <ReadOnly need="ops" />}
+            </Panel>
+
+            <Panel title="What people say" sub="Written by the AI from the published reviews. It goes live on the public page only when a person approves it.">
+              {b.review_summary
+                ? <p className="rounded-xl bg-cream-2 px-3.5 py-2.5 text-[14px] leading-relaxed">{b.review_summary}</p>
+                : <p className="text-[14px] text-muted">No summary yet. One is written once the business has five published reviews.</p>}
+              <p className="mt-2 text-[12.5px] text-muted">
+                {b.review_summary_approved_at
+                  ? `Approved by ${b.review_summary_approved_by || "staff"} · ${fmtWhen(b.review_summary_approved_at, tz)}. Showing on the public page.`
+                  : b.review_summary ? `Not approved. Not shown on the public page.${b.review_summary_at ? ` Written ${ago(b.review_summary_at)}.` : ""}` : ""}
+              </p>
+              {ops ? (
+                <form action={setReviewSummary} className="mt-3 flex flex-wrap gap-2">
+                  <Hidden values={{ id: b.id, back }} />
+                  {b.review_summary && !b.review_summary_approved_at && <Btn kind="ok" small name="action" value="approve">Approve</Btn>}
+                  {b.review_summary && <Btn small name="action" value="clear">Clear</Btn>}
+                  <Btn small name="action" value="regenerate">Regenerate</Btn>
+                </form>
+              ) : <div className="mt-3"><ReadOnly need="ops" /></div>}
             </Panel>
 
             <Panel title="Goodwill credit" sub="Paid by LogaLuxe, not the business">
