@@ -104,7 +104,7 @@ function Tile({ p }: { p: ShopProduct }) {
 export default async function Shop({ searchParams }: { searchParams: Promise<Params> }) {
   const raw = await searchParams;
   const sp = Object.fromEntries(KEYS.map((k) => [k, String((Array.isArray(raw[k]) ? raw[k]?.[0] : raw[k]) ?? "").trim()])) as Record<Key, string>;
-  const { ng, explicit, place: placeLabel, homeNg } = await whichShop(raw);
+  const { ng, explicit } = await whichShop(raw);
   const cur: Currency = ng ? "NGN" : "USD";
   const band = BANDS[cur].find((b) => b.key === sp.price);
   const sort = SORTS.some(([k]) => k === sp.sort) ? sp.sort : "recommended";
@@ -233,18 +233,8 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Par
         </section>
 
         <main className="wrap">
-          {/* The shop for the person's own country. The other country is a deliberate switch, said plainly while it is on. */}
-          {ng !== homeNg ? (
-            <div className="market">
-              <p className="note" role="status">You are browsing the <b>{ng ? "Nigeria" : "United States"}</b> shop. Prices are in {ng ? "naira, paid through Paystack" : "US dollars, paid through Stripe"}, and that is what you pay in.{" "}
-                <Link href={otherShop(homeNg)}>Back to the {homeNg ? "Nigeria" : "United States"} shop</Link></p>
-            </div>
-          ) : (
-            <div className="market">
-              <span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}{!explicit && placeLabel ? ` Showing the shop for ${placeLabel}.` : ""}</span>
-              <Link href={otherShop(!ng)} className="muted" style={{ fontWeight: 600, color: "#7A1F2B" }}>Shopping for someone in {ng ? "the United States" : "Nigeria"}?</Link>
-            </div>
-          )}
+          {/* The shop follows the place chosen at the top of the page; the header says so when that is the other country. */}
+          <div className="market"><span className="muted">{ng ? "Prices in naira, paid through Paystack." : "Prices in US dollars, paid through Stripe."}</span></div>
           <nav className="cats" aria-label="Categories">
             <Link href={href({ category: "" })} scroll={false} className={`chip ${sp.category ? "" : "on"}`} aria-current={sp.category ? undefined : "true"}>All</Link>
             {categories.filter((c) => c.category !== "gift").map((c) => (
