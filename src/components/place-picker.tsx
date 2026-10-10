@@ -173,7 +173,7 @@ export function PlacePicker({ where, look, align = "left", after = "auto" }: {
       </button>
 
       {open && (
-        <div role="dialog" aria-label="Where to look" className={`absolute top-[calc(100%+12px)] z-50 w-[min(380px,calc(100vw-32px))] rounded-[20px] border border-line bg-cream p-4 text-left text-[14px] font-normal normal-case tracking-normal text-ink shadow-[0_30px_70px_rgba(18,14,13,.38)] ${align === "right" ? "right-0" : "left-0"}`}>
+        <div role="dialog" aria-label="Where to look" className={`place-dialog absolute top-[calc(100%+12px)] z-50 w-[min(380px,calc(100vw-32px))] rounded-[20px] border border-line bg-cream p-4 text-left text-[14px] font-normal normal-case tracking-normal text-ink shadow-[0_30px_70px_rgba(18,14,13,.38)] ${align === "right" ? "right-0" : "left-0"}`}>
           <h2 className="serif px-1 text-[26px] font-medium leading-none">Where to look</h2>
           {/* How we came by the place, said plainly. A guess is called a guess. */}
           <p className="px-1 pb-3 pt-2 text-[13px] leading-snug text-muted">

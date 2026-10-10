@@ -46,7 +46,7 @@ export function SearchBar({ initial = {}, where, keep = {} }: {
           <option value="anytime">Anytime</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="weekend">This weekend</option>
         </select>
       </label>
-      <button type="submit" className="btn btn-ink min-h-[46px] rounded-[16px] px-6 text-[14.5px] md:rounded-full"><Icon.Search />Search</button>
+      <button type="submit" aria-label="Search professionals" className="btn btn-ink min-h-[46px] rounded-[16px] px-6 text-[14.5px] md:rounded-full"><Icon.Search /><span>Search</span></button>
     </form>
   );
 }
