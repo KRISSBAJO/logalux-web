@@ -38,7 +38,7 @@ html { scroll-behavior: smooth; }
 @media (max-width: 767px) {
   .hero-glow { overflow-x: clip; }
   .hero-glow:has(.landing-hero) { background: #120e0d; }
-  .landing-hero { padding-top: 24px; padding-bottom: 28px; min-width: 0; gap: 24px; }
+  .landing-hero { padding-top: 16px; padding-bottom: 16px; min-width: 0; gap: 16px; }
   .landing-hero .eyebrow { font-size: 10px; letter-spacing: .12em; }
   .landing-hero h1 { font-size: clamp(42px, 11.5vw, 54px); line-height: 1.04; margin-top: 16px; }
   .landing-hero p { font-size: 15px; line-height: 1.6; margin-top: 16px; margin-bottom: 20px; max-width: 320px; }
@@ -53,11 +53,13 @@ html { scroll-behavior: smooth; }
   .landing-portrait { max-width: none; }
   .landing-portrait .float { animation: none; }
   .landing-portrait .draw-in, .landing-portrait figure { display: none; }
-  .landing-portrait .hero-portrait { aspect-ratio: 16 / 9; border-radius: 18px; }
+  .landing-portrait .hero-portrait { aspect-ratio: 2.2 / 1; border-radius: 18px; }
   .landing-portrait img { object-position: center 35%; }
   .hero-glow + .marquee { mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
   .hero-glow + .marquee .serif { font-size: 18px; }
-  #categories { padding-top: 40px; }
+  #categories { padding-top: 20px; padding-bottom: 32px; }
+  #categories [data-reveal] { gap: 12px; margin-bottom: 20px; }
+  #categories h2 { font-size: 32px; }
 }
 body { background: var(--color-cream); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
