@@ -60,11 +60,11 @@ body { overflow-x: clip; }
   .landing-portrait { max-width: none; }
   .landing-portrait .float { animation: none; }
   .landing-portrait .draw-in, .landing-portrait figure { display: none; }
-  .landing-portrait .hero-portrait { aspect-ratio: 1; height: calc(100vw - 32px); border-radius: 18px; }
+  .landing-portrait .hero-portrait { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); aspect-ratio: 1; height: calc(100vw - 32px); border-radius: 18px; }
   @media (min-width: 721px) { .landing-portrait .hero-portrait { height: calc(100vw - 64px); } }
-  .landing-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-position: var(--mobile-photo-position, center); transform: none; scale: 1; }
+  .landing-portrait img { grid-area: 1 / 1; position: static; width: 100%; height: 100%; object-position: var(--mobile-photo-position, center); transform: none; scale: 1; }
   .landing-portrait img[aria-hidden="true"] { display: none; }
-  .landing-portrait .hero-service-overlay { position: absolute; display: block; mask-image: none; -webkit-mask-image: none; }
+  .landing-portrait .hero-service-overlay { grid-area: 1 / 1; align-self: end; position: static; display: block; mask-image: none; -webkit-mask-image: none; }
   .landing-portrait .hero-slide-controls { bottom: 56px; }
   .hero-glow + .marquee { display: none; }
   .hero-glow + .marquee { mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
