@@ -59,6 +59,8 @@ body { overflow-x: clip; }
   .landing-portrait .float { animation: none; }
   .landing-portrait .draw-in, .landing-portrait figure { display: none; }
   .landing-portrait .hero-portrait { aspect-ratio: 4 / 5; border-radius: 18px; }
+  .landing-portrait .hero-portrait[data-mobile-frame="portrait"] { aspect-ratio: 1; }
+  .landing-portrait .hero-portrait[data-mobile-frame="portrait"] img { object-position: center bottom; }
   .landing-portrait img { object-position: center; transform: scale(var(--mobile-photo-scale, 1)); transform-origin: var(--mobile-photo-origin, center); }
   .hero-glow + .marquee { mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
   .hero-glow + .marquee .serif { font-size: 18px; }

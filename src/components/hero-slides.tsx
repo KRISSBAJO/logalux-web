@@ -15,8 +15,8 @@ const CARD_AT: Record<string, string> = {
 // These uploaded portraits have extra headroom. New photos keep their full frame
 // until a deliberate crop is chosen; the manicure photo stays uncropped.
 const MOBILE_FRAME: Record<string, { scale: number; origin: string }> = {
-  "fefc4ea0-f5a1-4f33-805c-ca427f437929": { scale: 1.24, origin: "50% 78%" },
-  "4a818a12-3f3b-4f7e-a8f5-8489338c807d": { scale: 1.16, origin: "50% 75%" },
+  "fefc4ea0-f5a1-4f33-805c-ca427f437929": { scale: 1.18, origin: "50% 100%" },
+  "4a818a12-3f3b-4f7e-a8f5-8489338c807d": { scale: 1.08, origin: "50% 100%" },
 };
 
 /**
@@ -42,7 +42,7 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
     <>
       <div className="float">
         <div aria-hidden className="draw-in absolute -right-4 -top-4 h-full w-full rounded-t-[240px] rounded-b-[28px] border border-gold/35" />
-        <div className="hero-portrait relative aspect-[4/5] overflow-hidden rounded-t-[240px] rounded-b-[28px]">
+        <div data-mobile-frame={shown && MOBILE_FRAME[shown.id] ? "portrait" : "full"} className="hero-portrait relative aspect-[4/5] overflow-hidden rounded-t-[240px] rounded-b-[28px]">
           {images.length === 0 && (
             <svg aria-hidden viewBox="0 0 400 500" className="absolute inset-0 z-[1] h-full w-full" fill="none" stroke="#E7B86A" strokeWidth="1">
               {[0, 1, 2, 3, 4].map((n) => {
