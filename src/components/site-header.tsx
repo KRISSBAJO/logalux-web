@@ -56,14 +56,26 @@ export async function SiteHeader({ active, transparent = false, placePage = fals
           <Link href="/search" className="btn btn-gold btn-sm">Book now</Link>
           {account}
         </div>
-        <div className="ml-auto flex items-center gap-3 lg:hidden">
+        <div className="ml-auto flex items-center gap-1.5 lg:hidden">
           {cart}
           {account}
-          <Link href="/search" className="btn btn-gold btn-sm">Book</Link>
+          <details className="relative">
+            <summary aria-label="Open navigation menu" className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border border-white/20 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-gold [&::-webkit-details-marker]:hidden">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </summary>
+            <nav aria-label="Mobile navigation" className="absolute right-0 top-full z-50 mt-3 w-[min(280px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-ink-2 p-2 shadow-xl">
+              <Link href="/search" className="block rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-ink">Book a service</Link>
+              <Link href="/shop" className="block rounded-xl px-4 py-3 text-sm hover:bg-white/10">Shop</Link>
+              <Link href="/journal" className="block rounded-xl px-4 py-3 text-sm hover:bg-white/10">Journal</Link>
+              <div className="my-1 border-t border-white/15" />
+              <Link href={business ? "/business" : "/business/signin"} className="block rounded-xl px-4 py-3 text-sm font-semibold text-gold hover:bg-white/10">{business ? "Business dashboard" : "Business sign in"}</Link>
+              <Link href="/business/signup" className="block rounded-xl px-4 py-3 text-sm hover:bg-white/10">List your business</Link>
+            </nav>
+          </details>
         </div>
       </nav>
       {/* On a phone the place has a line of its own under the bar. */}
-      <div className="container-x -mt-2 flex items-center justify-between gap-3 pb-3 lg:hidden">{picker("left")}{!business && <Link href="/business/signin" className="shrink-0 text-[13px] font-semibold text-gold">Business sign in</Link>}</div>
+      <div className="container-x -mt-2 flex items-center gap-3 border-b border-white/10 pb-2 lg:hidden">{picker("left")}</div>
     </header>
     {/* Browsing a country other than their own, on purpose: say so on every page, with the way back. */}
     {where.abroad && <BrowsingBanner scope={where.scope} home={where.home} />}
