@@ -42,7 +42,7 @@ export function SearchBar({ initial = {}, where, keep = {} }: {
       <PlacePicker look="field" where={where} />
       <label className="flex min-w-0 flex-col px-3.5 py-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[.12em] text-muted">When</span>
-        <select value={when} onChange={(e) => setWhen(e.target.value)} className="w-full bg-transparent text-[15px] leading-tight text-ink outline-none">
+        <select aria-label="When" value={when} onChange={(e) => setWhen(e.target.value)} className="w-full bg-transparent text-[15px] leading-tight text-ink outline-none">
           <option value="anytime">Anytime</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="weekend">This weekend</option>
         </select>
       </label>
