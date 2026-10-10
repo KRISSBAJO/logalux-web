@@ -18,6 +18,11 @@ const MOBILE_POSITION: Record<string, string> = {
   "4a818a12-3f3b-4f7e-a8f5-8489338c807d": "50% 48%",
   "5bafc1aa-fd68-4c4b-acec-930c22be0d5d": "50% 85%",
 };
+// Remove the portraits' extra headroom while the headline stays fixed in front.
+const MOBILE_SCALE: Record<string, number> = {
+  "fefc4ea0-f5a1-4f33-805c-ca427f437929": 1.22,
+  "4a818a12-3f3b-4f7e-a8f5-8489338c807d": 1.4,
+};
 
 /**
  * The hero arch: the photos, and the caption that belongs to each one, as the admin wrote it.
@@ -61,7 +66,7 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
               aria-hidden={i !== current}
               loading={i === 0 ? "eager" : "lazy"}
               fetchPriority={i === 0 ? "high" : "auto"}
-              style={{ "--mobile-photo-position": MOBILE_POSITION[img.id] ?? "center" } as React.CSSProperties}
+              style={{ "--mobile-photo-position": MOBILE_POSITION[img.id] ?? "center", "--mobile-photo-scale": MOBILE_SCALE[img.id] ?? 1 } as React.CSSProperties}
               className={`absolute inset-0 z-10 h-full w-full object-cover transition-[opacity,transform] duration-[1800ms] ease-out ${i === current ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
             />
           ))}

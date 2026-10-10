@@ -65,7 +65,7 @@ body { overflow-x: clip; }
   .landing-portrait .float { animation: none; }
   .landing-portrait .draw-in, .landing-portrait figure, .landing-portrait .hero-service-overlay { display: none; }
   .landing-portrait .hero-portrait { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); aspect-ratio: auto; height: clamp(420px, 56vh, 540px); border-radius: 0 0 28px 28px; }
-  .landing-portrait img { grid-area: 1 / 1; position: static; width: 100%; height: 100%; object-position: var(--mobile-photo-position, center); transform: none; scale: 1; }
+  .landing-portrait img { grid-area: 1 / 1; position: static; width: 100%; height: 100%; object-position: var(--mobile-photo-position, center); transform: scale(var(--mobile-photo-scale, 1)); transform-origin: center bottom; scale: 1; }
   .landing-portrait img[aria-hidden="true"] { display: none; }
   /* Deep shade at the foot so the headline reads on any photo the admin uploads. */
   .landing-portrait .hero-shade { height: 72%; background: linear-gradient(to top, rgba(10, 7, 6, .92) 0%, rgba(10, 7, 6, .55) 45%, rgba(10, 7, 6, 0) 100%); }
