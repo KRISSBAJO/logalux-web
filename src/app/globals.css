@@ -41,7 +41,9 @@ body { overflow-x: clip; }
   .landing-hero { padding-top: 12px; padding-bottom: 16px; min-width: 0; gap: 16px; }
   .landing-hero .eyebrow { font-size: 10px; letter-spacing: .12em; }
   .landing-hero .rise { animation: none; transform: none; }
-  .landing-hero h1 { font-size: clamp(42px, 11.5vw, 54px); line-height: 1.04; margin-top: 16px; }
+  .landing-hero h1 { font-size: clamp(42px, 11.5vw, 54px); line-height: 1.04; margin-top: 8px; }
+  .mobile-professional-search { min-height: 46px; font-size: 15px; font-weight: 600; }
+  .mobile-professional-search:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 4px; }
   .landing-hero p { font-size: 15px; line-height: 1.6; margin-top: 16px; margin-bottom: 20px; max-width: 320px; }
   .beauty-search { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) 44px; gap: 0; padding: 5px; border-radius: 22px; box-shadow: none; --tw-ring-shadow: 0 0 transparent; }
   .beauty-search > label:first-child { grid-column: 1 / 3; border-right: 1px solid var(--color-line); padding: 2px 12px; }
@@ -59,9 +61,10 @@ body { overflow-x: clip; }
   .landing-portrait .float { animation: none; }
   .landing-portrait .draw-in, .landing-portrait figure { display: none; }
   .landing-portrait .hero-portrait { aspect-ratio: 4 / 5; border-radius: 18px; }
-  .landing-portrait .hero-portrait[data-mobile-frame="portrait"] { aspect-ratio: 1; }
-  .landing-portrait .hero-portrait[data-mobile-frame="portrait"] img { object-position: center bottom; }
-  .landing-portrait img { object-position: center; transform: scale(var(--mobile-photo-scale, 1)); transform-origin: var(--mobile-photo-origin, center); }
+  .landing-portrait .hero-portrait[data-mobile-frame="portrait"] { aspect-ratio: 4 / 3; }
+  .landing-portrait .hero-portrait[data-mobile-frame="portrait"] img { object-position: center 48%; }
+  .landing-portrait img { position: relative; inset: auto; width: 100%; height: 100%; object-position: center; transform: none; scale: 1; }
+  .landing-portrait img[aria-hidden="true"] { display: none; }
   .hero-glow + .marquee { mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
   .hero-glow + .marquee .serif { font-size: 18px; }
   #categories { padding-top: 20px; padding-bottom: 32px; }
