@@ -12,11 +12,11 @@ const CARD_AT: Record<string, string> = {
   "top-left": "-left-10 top-[22%]",
 };
 
-// These uploaded portraits have extra headroom. New photos keep their full frame
-// until a deliberate crop is chosen; the manicure photo stays uncropped.
-const MOBILE_FRAME: Record<string, { scale: number; origin: string }> = {
-  "fefc4ea0-f5a1-4f33-805c-ca427f437929": { scale: 1.18, origin: "50% 100%" },
-  "4a818a12-3f3b-4f7e-a8f5-8489338c807d": { scale: 1.08, origin: "50% 100%" },
+// Crop each subject inside the same mobile frame, without changing slide height.
+const MOBILE_POSITION: Record<string, string> = {
+  "fefc4ea0-f5a1-4f33-805c-ca427f437929": "50% 48%",
+  "4a818a12-3f3b-4f7e-a8f5-8489338c807d": "50% 48%",
+  "5bafc1aa-fd68-4c4b-acec-930c22be0d5d": "50% 85%",
 };
 
 /**
@@ -42,7 +42,7 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
     <>
       <div className="float">
         <div aria-hidden className="draw-in absolute -right-4 -top-4 h-full w-full rounded-t-[240px] rounded-b-[28px] border border-gold/35" />
-        <div data-mobile-frame={shown && MOBILE_FRAME[shown.id] ? "portrait" : "full"} className="hero-portrait relative aspect-[4/5] overflow-hidden rounded-t-[240px] rounded-b-[28px]">
+        <div className="hero-portrait relative aspect-[4/5] overflow-hidden rounded-t-[240px] rounded-b-[28px]">
           {images.length === 0 && (
             <svg aria-hidden viewBox="0 0 400 500" className="absolute inset-0 z-[1] h-full w-full" fill="none" stroke="#E7B86A" strokeWidth="1">
               {[0, 1, 2, 3, 4].map((n) => {
@@ -61,18 +61,23 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
               aria-hidden={i !== current}
               loading={i === 0 ? "eager" : "lazy"}
               fetchPriority={i === 0 ? "high" : "auto"}
-              style={{ "--mobile-photo-scale": MOBILE_FRAME[img.id]?.scale ?? 1, "--mobile-photo-origin": MOBILE_FRAME[img.id]?.origin ?? "center" } as React.CSSProperties}
+              style={{ "--mobile-photo-position": MOBILE_POSITION[img.id] ?? "center" } as React.CSSProperties}
               className={`absolute inset-0 z-10 h-full w-full object-cover transition-[opacity,transform] duration-[1800ms] ease-out ${i === current ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
             />
           ))}
           <div aria-hidden className="absolute inset-x-0 bottom-0 z-10 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
           {images.length > 1 && (
-            <div className="absolute inset-x-0 bottom-5 z-20 flex justify-center gap-1.5">
+            <div className="hero-slide-controls absolute inset-x-0 bottom-5 z-20 flex justify-center gap-1.5">
               {images.map((img, i) => (
                 <button key={img.id} type="button" onClick={() => setCurrent(i)} aria-label={`Show picture ${i + 1} of ${images.length}`} aria-current={i === current} className={`h-1.5 rounded-full transition-all duration-500 ${i === current ? "w-6 bg-gold" : "w-1.5 bg-white/55 hover:bg-white"}`} />
               ))}
             </div>
           )}
+          <div aria-hidden className="hero-service-overlay marquee absolute inset-x-0 bottom-0 z-20 hidden border-t border-white/15 bg-black/45 py-3 text-[#F4ECE3] backdrop-blur-sm">
+            <div className="marquee-track">
+              {[0, 1].map((copy) => <div key={copy} className="flex flex-none items-center">{["Knotless braids", "Silk press", "Skin fade", "Gel manicure", "Lash extensions", "Bridal makeup"].map((service) => <span key={service} className="serif flex items-center whitespace-nowrap text-[17px] italic">{service}<i className="mx-5 h-1 w-1 rounded-full bg-gold" /></span>)}</div>)}
+            </div>
+          </div>
         </div>
       </div>
 
