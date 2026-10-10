@@ -78,7 +78,7 @@ export default async function Landing() {
             <div className="rise max-w-[600px]" style={{ "--i": 3 } as React.CSSProperties}><SearchBar where={picker} /></div>
           </div>
 
-          <div className="rise relative mx-auto w-full max-w-[440px] max-lg:hidden" style={{ "--i": 2 } as React.CSSProperties}>
+          <div className="landing-portrait rise relative mx-auto w-full max-w-[440px]" style={{ "--i": 2 } as React.CSSProperties}>
             <HeroShowcase images={heroImages} />
           </div>
         </section>

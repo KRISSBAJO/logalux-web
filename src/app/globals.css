@@ -37,17 +37,27 @@ html { scroll-behavior: smooth; }
 /* Keep the marketing search comfortable at phone widths, including iOS inputs. */
 @media (max-width: 767px) {
   .hero-glow { overflow-x: clip; }
-  .landing-hero { padding-top: 32px; padding-bottom: 48px; min-width: 0; }
-  .landing-hero h1 { font-size: clamp(44px, 12vw, 58px); margin-top: 20px; }
-  .landing-hero p { font-size: 16px; margin-top: 20px; margin-bottom: 24px; }
-  .beauty-search { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; padding: 8px; border-radius: 20px; }
-  .beauty-search > label:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--color-line); padding: 12px; }
+  .hero-glow:has(.landing-hero) { background: #120e0d; }
+  .landing-hero { padding-top: 24px; padding-bottom: 28px; min-width: 0; gap: 24px; }
+  .landing-hero .eyebrow { font-size: 10px; letter-spacing: .12em; }
+  .landing-hero h1 { font-size: clamp(42px, 11.5vw, 54px); line-height: 1.04; margin-top: 16px; }
+  .landing-hero p { font-size: 15px; line-height: 1.6; margin-top: 16px; margin-bottom: 20px; max-width: 320px; }
+  .beauty-search { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; padding: 6px; border-radius: 16px; box-shadow: none; --tw-ring-shadow: 0 0 transparent; }
+  .beauty-search > label:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--color-line); padding: 10px 12px; }
   .beauty-search > div { border-right: 1px solid var(--color-line); margin: 8px 0; }
-  .beauty-search > div > button { padding: 8px 12px; min-height: 54px; }
-  .beauty-search > label:nth-of-type(2) { padding: 16px 12px; }
+  .beauty-search > div > button { padding: 4px 12px; min-height: 48px; }
+  .beauty-search > label:nth-of-type(2) { padding: 12px; }
   .beauty-search input, .beauty-search select { font-size: 16px; min-height: 28px; }
   .beauty-search > button { grid-column: 1 / -1; width: 100%; border-radius: 14px; min-height: 48px; }
   .beauty-search :is(input, select, button):focus-visible { outline: 2px solid var(--color-gold-ink); outline-offset: 2px; }
+  .landing-portrait { max-width: none; }
+  .landing-portrait .float { animation: none; }
+  .landing-portrait .draw-in, .landing-portrait figure { display: none; }
+  .landing-portrait .hero-portrait { aspect-ratio: 16 / 9; border-radius: 18px; }
+  .landing-portrait img { object-position: center 35%; }
+  .hero-glow + .marquee { mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
+  .hero-glow + .marquee .serif { font-size: 18px; }
+  #categories { padding-top: 40px; }
 }
 body { background: var(--color-cream); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
