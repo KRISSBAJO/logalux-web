@@ -104,13 +104,25 @@ export async function SiteFooter() {
           <p className="mt-4 text-[13px] text-muted-2">LogaXP · 1108 Berry Street, Old Hickory, TN 37138</p>
         </div>
         {columns.map(([title, ...links]) => (
-          <div key={title}>
+          <div key={title} className="hidden md:block">
             <h4 className="mb-4 text-[14px] font-semibold uppercase tracking-[.1em] text-[#F4ECE3]">{title}</h4>
             {links.map(([l, h]) => (
               <Link key={l + h} href={h} className="mb-3 block text-[15px] text-[#C9BCB0] hover:text-white">{l}</Link>
             ))}
           </div>
         ))}
+        <div className="footer-mobile-groups md:hidden">
+          {columns.map(([title, ...links]) => (
+            <details key={title} className="border-t border-white/15">
+              <summary className="flex min-h-14 cursor-pointer items-center justify-between py-3 text-[15px] font-semibold text-cream">
+                {title}<span aria-hidden="true" className="footer-toggle">+</span>
+              </summary>
+              <nav aria-label={`${title} footer links`} className="pb-3">
+                {links.map(([label, href]) => <Link key={label + href} href={href} className="flex min-h-11 items-center text-[14px] hover:text-white">{label}</Link>)}
+              </nav>
+            </details>
+          ))}
+        </div>
       </div>
       <div className="container-x mt-14 flex flex-wrap justify-between gap-6 border-t border-white/10 pt-7 text-[13px] text-muted-2">
         <span>© 2026 LogaXP. All rights reserved.</span>

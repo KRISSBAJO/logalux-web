@@ -61,7 +61,7 @@ export default async function Landing() {
   const elsewhere = served.filter((c) => c.code !== where.scope);
 
   return (
-    <>
+    <div className="landing-page">
       <MotionBoot />
       <Motion />
       <div className="hero-glow text-[#F4ECE3]">
@@ -154,7 +154,7 @@ export default async function Landing() {
               </div>
             )}
           </div>
-          <div data-stagger className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div data-stagger role="region" aria-label="Recommended professionals" tabIndex={0} className="recommended-grid grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {featured.map((b) => (
               <Link key={b.slug} href={`/b/${b.slug}?src=search`} className="card lift flex flex-col overflow-hidden rounded-[22px]">
                 <div className="h-[220px] overflow-hidden">
@@ -312,7 +312,7 @@ export default async function Landing() {
         </div>
       </section>
 
-      <section className="py-24">
+      <section className="py-24" id="trust">
         <div className="container-x">
           <div data-reveal className="mb-10">
             <div className="eyebrow !text-wine">Why LogaLuxe</div>
@@ -335,7 +335,7 @@ export default async function Landing() {
         </div>
       </section>
 
-      <section className="pb-24">
+      <section className="pb-24" id="app-callout">
         <div className="container-x">
           <div data-reveal className="grid items-center gap-12 rounded-[32px] bg-wine p-10 text-[#F4ECE3] md:grid-cols-[1fr_auto] md:p-16">
             <div>
@@ -350,6 +350,6 @@ export default async function Landing() {
         </div>
       </section>
       <SiteFooter />
-    </>
+    </div>
   );
 }

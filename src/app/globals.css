@@ -1,5 +1,63 @@
 @import "tailwindcss";
 
+/* Phone layouts keep the content compact without changing desktop sections. */
+@media (max-width: 767px) {
+  .landing-page :is(#categories, #near, #journal, #how, #pros, #trust) { padding-block: 36px; }
+  .landing-page #categories { padding-top: 28px; }
+  .landing-page section > .container-x > [data-reveal]:first-child { margin-bottom: 24px; gap: 12px; }
+  .landing-page section:not(#top) h2 { font-size: 32px; }
+  .landing-page section > .container-x > [data-reveal] > p { font-size: 15px; }
+  .landing-page .card { box-shadow: 0 2px 8px rgba(26,21,19,.025); }
+  .landing-page .lift:hover { transform: none; box-shadow: 0 2px 8px rgba(26,21,19,.04); }
+  .landing-page #categories [data-stagger] { gap: 12px; }
+  .landing-page #categories .card { min-height: 132px; padding: 16px; gap: 10px; border-radius: 18px; }
+  .landing-page #categories .card small { display: block; margin-top: 4px; line-height: 1.4; }
+  .landing-page #categories .card .photo { width: 40px; height: 40px; }
+  .landing-page .recommended-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 14px; padding: 2px 0 12px; }
+  .landing-page .recommended-grid::-webkit-scrollbar { display: none; }
+  .landing-page .recommended-grid:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 3px; }
+  .landing-page .recommended-grid > a { flex: 0 0 86%; min-width: 0; scroll-snap-align: start; }
+  .landing-page .recommended-grid > .col-span-full { width: 100%; }
+  .landing-page .recommended-grid > a > div:first-child { height: 168px; }
+  .landing-page #near .mt-10, .landing-page #journal .mt-10 { margin-top: 20px; }
+  .landing-page #journal .grid > [data-reveal] > a { aspect-ratio: auto; min-height: 330px; }
+  .landing-page #journal .grid > [data-reveal] > a > div:last-child { padding: 20px; gap: 10px; }
+  .landing-page #journal .grid > [data-reveal] > a h2 { font-size: 28px; }
+  .landing-page #journal [data-stagger] { gap: 12px; }
+  .landing-page #journal [data-stagger] a > div:first-child { width: 96px; }
+  .landing-page #journal [data-stagger] h3 { font-size: 19px; }
+  .landing-page #how [data-stagger] { gap: 0; }
+  .landing-page #how .card { display: grid; grid-template-columns: 40px minmax(0,1fr); min-height: 0; padding: 20px 0; gap: 8px 14px; border: 0; border-bottom: 1px solid var(--color-line); border-radius: 0; background: transparent; box-shadow: none; }
+  .landing-page #how .card > div { grid-row: span 2; font-size: 32px; }
+  .landing-page #how .card h3 { font-size: 19px; line-height: 1.25; }
+  .landing-page #how .card p { font-size: 14px; }
+  .landing-page #pros .mt-16 { margin-top: 28px; gap: 14px; }
+  .landing-page #pros .phone { width: 248px; max-height: 360px; overflow: hidden; animation: none; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+  .landing-page #pros .phone > div { height: 480px; }
+  .landing-page #pros [data-stagger] { gap: 14px; }
+  .landing-page #pros .glass { display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 6px 12px; padding: 18px; border-radius: 18px; }
+  .landing-page #pros .glass > span { grid-row: span 2; width: 36px; height: 36px; }
+  .landing-page #pros .glass h3 { margin-top: 0; font-size: 23px; }
+  .landing-page #pros .glass p { margin-top: 0; font-size: 14px; }
+  .landing-page #pros .mt-14 { margin-top: 24px; gap: 12px; }
+  .landing-page #pros .mt-14 .btn { width: 100%; min-height: 46px; }
+  .landing-page #trust [data-stagger] { gap: 12px; }
+  .landing-page #trust .card { display: grid; grid-template-columns: 24px minmax(0,1fr); padding: 18px; gap: 8px 12px; border-radius: 18px; }
+  .landing-page #trust .card svg { width: 24px; height: 24px; grid-row: span 2; }
+  .landing-page #trust .card b { font-size: 16px; }
+  .landing-page #trust .card span { font-size: 14px; }
+  .landing-page #app-callout { padding-bottom: 36px; }
+  .landing-page #app-callout [data-reveal] { padding: 24px; gap: 24px; border-radius: 24px; }
+  .landing-page #app-callout p { font-size: 15px; }
+  .landing-page footer { padding-block: 36px; }
+  .landing-page footer > .container-x:first-child { gap: 24px; }
+  .landing-page footer > .container-x:last-child { margin-top: 24px; padding-top: 20px; gap: 12px; }
+  .footer-mobile-groups summary { list-style: none; }
+  .footer-mobile-groups summary::-webkit-details-marker { display: none; }
+  .footer-mobile-groups details[open] .footer-toggle { transform: rotate(45deg); }
+  .footer-mobile-groups summary:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; }
+}
+
 @theme {
   --color-ink: #1a1513;
   --color-ink-2: #120e0d;
