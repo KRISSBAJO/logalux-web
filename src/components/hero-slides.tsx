@@ -12,6 +12,13 @@ const CARD_AT: Record<string, string> = {
   "top-left": "-left-10 top-[22%]",
 };
 
+// These uploaded portraits have extra headroom. New photos keep their full frame
+// until a deliberate crop is chosen; the manicure photo stays uncropped.
+const MOBILE_FRAME: Record<string, { scale: number; origin: string }> = {
+  "fefc4ea0-f5a1-4f33-805c-ca427f437929": { scale: 1.24, origin: "50% 78%" },
+  "4a818a12-3f3b-4f7e-a8f5-8489338c807d": { scale: 1.16, origin: "50% 75%" },
+};
+
 /**
  * The hero arch: the photos, and the caption that belongs to each one, as the admin wrote it.
  * One photo sits still; several cross-fade slowly, and the caption changes with
@@ -54,6 +61,7 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
               aria-hidden={i !== current}
               loading={i === 0 ? "eager" : "lazy"}
               fetchPriority={i === 0 ? "high" : "auto"}
+              style={{ "--mobile-photo-scale": MOBILE_FRAME[img.id]?.scale ?? 1, "--mobile-photo-origin": MOBILE_FRAME[img.id]?.origin ?? "center" } as React.CSSProperties}
               className={`absolute inset-0 z-10 h-full w-full object-cover transition-[opacity,transform] duration-[1800ms] ease-out ${i === current ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
             />
           ))}
