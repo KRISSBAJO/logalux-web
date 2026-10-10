@@ -67,7 +67,7 @@ export default async function Landing() {
       <div className="hero-glow text-[#F4ECE3]">
         <SiteHeader transparent />
         <section className="landing-hero container-x grid items-center gap-14 pb-24 pt-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16 lg:pb-28 lg:pt-20" id="top">
-          <div className="min-w-0">
+          <div className="landing-copy min-w-0">
             <div className="eyebrow rise hidden md:flex" style={{ "--i": 0 } as React.CSSProperties}>{served.length > 0 ? served.map((c) => c.name).join(" · ") : "Beauty, booked"}</div>
             <h1 style={{ "--i": 1 } as React.CSSProperties} className="rise serif mt-7 text-[58px] leading-[.95] md:text-[104px]">
               Beauty you<br />can <em className="text-gold-2">trust.</em>
@@ -75,13 +75,14 @@ export default async function Landing() {
             <p style={{ "--i": 2 } as React.CSSProperties} className="rise mb-10 mt-7 max-w-[440px] text-[19px] leading-relaxed text-[#C9BCB0]">
               See who is verified, pick a free time, and book online.
             </p>
-            <Link href="/search" className="mobile-professional-search flex items-center justify-between rounded-full bg-cream px-5 text-ink md:hidden"><span>Find a professional</span><Icon.Search /></Link>
             <div className="rise hidden max-w-[600px] md:block" style={{ "--i": 3 } as React.CSSProperties}><SearchBar where={picker} /></div>
           </div>
 
           <div className="landing-portrait rise relative mx-auto w-full max-w-[440px]" style={{ "--i": 2 } as React.CSSProperties}>
             <HeroShowcase images={heroImages} />
           </div>
+          {/* On a phone the pill sits on the photo's bottom edge, so it comes after the photo. Hidden from md up. */}
+            <Link href="/search" className="mobile-professional-search flex items-center justify-between rounded-full bg-cream px-5 text-ink md:hidden"><span>Find a professional</span><Icon.Search /></Link>
         </section>
       </div>
 

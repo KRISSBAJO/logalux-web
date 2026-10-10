@@ -65,7 +65,7 @@ export function HeroShowcase({ images }: { images: HeroImage[] }) {
               className={`absolute inset-0 z-10 h-full w-full object-cover transition-[opacity,transform] duration-[1800ms] ease-out ${i === current ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
             />
           ))}
-          <div aria-hidden className="absolute inset-x-0 bottom-0 z-10 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
+          <div aria-hidden className="hero-shade absolute inset-x-0 bottom-0 z-10 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
           {images.length > 1 && (
             <div className="hero-slide-controls absolute inset-x-0 bottom-5 z-20 flex justify-center gap-1.5">
               {images.map((img, i) => (

@@ -38,13 +38,17 @@ body { overflow-x: clip; }
 /* Keep the marketing search comfortable at phone widths, including iOS inputs. */
 @media (max-width: 767px) {
   .hero-glow:has(.landing-hero) { background: #120e0d; }
-  .landing-hero { padding-top: 12px; padding-bottom: 16px; min-width: 0; gap: 16px; }
-  .landing-hero .eyebrow { font-size: 10px; letter-spacing: .12em; }
+  /* Phone hero: one composition, not three stacked blocks. The photo is the backdrop, the words
+     sit on its lower third over a deep shade, and the search pill rides its bottom edge. The copy
+     and the photo share one grid cell; the pill is the next row. */
+  .landing-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 0; padding-bottom: 20px; min-width: 0; }
   .landing-hero .rise { animation: none; transform: none; }
-  .landing-hero h1 { font-size: clamp(42px, 11.5vw, 54px); line-height: 1.04; margin-top: 8px; }
-  .mobile-professional-search { min-height: 46px; font-size: 15px; font-weight: 600; }
+  .landing-hero .eyebrow { display: none; }
+  .landing-copy { grid-area: 1 / 1; align-self: end; position: relative; z-index: 2; margin: 0 -16px; padding: 0 20px 34px; }
+  .landing-hero h1 { font-size: clamp(40px, 11vw, 50px); line-height: 1; margin-top: 0; text-shadow: 0 2px 24px rgba(0, 0, 0, .5); }
+  .landing-hero p { font-size: 15px; line-height: 1.55; margin: 12px 0 0; max-width: 300px; color: #E9DED3; text-shadow: 0 1px 12px rgba(0, 0, 0, .55); }
+  .mobile-professional-search { position: relative; z-index: 3; margin: -27px 16px 0; min-height: 54px; font-size: 15.5px; font-weight: 600; box-shadow: 0 14px 34px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .08); }
   .mobile-professional-search:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 4px; }
-  .landing-hero p { font-size: 15px; line-height: 1.6; margin-top: 16px; margin-bottom: 20px; max-width: 320px; }
   .beauty-search { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) 44px; gap: 0; padding: 5px; border-radius: 22px; box-shadow: none; --tw-ring-shadow: 0 0 transparent; }
   .beauty-search > label:first-child { grid-column: 1 / 3; border-right: 1px solid var(--color-line); padding: 2px 12px; }
   .beauty-search > div { grid-column: 1; grid-row: 2; border-right: 1px solid var(--color-line); margin: 0; }
@@ -57,17 +61,17 @@ body { overflow-x: clip; }
   .beauty-search > button > span { display: none; }
   .place-dialog { position: fixed; inset: 120px 16px auto; width: auto; max-height: calc(100dvh - 152px); overflow-y: auto; }
   .beauty-search :is(input, select, button):focus-visible { outline: 2px solid var(--color-gold-ink); outline-offset: 2px; }
-  .landing-portrait { max-width: none; }
+  .landing-portrait { grid-area: 1 / 1; z-index: 1; isolation: isolate; max-width: none; width: auto; margin: 0 -16px; }
   .landing-portrait .float { animation: none; }
-  .landing-portrait .draw-in, .landing-portrait figure { display: none; }
-  .landing-portrait .hero-portrait { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); aspect-ratio: 1; height: calc(100vw - 32px); border-radius: 18px; }
-  @media (min-width: 721px) { .landing-portrait .hero-portrait { height: calc(100vw - 64px); } }
+  .landing-portrait .draw-in, .landing-portrait figure, .landing-portrait .hero-service-overlay { display: none; }
+  .landing-portrait .hero-portrait { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); aspect-ratio: auto; height: clamp(420px, 56vh, 540px); border-radius: 0 0 28px 28px; }
   .landing-portrait img { grid-area: 1 / 1; position: static; width: 100%; height: 100%; object-position: var(--mobile-photo-position, center); transform: none; scale: 1; }
   .landing-portrait img[aria-hidden="true"] { display: none; }
-  .landing-portrait .hero-service-overlay { grid-area: 1 / 1; align-self: end; position: static; display: block; mask-image: none; -webkit-mask-image: none; }
-  .landing-portrait .hero-slide-controls { bottom: 56px; }
-  .hero-glow + .marquee { display: none; }
-  .hero-glow + .marquee { mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
+  /* Deep shade at the foot so the headline reads on any photo the admin uploads. */
+  .landing-portrait .hero-shade { height: 72%; background: linear-gradient(to top, rgba(10, 7, 6, .92) 0%, rgba(10, 7, 6, .55) 45%, rgba(10, 7, 6, 0) 100%); }
+  .landing-portrait .hero-slide-controls { top: 14px; right: 16px; bottom: auto; left: auto; justify-content: flex-end; }
+  /* The service strip lives below the hero on a phone, uncut, instead of inside the photo. */
+  .hero-glow + .marquee { display: block; mask-image: none; -webkit-mask-image: none; padding-block: 12px; background: #120e0d; }
   .hero-glow + .marquee .serif { font-size: 18px; }
   #categories { padding-top: 20px; padding-bottom: 32px; }
   #categories [data-reveal] { gap: 12px; margin-bottom: 20px; }
