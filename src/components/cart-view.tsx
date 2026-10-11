@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SecurityConfirm } from "@/components/security-confirm";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { money } from "@/lib/api";
 import { MAX_QTY, cart, useCart, type CartItem, type Fulfilment, type PickupWhen } from "@/lib/cart";
@@ -509,6 +510,7 @@ function CurrencyCart({ currency, items, live, extras, loaded, liveError, onRefr
           {codeRow("Promo code", promoInput, setPromoInput, () => { setPromo(promoInput.trim()); setErrors((e) => ({ ...e, promo: undefined })); }, promo, () => { setPromo(""); setPromoInput(""); setErrors((e) => ({ ...e, promo: undefined })); }, "Promo code", promoOk ? `${cash(current && discount ? discount : check.discount_cents)} off` : "", errors.promo ?? (quoteAbout === "promo" ? quoteProblem : promo && checked ? check.promo_error : ""))}
           {/* A gift card pays only for an order in its own money; the API says so when it does not match. */}
           {codeRow("Gift card code", giftInput, setGiftInput, () => { setGift(giftInput.trim()); setErrors((e) => ({ ...e, gift: undefined })); }, gift, () => { setGift(""); setGiftInput(""); setErrors((e) => ({ ...e, gift: undefined })); }, "Gift card code", giftOk ? `${cash(check.gift_balance_cents)} on this card${current && giftUsed < check.gift_balance_cents ? `, ${cash(giftUsed)} used here` : ""}` : "", errors.gift ?? (quoteAbout === "gift" ? quoteProblem : gift && checked ? check.gift_error : ""))}
+          {creditUsed > 0 ? <SecurityConfirm /> : null}
           {errors.pay && <p role="alert" className="msg bad">{errors.pay}</p>}
           {!errors.pay && quoteAbout === "pay" && <p role="alert" className="msg bad">{quoteProblem} <button type="button" className="link" onClick={() => setQuoteRetry((n) => n + 1)}>Try again</button></p>}
           <button type="button" className="btn btn-ink pay" disabled={busy || blocked || !current} onClick={pay}>{busy ? (due === 0 ? "Placing your order…" : useCard ? "Paying…" : "Opening the payment page…") : !quote ? "Working out the total…" : due === 0 ? "Place order" : `Pay ${cash(due)}`}</button>

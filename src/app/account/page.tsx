@@ -707,6 +707,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           <section className="mt-8 scroll-mt-6" id="details">
             <h2 className={h2}>Details and password</h2>
             <Privacy user={user}/>
+            <SecurityConfirm />
+            <SecurityPIN />
             <div className="grid items-start gap-5 md:grid-cols-2">
               <form action={saveDetails} className="card flex flex-col gap-4 rounded-[20px] p-6">
                 <div className="grid grid-cols-2 gap-3">
@@ -803,3 +805,5 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     </>
   );
 }
+import { SecurityConfirm } from "@/components/security-confirm";
+import { SecurityPIN } from "@/components/security-pin";

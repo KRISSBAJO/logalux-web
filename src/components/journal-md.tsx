@@ -38,7 +38,7 @@ export function JournalBlocks({ blocks }: { blocks: Block[] }) {
             <figure key={k}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={b.src} alt={b.alt} loading="lazy" decoding="async" />
-              {b.caption && <figcaption>{b.caption}</figcaption>}
+              {b.caption && !/^AI[- ]generated sample/i.test(b.caption) && <figcaption>{b.caption}</figcaption>}
             </figure>
           );
           case "hr": return <hr key={k} />;

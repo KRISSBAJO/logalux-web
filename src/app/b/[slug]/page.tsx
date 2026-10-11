@@ -147,7 +147,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
                 <figure key={ph.id} id={`photo-${i + 1}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`/media/${ph.id}`} alt={ph.alt || `${b.name}, photo ${i + 1}`} loading={i < 2 ? "eager" : "lazy"} decoding="async" />
-                  {ph.caption ? <figcaption className="muted">{ph.caption}</figcaption> : null}
+                        {ph.caption && !/^AI[- ]generated sample/i.test(ph.caption) ? <figcaption className="muted">{ph.caption}</figcaption> : null}
                 </figure>
               ))}
             </div>
